@@ -1,0 +1,126 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --text: #161a1f;
+  --text-2: #3a414b;
+  --muted: #6b7380;
+  --rule: #dde2e8;
+  --accent: #0f9d7a;
+  --accent-soft: #e2f5ef;
+  --code-bg: #f0f2f5;
+  --radius: 12px;
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121419; --surface: #1a1d24; --surface-2: #222631; --text: #eef0f3; --text-2: #c3c8d0;
+    --muted: #8a919c; --rule: #2c313c; --accent: #3ddbb0; --accent-soft: #163a31; --code-bg: #0d0f13;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121419; --surface: #1a1d24; --surface-2: #222631; --text: #eef0f3; --text-2: #c3c8d0;
+  --muted: #8a919c; --rule: #2c313c; --accent: #3ddbb0; --accent-soft: #163a31; --code-bg: #0d0f13;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.7 var(--font); -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule);
+}
+.brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.theme-toggle {
+  border: 1px solid var(--rule); background: var(--surface); color: var(--text);
+  border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer;
+}
+
+/* ---------- Trang danh sách ---------- */
+.home { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
+.home h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.2; margin: 0 0 8px; letter-spacing: -.02em; }
+.home .sub { color: var(--muted); margin: 0 0 24px; }
+.search {
+  width: 100%; padding: 12px 14px; font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius); margin-bottom: 24px;
+}
+.search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.course-title { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 28px 0 12px; }
+.lesson-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.lesson-card {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; padding: 16px 18px; text-decoration: none;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--text);
+  transition: border-color .15s, transform .15s;
+}
+.lesson-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.lesson-card .num {
+  grid-row: span 3; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 15px;
+}
+.lesson-card .t { font-weight: 700; line-height: 1.4; }
+.lesson-card .d { color: var(--text-2); font-size: 15px; line-height: 1.5; }
+.lesson-card .m { color: var(--muted); font-size: 13px; }
+.empty { color: var(--muted); }
+
+/* ---------- Trang bài học ---------- */
+.lesson-layout { max-width: 800px; margin: 0 auto; padding: 32px 16px 64px; }
+.lesson-head .eyebrow { margin: 0 0 8px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.lesson-head h1 { font-size: clamp(26px, 4.5vw, 36px); line-height: 1.25; margin: 0 0 12px; letter-spacing: -.02em; }
+.lesson-head .lead { color: var(--text-2); margin: 0 0 8px; }
+.lesson-head .meta { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+
+.toc { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 28px; }
+.toc-title { margin: 0 0 6px; font-weight: 700; font-size: 15px; }
+.toc ol { margin: 0; padding-left: 20px; font-size: 15px; }
+.toc a { color: var(--text-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+.prose { color: var(--text-2); overflow-wrap: anywhere; }
+.prose h2 { color: var(--text); font-size: 24px; line-height: 1.35; margin: 40px 0 12px; scroll-margin-top: 72px; }
+.prose h3 { color: var(--text); font-size: 19px; margin: 28px 0 8px; scroll-margin-top: 72px; }
+.prose p { margin: 0 0 16px; }
+.prose strong { color: var(--text); }
+.prose ul, .prose ol { padding-left: 22px; margin: 0 0 16px; }
+.prose li { margin-bottom: 6px; }
+.prose code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+.prose pre {
+  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px;
+  overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 18px;
+}
+.prose pre code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+.prose figure { margin: 8px 0 22px; }
+.prose img { display: block; max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--rule); background: var(--surface); }
+.prose .el-diagram { background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.prose .el-diagram svg { display: block; margin: 0 auto; height: auto; }
+.lesson-table-scroll { overflow-x: auto; margin: 0 0 18px; }
+.prose table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.prose th, .prose td { border: 1px solid var(--rule); padding: 8px 10px; text-align: left; vertical-align: top; }
+.prose th { background: var(--surface-2); color: var(--text); }
+.callout { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 10px; padding: 14px 18px; margin: 0 0 22px; }
+.callout .callout-title { font-weight: 700; color: var(--text); margin: 0 0 6px; }
+.callout ul { margin-bottom: 0; }
+
+.lesson-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.lesson-nav a {
+  flex: 1; max-width: 48%; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface); text-decoration: none; color: var(--text); font-size: 15px; line-height: 1.4;
+}
+.lesson-nav a:hover { border-color: var(--accent); }
+.lesson-nav a.next { margin-left: auto; text-align: right; }
+.lesson-nav small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .lesson-nav { flex-direction: column; }
+  .lesson-nav a { max-width: none; }
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System Design Notes</title>
+  <meta name="description" content="Lưu lại các bài học System Design từ khóa học 200Lab, mỗi bài một file HTML.">
+  <script>try{var t=localStorage.getItem("sd-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">System Design Notes</span>
+    <button class="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối">◐</button>
+  </header>
+  <main class="home">
+    <h1>Bài học System Design</h1>
+    <p class="sub">Ghi chép từ khóa học 200Lab · <span id="count"></span></p>
+    <input id="search" class="search" type="search" placeholder="Tìm bài học (gõ không dấu cũng được)…" aria-label="Tìm bài học">
+    <div id="lessons"></div>
+  </main>
+  <script src="lessons/lessons.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
