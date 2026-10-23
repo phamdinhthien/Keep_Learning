@@ -7,21 +7,25 @@
   <meta name="description" content="Service dashboard metrics: latency percentiles (p50, p95, p99) vs mean, success vs error latency, throughput vs latency, error rate denominator, utilization vs saturation">
   <meta name="lesson:id" content="sd1-23">
   <meta name="lesson:order" content="2">
-  <meta name="lesson:course" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:mon" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:mon-order" content="1">
   <meta name="lesson:read-time" content="16 phút đọc">
   <meta name="lesson:source" content="https://learn.200lab.io/courses/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/lessons/sd1-23">
   <script>try{var t=localStorage.getItem("sd-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../../../assets/style.css">
 </head>
-<body class="lesson-page">
+<body class="lesson-page" data-root="../../../">
   <header class="topbar">
-    <a class="brand" href="../index.html">← Tất cả bài học</a>
+    <a class="brand" href="../../../index.html">System Design Notes</a>
     <button class="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối">◐</button>
   </header>
   <main class="lesson-layout">
+    <nav class="crumbs" aria-label="Đường dẫn">
+      <a href="../../../index.html">Khóa học</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a>
+    </nav>
     <article class="lesson">
       <header class="lesson-head">
-        <p class="eyebrow">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</p>
         <h1>Đọc p99, throughput, error rate và saturation trên dashboard</h1>
         <p class="lead">Service dashboard metrics: latency percentiles (p50, p95, p99) vs mean, success vs error latency, throughput vs latency, error rate denominator, utilization vs saturation</p>
         <p class="meta">16 phút đọc · <a href="https://learn.200lab.io/courses/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/lessons/sd1-23" target="_blank" rel="noopener">Bài gốc trên 200Lab</a></p>
@@ -251,10 +255,10 @@ Mẫu số là request POST /orders:   90 lỗi ÷  1.200 request = 7,5%
 <li><a href="https://www.brendangregg.com/usemethod.html" rel="noopener" target="_blank">The USE Method</a>: định nghĩa utilization, saturation và errors cho từng tài nguyên, và cách dùng ba số đo này để kiểm tra một hệ thống.</li>
 </ul>
       </div>
-      <footer class="lesson-nav" data-lesson-id="sd1-23"></footer>
+      <footer class="lesson-nav" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-23.html"></footer>
     </article>
   </main>
-  <script src="lessons.js"></script>
-  <script src="../assets/app.js"></script>
+  <script src="../../../lessons/lessons.js"></script>
+  <script src="../../../assets/app.js"></script>
 </body>
 </html>
