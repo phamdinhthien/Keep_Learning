@@ -1,264 +1,617 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đọc p99, throughput, error rate và saturation trên dashboard · System Design Notes</title>
-  <meta name="description" content="Service dashboard metrics: latency percentiles (p50, p95, p99) vs mean, success vs error latency, throughput vs latency, error rate denominator, utilization vs saturation">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đọc p99, Throughput, Error Rate &amp; Saturation — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON
+     Accent theo vai trò, cố định suốt trang:
+     --pct  #5eead4  latency / percentile
+     --thr  #60a5fa  throughput
+     --err  #fb7185  lỗi, ngưỡng đỏ
+     --sat  #f5a524  saturation / hàng chờ
+     --ok   #86efac  panel cũ "xanh" (đánh lừa)
+     --example #c084fc  khối ví dụ (viền nét đứt) */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --pct:#5eead4; --thr:#60a5fa; --err:#fb7185; --sat:#f5a524; --ok:#86efac;
+    --example:#c084fc; --example-bg:#160f1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.4vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.25;}
+  h1 .g{color:var(--ok);} h1 .r{color:var(--err);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:10px 18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc span b{color:var(--ink);font-weight:600;}
+
+  .fig{margin:26px 0 22px;}
+  .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;fill:var(--ink);}
+  svg text.sm{font-size:10.5px;fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg text.big{font-size:17px;font-weight:700;}
+  svg .box{fill:var(--panel);stroke:var(--line);stroke-width:1.5;}
+  svg .ln{stroke:var(--ink-dim);stroke-width:1.5;fill:none;}
+  svg .ln-d{stroke-dasharray:4 4;}
+  svg .grid{stroke:var(--line);stroke-width:1;}
+
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;line-height:1.35;}
+  .c-pct{color:var(--pct);} .c-thr{color:var(--thr);} .c-err{color:var(--err);} .c-sat{color:var(--sat);} .c-ok{color:var(--ok);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media (max-width:560px){.compare{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);}
+  .card ul li{margin-bottom:6px;}
+  .card ul li b{color:var(--ink);}
+  .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+
+  .tscroll{overflow-x:auto;margin-bottom:22px;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;border:1px solid var(--line);min-width:520px;}
+  th,td{text-align:left;padding:9px 12px;border:1px solid var(--line);vertical-align:middle;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);font-weight:500;}
+  td.num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;white-space:nowrap;}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  .mini{display:inline-block;height:7px;border-radius:4px;vertical-align:middle;margin-right:8px;}
+
+  .note{border-left:3px solid var(--line);background:var(--panel);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--ink-dim);margin-bottom:20px;}
+  .note b{color:var(--ink);}
+
+  .check{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .check li{display:grid;grid-template-columns:34px 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;}
+  .check .n{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;}
+  .check .q{font-weight:600;font-size:14px;margin-bottom:3px;}
+  .check .a{font-size:13px;color:var(--ink-dim);}
+
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);}
+  .example-box p + p{margin-top:8px;}
+  .example-box .hint{font-size:12px;color:var(--ink-dim);font-style:italic;}
+  .before-after{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:560px){.before-after{grid-template-columns:1fr;}}
+  .before-after > div{font-size:13px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
+  .before-after b.h{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  .example-box pre + p,.example-box p + pre,.example-box pre + pre,.example-box .before-after + p,.example-box p + .before-after,.example-box pre + .before-after{margin-top:10px;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:var(--err);} pre .good{color:var(--ok);}
+
+  .ref-label{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  .ref-links{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .ref-links li{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:13px;}
+  .ref-links .d{color:var(--ink);display:block;margin-bottom:3px;}
+  .ref-links a{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--thr);word-break:break-all;}
+
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;max-width:760px;margin:0 auto;}
+</style>
+
+<!-- sdn:head -->
   <meta name="lesson:id" content="sd1-23">
+  <meta name="lesson:title" content="Đọc p99, throughput, error rate và saturation trên dashboard">
+  <meta name="lesson:description" content="Mỗi panel gộp nhiều request thành một con số. Vấn đề nằm ở chỗ nó gộp request nào, theo cách nào. Toàn bộ số liệu bên dưới là số minh hoạ của bài, phút 21:00 tại API đặt hàng.">
   <meta name="lesson:order" content="2">
   <meta name="lesson:khoa" content="System Design">
-  <meta name="lesson:mon" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
-  <meta name="lesson:mon-order" content="1">
-  <meta name="lesson:read-time" content="16 phút đọc">
-  <meta name="lesson:source" content="https://learn.200lab.io/courses/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/lessons/sd1-23">
-  <script>try{var t=localStorage.getItem("sd-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-  <link rel="stylesheet" href="../../../assets/style.css">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="10 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
 </head>
-<body class="lesson-page" data-root="../../../">
-  <header class="topbar">
-    <a class="brand" href="../../../index.html">System Design Notes</a>
-    <button class="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối">◐</button>
-  </header>
-  <main class="lesson-layout">
-    <nav class="crumbs" aria-label="Đường dẫn">
-      <a href="../../../index.html">Khóa học</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a>
-    </nav>
-    <article class="lesson">
-      <header class="lesson-head">
-        <h1>Đọc p99, throughput, error rate và saturation trên dashboard</h1>
-        <p class="lead">Service dashboard metrics: latency percentiles (p50, p95, p99) vs mean, success vs error latency, throughput vs latency, error rate denominator, utilization vs saturation</p>
-        <p class="meta">16 phút đọc · <a href="https://learn.200lab.io/courses/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/lessons/sd1-23" target="_blank" rel="noopener">Bài gốc trên 200Lab</a></p>
-      </header>
-      <nav class="toc" aria-label="Trong bài này">
-      <p class="toc-title">Trong bài này</p>
-      <ol>
-        <li><a href="#panel-latency-vẫn-xanh-trong-khi-có-khách-chờ-hơn-3-giây">Panel latency vẫn xanh, trong khi có khách chờ hơn 3 giây</a></li>
-        <li><a href="#ba-panel-mà-team-nhìn-suốt-buổi-tối">Ba panel mà team nhìn suốt buổi tối</a></li>
-        <li><a href="#vì-sao-180-request-chờ-vài-giây-vẫn-không-làm-panel-latency-đỏ-lên">Vì sao 180 request chờ vài giây vẫn không làm panel latency đỏ lên</a></li>
-        <li><a href="#p50-p95-và-p99-cho-biết-nhóm-request-chậm-phải-chờ-bao-lâu">p50, p95 và p99 cho biết nhóm request chậm phải chờ bao lâu</a></li>
-        <li><a href="#throughput-tăng-cùng-lúc-với-p99-còn-tỉ-lệ-lỗi-của-đặt-hàng-bị-pha-loãng">Throughput tăng cùng lúc với p99, còn tỉ lệ lỗi của đặt hàng bị pha loãng</a></li>
-        <li><a href="#cpu-mới-45-nhưng-request-đã-phải-xếp-hàng-chờ-connection">CPU mới 45%, nhưng request đã phải xếp hàng chờ connection</a></li>
-        <li><a href="#trước-khi-kết-luận-hệ-thống-vẫn-ổn">Trước khi kết luận hệ thống vẫn ổn</a></li>
-        <li><a href="#tài-liệu-tham-khảo">Tài liệu tham khảo</a></li>
-      </ol>
-    </nav>
-      <div class="prose">
-<aside class="callout"><p class="callout-title">Bạn sẽ khám phá được gì trong bài này</p><ul>
-<li>Latency theo percentile là gì, và vì sao p50, p95, p99 cho biết nhiều hơn số trung bình.</li>
-<li>Throughput khác latency ở điểm nào khi bạn xem hai số liệu này trên cùng một dashboard.</li>
-<li>Error rate được tính trên tập request nào, và một mẫu số chọn sai có thể che mất lỗi ra sao.</li>
-<li>Utilization khác saturation thế nào, và dấu hiệu nào cho thấy request đang phải xếp hàng chờ một tài nguyên.</li>
-</ul>
-</aside>
-<figure class="el-figure"><img alt="Hai thẻ đứng cạnh nhau: API đặt hàng và một dashboard có ba panel trống cùng một ô viền đứt chứa dấu hỏi, kèm câu hỏi dashboard còn thiếu số liệu nào để biết khách đang phải chờ bao lâu." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/63/63835a45a50e56cba77727e664c8f197b8d5cc18780faac11d7717519c8c1c64/generations/8c1b96e39e485e659e9d2735911df985e4759ce4cca7dcebb803c127dfce3144" width="1586"/></figure>
-<h2 id="panel-latency-vẫn-xanh-trong-khi-có-khách-chờ-hơn-3-giây">Panel latency vẫn xanh, trong khi có khách chờ hơn 3 giây</h2>
-<p>Lúc <strong>21:00</strong>, panel “Latency trung bình” của API đặt hàng đang ở <strong>124 ms</strong> (số minh họa). Ngưỡng đỏ của panel là <strong>500 ms</strong>, nên nó vẫn xanh, và đã xanh như vậy từ đầu buổi tối. Nhìn panel này, ai cũng sẽ nói API đang trả lời khách khá nhanh.</p>
-<p>Nhưng access log của load balancer trong cùng phút đó lại ghi những dòng này:</p>
-<pre><code>Panel "Latency trung bình" lúc 21:00: 124 ms (ngưỡng đỏ: 500 ms)
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Khóa học</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
 
-21:00:14  GET   /cart           200     38ms
-21:00:14  GET   /orders/8812    200     52ms
-21:00:15  POST  /orders         200   3240ms
-21:00:15  GET   /health         200      2ms
-21:00:16  POST  /orders         503   3010ms
-21:00:16  GET   /products/41    200     41ms
-</code></pre>
-<p>Các request <code>GET</code> xong trong vài chục ms, đúng như panel nói. Hai lần bấm “Đặt hàng” thì khác hẳn. Lần đầu, khách chờ hơn <strong>3 giây</strong> rồi mới thấy đơn được tạo. Ở lần thứ hai, khách cũng chờ hơn <strong>3 giây</strong>, để rồi nhận về lỗi 503.</p>
-<p>Không panel nào đỏ. Vậy những request chậm này nằm ở đâu trên dashboard, và mỗi phút có bao nhiêu request như vậy?</p>
-<p>Câu hỏi này cần làm rõ. Riêng phút <strong>21:00</strong> đã có <strong>90 lần</strong> bấm “Đặt hàng” nhận 503 sau khoảng <strong>3 giây</strong> chờ. Cùng lúc đó, kỹ sư trực nhìn dashboard toàn màu xanh và báo rằng hệ thống vẫn bình thường: với các panel đang có, không cách nào nhận ra nhóm khách này.</p>
-<figure class="el-figure"><img alt="Bên trái, panel Latency trung bình ghi 124 ms lúc 21:00, ngưỡng đỏ 500 ms. Bên phải, access log của load balancer trong cùng phút ghi hai lần khách bấm Đặt hàng, đều chờ hơn 3 giây: POST /orders trả 200 sau 3240ms và POST /orders trả 503 sau 3010ms, hai thời gian chờ này được khoanh lại." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/00/003855d335983291bd21b9a98260a78ed7468a3d852497f158611bba36b119cd/generations/ee5425eeb9d1ff7d71f20f3524510e77e48c3427903b700de2385730ba1c9eda" width="1586"/></figure>
-<h2 id="ba-panel-mà-team-nhìn-suốt-buổi-tối">Ba panel mà team nhìn suốt buổi tối</h2>
-<p>API đặt hàng của cửa hàng lo ba việc: giỏ hàng, đặt hàng và xem đơn. API chạy một instance phía sau load balancer. Mỗi lần cần truy vấn Postgres, API lấy một connection từ connection pool rồi trả lại pool khi truy vấn xong. Connection pool là một nhóm connection mở sẵn tới database để các request dùng chung; pool này có <strong>20 connection</strong>. Ngoài request của khách, load balancer còn tự gọi <code>/health</code> vài giây một lần để biết instance vẫn đang chạy.</p>
-<p>Sơ đồ dưới đây vẽ đường đi của một request, từ trình duyệt của khách tới Postgres:</p>
-<figure class="el-diagram"><div><svg aria-roledescription="flowchart-v2" class="flowchart" id="el-diagram-4" role="graphics-document document" style="max-width: 1019.99px; min-width: 612px;" viewbox="4 4 1019.9884033203125 103" width="100%" xmlns="http://www.w3.org/2000/svg"><style>#el-diagram-4{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;fill:#eaedf1;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#el-diagram-4 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#el-diagram-4 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#el-diagram-4 .error-icon{fill:#232731;}#el-diagram-4 .error-text{fill:#eaedf1;stroke:#eaedf1;}#el-diagram-4 .edge-thickness-normal{stroke-width:1px;}#el-diagram-4 .edge-thickness-thick{stroke-width:3.5px;}#el-diagram-4 .edge-pattern-solid{stroke-dasharray:0;}#el-diagram-4 .edge-thickness-invisible{stroke-width:0;fill:none;}#el-diagram-4 .edge-pattern-dashed{stroke-dasharray:3;}#el-diagram-4 .edge-pattern-dotted{stroke-dasharray:2;}#el-diagram-4 .marker{fill:#8ee8c8;stroke:#8ee8c8;}#el-diagram-4 .marker.cross{stroke:#8ee8c8;}#el-diagram-4 svg{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;}#el-diagram-4 p{margin:0;}#el-diagram-4 .label{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaedf1;}#el-diagram-4 .cluster-label text{fill:#eaedf1;}#el-diagram-4 .cluster-label span{color:#eaedf1;}#el-diagram-4 .cluster-label span p{background-color:transparent;}#el-diagram-4 .label text,#el-diagram-4 span{fill:#eaedf1;color:#eaedf1;}#el-diagram-4 .node rect,#el-diagram-4 .node circle,#el-diagram-4 .node ellipse,#el-diagram-4 .node polygon,#el-diagram-4 .node path{fill:#10231d;stroke:#2f6b55;stroke-width:1px;}#el-diagram-4 .rough-node .label text,#el-diagram-4 .node .label text,#el-diagram-4 .image-shape .label,#el-diagram-4 .icon-shape .label{text-anchor:middle;}#el-diagram-4 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#el-diagram-4 .rough-node .label,#el-diagram-4 .node .label,#el-diagram-4 .image-shape .label,#el-diagram-4 .icon-shape .label{text-align:center;}#el-diagram-4 .node.clickable{cursor:pointer;}#el-diagram-4 .root .anchor path{fill:#8ee8c8!important;stroke-width:0;stroke:#8ee8c8;}#el-diagram-4 .arrowheadPath{fill:#dcd8ce;}#el-diagram-4 .edgePaths .path{stroke:#8ee8c8;stroke-width:1px;}#el-diagram-4 .flowchart-link{stroke:#8ee8c8;fill:none;}#el-diagram-4 .edgeLabel{background-color:#232731;text-align:center;}#el-diagram-4 .edgeLabel p{background-color:#232731;}#el-diagram-4 .edgeLabel rect{opacity:0.5;background-color:#232731;fill:#232731;}#el-diagram-4 .labelBkg{background-color:rgba(35, 39, 49, 0.5);}#el-diagram-4 .cluster rect{fill:#232731;stroke:#2c333a;stroke-width:1px;}#el-diagram-4 .cluster text{fill:#eaedf1;}#el-diagram-4 .cluster span{color:#eaedf1;}#el-diagram-4 .node .collapsed-indicator{fill:#2c333a;stroke:none;opacity:0.6;}#el-diagram-4 .node .collapsed-separator{stroke:#2c333a;stroke-width:0.75px;}#el-diagram-4 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;background:#232731;border:1px solid #2c333a;border-radius:2px;pointer-events:none;z-index:100;}#el-diagram-4 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#eaedf1;}#el-diagram-4 rect.text{fill:none;stroke-width:0;}#el-diagram-4 .icon-shape,#el-diagram-4 .image-shape{background-color:#232731;text-align:center;}#el-diagram-4 .icon-shape p,#el-diagram-4 .image-shape p{background-color:#232731;padding:2px;}#el-diagram-4 .icon-shape .label rect,#el-diagram-4 .image-shape .label rect{opacity:0.5;background-color:#232731;fill:#232731;}#el-diagram-4 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#el-diagram-4 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#el-diagram-4 .node .neo-node{stroke:#2f6b55;}#el-diagram-4 [data-look="neo"].node rect,#el-diagram-4 [data-look="neo"].cluster rect,#el-diagram-4 [data-look="neo"].node polygon{stroke:#2f6b55;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#el-diagram-4 [data-look="neo"].swimlane.cluster rect{filter:none;}#el-diagram-4 [data-look="neo"].node path{stroke:#2f6b55;stroke-width:1px;}#el-diagram-4 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#el-diagram-4 [data-look="neo"].node .neo-line path{stroke:#2f6b55;filter:none;}#el-diagram-4 [data-look="neo"].node circle{stroke:#2f6b55;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#el-diagram-4 [data-look="neo"].node circle .state-start{fill:#000000;}#el-diagram-4 [data-look="neo"].icon-shape .icon{fill:#2f6b55;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#el-diagram-4 [data-look="neo"].icon-shape .icon-neo path{stroke:#2f6b55;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#el-diagram-4 .edgeLabel rect{opacity:1!important;}#el-diagram-4 .labelBkg{background-color:transparent;}#el-diagram-4 :root{--mermaid-font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;}#el-diagram-4 .client rect{fill:rgb(226, 232, 240)!important;stroke:rgb(100, 116, 139)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .client polygon{fill:rgb(226, 232, 240)!important;stroke:rgb(100, 116, 139)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .client ellipse{fill:rgb(226, 232, 240)!important;stroke:rgb(100, 116, 139)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .client circle{fill:rgb(226, 232, 240)!important;stroke:rgb(100, 116, 139)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .client path{fill:rgb(226, 232, 240)!important;stroke:rgb(100, 116, 139)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .client tspan{fill:rgb(22, 26, 29)!important;}#el-diagram-4 .edge rect{fill:rgb(186, 230, 253)!important;stroke:rgb(2, 132, 199)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .edge polygon{fill:rgb(186, 230, 253)!important;stroke:rgb(2, 132, 199)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .edge ellipse{fill:rgb(186, 230, 253)!important;stroke:rgb(2, 132, 199)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .edge circle{fill:rgb(186, 230, 253)!important;stroke:rgb(2, 132, 199)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .edge path{fill:rgb(186, 230, 253)!important;stroke:rgb(2, 132, 199)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .edge tspan{fill:rgb(22, 26, 29)!important;}#el-diagram-4 .app rect{fill:rgb(167, 243, 208)!important;stroke:rgb(5, 150, 105)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .app polygon{fill:rgb(167, 243, 208)!important;stroke:rgb(5, 150, 105)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .app ellipse{fill:rgb(167, 243, 208)!important;stroke:rgb(5, 150, 105)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .app circle{fill:rgb(167, 243, 208)!important;stroke:rgb(5, 150, 105)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .app path{fill:rgb(167, 243, 208)!important;stroke:rgb(5, 150, 105)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .app tspan{fill:rgb(22, 26, 29)!important;}#el-diagram-4 .store rect{fill:rgb(253, 230, 138)!important;stroke:rgb(217, 119, 6)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .store polygon{fill:rgb(253, 230, 138)!important;stroke:rgb(217, 119, 6)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .store ellipse{fill:rgb(253, 230, 138)!important;stroke:rgb(217, 119, 6)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .store circle{fill:rgb(253, 230, 138)!important;stroke:rgb(217, 119, 6)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .store path{fill:rgb(253, 230, 138)!important;stroke:rgb(217, 119, 6)!important;color:rgb(22, 26, 29)!important;}#el-diagram-4 .store tspan{fill:rgb(22, 26, 29)!important;}</style><g><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-pointEnd" markerheight="8" markerunits="userSpaceOnUse" markerwidth="8" orient="auto" refx="5" refy="5" viewbox="0 0 10 10"><path class="arrowMarkerPath" d="M 0 0 L 10 5 L 0 10 z" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-pointStart" markerheight="8" markerunits="userSpaceOnUse" markerwidth="8" orient="auto" refx="4.5" refy="5" viewbox="0 0 10 10"><path class="arrowMarkerPath" d="M 0 5 L 10 10 L 10 0 z" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-pointEnd-margin" markerheight="14" markerunits="userSpaceOnUse" markerwidth="10.5" orient="auto" refx="11.5" refy="7" viewbox="0 0 11.5 14"><path class="arrowMarkerPath" d="M 0 0 L 11.5 7 L 0 14 z" style="stroke-width: 0; stroke-dasharray: 1, 0;"></path></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-pointStart-margin" markerheight="14" markerunits="userSpaceOnUse" markerwidth="11.5" orient="auto" refx="1" refy="7" viewbox="0 0 11.5 14"><polygon class="arrowMarkerPath" points="0,7 11.5,14 11.5,0" style="stroke-width: 0; stroke-dasharray: 1, 0;"></polygon></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-circleEnd" markerheight="11" markerunits="userSpaceOnUse" markerwidth="11" orient="auto" refx="11" refy="5" viewbox="0 0 10 10"><circle class="arrowMarkerPath" cx="5" cy="5" r="5" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-circleStart" markerheight="11" markerunits="userSpaceOnUse" markerwidth="11" orient="auto" refx="-1" refy="5" viewbox="0 0 10 10"><circle class="arrowMarkerPath" cx="5" cy="5" r="5" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-circleEnd-margin" markerheight="14" markerunits="userSpaceOnUse" markerwidth="14" orient="auto" refx="12.25" refy="5" viewbox="0 0 10 10"><circle class="arrowMarkerPath" cx="5" cy="5" r="5" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker class="marker flowchart-v2" id="el-diagram-4_flowchart-v2-circleStart-margin" markerheight="14" markerunits="userSpaceOnUse" markerwidth="14" orient="auto" refx="-2" refy="5" viewbox="0 0 10 10"><circle class="arrowMarkerPath" cx="5" cy="5" r="5" style="stroke-width: 0; stroke-dasharray: 1, 0;"></circle></marker><marker class="marker cross flowchart-v2" id="el-diagram-4_flowchart-v2-crossEnd" markerheight="11" markerunits="userSpaceOnUse" markerwidth="11" orient="auto" refx="12" refy="5.2" viewbox="0 0 11 11"><path class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker class="marker cross flowchart-v2" id="el-diagram-4_flowchart-v2-crossStart" markerheight="11" markerunits="userSpaceOnUse" markerwidth="11" orient="auto" refx="-1" refy="5.2" viewbox="0 0 11 11"><path class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker class="marker cross flowchart-v2" id="el-diagram-4_flowchart-v2-crossEnd-margin" markerheight="12" markerunits="userSpaceOnUse" markerwidth="12" orient="auto" refx="17.7" refy="7.5" viewbox="0 0 15 15"><path class="arrowMarkerPath" d="M 1,1 L 14,14 M 1,14 L 14,1" style="stroke-width: 2.5;"></path></marker><marker class="marker cross flowchart-v2" id="el-diagram-4_flowchart-v2-crossStart-margin" markerheight="12" markerunits="userSpaceOnUse" markerwidth="12" orient="auto" refx="-3.5" refy="7.5" viewbox="0 0 15 15"><path class="arrowMarkerPath" d="M 1,1 L 14,14 M 1,14 L 14,1" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"></path></marker><g class="root"><g class="clusters"></g><g class="edges edgePaths"><path class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" d="M186.07094665955083,55.5L186.07102966308594,55.5L222.07102966308594,55.5" data-edge="true" data-et="edge" data-id="L_B_LB_0" data-look="neo" data-points="W3sieCI6MTg2LjA3MDk0NjY1OTU1MDgzLCJ5Ijo1NS41fSx7IngiOjE4Ni4wNzEwMjk2NjMwODU5NCwieSI6NTUuNX0seyJ4IjoyMjYuMDcxMDI5NjYzMDg1OTQsInkiOjU1LjV9XQ==" id="el-diagram-4-L_B_LB_0" marker-end="url(#el-diagram-4_flowchart-v2-pointEnd-margin)" style="stroke-dasharray: 0 0 32.00007629394531 4; stroke-dashoffset: 0;;"></path><path class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" d="M421.40430879843916,44.33333333333333L427.7853088378906,44.33333333333333L446.5186417897542,44.33333333333333Q447.7853088378906,44.33333333333333 447.7853088378906,45.60000038146972L447.7853088378906,45.60000038146972Q447.7853088378906,46.86666742960611 449.05197588602704,46.86666742960611L504.9103088378906,46.86666742960611L578.0353088378906,46.86666742960611" data-edge="true" data-et="edge" data-id="L_LB_API_0" data-look="neo" data-points="W3sieCI6NDIxLjQwNDMwODc5ODQzOTE2LCJ5Ijo0NC4zMzMzMzMzMzMzMzMzM30seyJ4Ijo0MjcuNzg1MzA4ODM3ODkwNiwieSI6NDQuMzMzMzMzMzMzMzMzMzN9LHsieCI6NDQ3Ljc4NTMwODgzNzg5MDYsInkiOjQ0LjMzMzMzMzMzMzMzMzMzfSx7IngiOjQ0Ny43ODUzMDg4Mzc4OTA2LCJ5Ijo0Ni44NjY2Njc0Mjk2MDYxMX0seyJ4Ijo1MDQuOTEwMzA4ODM3ODkwNiwieSI6NDYuODY2NjY3NDI5NjA2MTF9LHsieCI6NTgyLjAzNTMwODgzNzg5MDYsInkiOjQ2Ljg2NjY2NzQyOTYwNjExfV0=" id="el-diagram-4-L_LB_API_0" marker-end="url(#el-diagram-4_flowchart-v2-pointEnd-margin)" style="stroke-dasharray: 0 0 154.20989990234375 4; stroke-dashoffset: 0;;"></path><path class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" d="M734.0353088378906,55.49999999999999L867.9884338378906,55.49999999999999" data-edge="true" data-et="edge" data-id="L_API_PG_0" data-look="neo" data-points="W3sieCI6NzM0LjAzNTMwODgzNzg5MDYsInkiOjU1LjQ5OTk5OTk5OTk5OTk5fSx7IngiOjg3MS45ODg0MzM4Mzc4OTA2LCJ5Ijo1NS40OTk5OTk5OTk5OTk5OX1d" id="el-diagram-4-L_API_PG_0" marker-end="url(#el-diagram-4_flowchart-v2-pointEnd-margin)" style="stroke-dasharray: 0 0 129.953125 4; stroke-dashoffset: 0;;"></path><path class="edge-thickness-normal edge-pattern-dotted edge-thickness-normal edge-pattern-solid flowchart-link" d="M421.40430879843916,66.66666666666666L427.7853088378906,66.66666666666666L446.5186417897542,66.66666666666666Q447.7853088378906,66.66666666666666 447.7853088378906,65.39999961853027L447.7853088378906,65.39999961853027Q447.7853088378906,64.13333257039388 449.05197588602704,64.13333257039388L578.0353088378906,64.13333257039388" data-edge="true" data-et="edge" data-id="L_LB_API_2" data-look="neo" data-points="W3sieCI6NDIxLjQwNDMwODc5ODQzOTE2LCJ5Ijo2Ni42NjY2NjY2NjY2NjY2Nn0seyJ4Ijo0MjcuNzg1MzA4ODM3ODkwNiwieSI6NjYuNjY2NjY2NjY2NjY2NjZ9LHsieCI6NDQ3Ljc4NTMwODgzNzg5MDYsInkiOjY2LjY2NjY2NjY2NjY2NjY2fSx7IngiOjQ0Ny43ODUzMDg4Mzc4OTA2LCJ5Ijo2NC4xMzMzMzI1NzAzOTM4OH0seyJ4Ijo1ODIuMDM1MzA4ODM3ODkwNiwieSI6NjQuMTMzMzMyNTcwMzkzODh9XQ==" id="el-diagram-4-L_LB_API_2" marker-end="url(#el-diagram-4_flowchart-v2-pointEnd-margin)" style="stroke-dasharray: 0 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 4; stroke-dashoffset: 0;;"></path></g><g class="edgeLabels"><g class="edgeLabel" transform="translate(803.0118713378906, 54.99999999999999)"><g class="label" data-id="L_API_PG_0" transform="translate(0, -8.500000953674316)"><g><rect class="background" height="21" style="" width="57.953125" x="-28.9765625" y="-1.9999990463256836"></rect><text style="" text-anchor="middle" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" text-anchor="middle" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">truy</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> vấn</tspan></tspan></text></g></g></g><g class="edgeLabel" transform="translate(504.9103088378906, 64.13333257039388)"><g class="label" data-id="L_LB_API_2" transform="translate(0, -8.500000953674316)"><g><rect class="background" height="21" style="" width="74.25" x="-37.125" y="-1.9999990463256836"></rect><text style="" text-anchor="middle" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" text-anchor="middle" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">gọi</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> /health</tspan></tspan></text></g></g></g></g><g class="nodes"><g class="node default client" data-look="neo" id="el-diagram-4-flowchart-B-0" transform="translate(99.03551483154297, 55.5)"><g class="basic label-container outer-path"><path d="M-58.84999942779541 -28.200000762939453 C-32.55536893228445 -28.200000762939453, -6.260738436773494 -28.200000762939453, 58.84999942779541 -28.200000762939453 C58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453 C59.54684542073032 -28.177654268274473, 60.24369141366524 -28.15530777360949, 60.65677968013321 -28.142060836931396 C61.07776013496676 -28.101449358756675, 61.49874058980031 -28.060837880581953, 62.45613548486101 -27.968479146491273 C62.86435507392251 -27.902481369122004, 63.272574662984006 -27.836483591752735, 64.24067290301656 -27.67996897601825 C64.68158721453759 -27.57933316164835, 65.12250152605861 -27.47869734727845, 66.0030588875666 -27.277715875688045 C66.64398338398624 -27.087492849432028, 67.2849078804059 -26.89726982317601, 67.73605141647 -26.763372789772927 C68.30669765563172 -26.553369698765405, 68.87734389479344 -26.343366607757883, 69.43252925169976 -26.13905326433918 C69.97958658844364 -25.896887209241978, 70.52664392518753 -25.65472115414478, 71.08552120193757 -25.407322762232916 C71.57956968523386 -25.14957798495039, 72.07361816853017 -24.89183320766787, 72.68823476869423 -24.571188121043 C73.24043316931024 -24.23644220551158, 73.79263156992623 -23.901696289980162, 74.23408405814298 -23.63408519736039 C74.5370437228746 -23.422753650156125, 74.8400033876062 -23.211422102951865, 75.71671684396982 -22.599864748106448 C76.20736685581129 -22.208584420408037, 76.69801686765275 -21.81730409270963, 77.13004067003405 -21.472776606946756 C77.59904524433585 -21.0468390617469, 78.06804981863765 -20.620901516547047, 78.4682478855774 -20.25745222081298 C78.94804781456062 -19.762019401831022, 79.42784774354386 -19.266586582849065, 79.7258395101066 -18.958885618294012 C80.08240194418217 -18.540047094251584, 80.43896437825775 -18.121208570209152, 80.89764782988394 -17.582412888101256 C81.22929482819107 -17.138036124032784, 81.56094182649822 -16.69365935996431, 81.97885763317133 -16.133690251935562 C82.18210274793341 -15.821451176705919, 82.3853478626955 -15.509212101476278, 82.96502599696832 -14.618670821858952 C83.27264912538256 -14.072454807139904, 83.5802722537968 -13.526238792420855, 83.8521005439356 -13.043580137680264 C84.0795028642507 -12.571374353915783, 84.30690518456579 -12.099168570151303, 84.63643609448279 -11.414890584876694 C84.9040467446775 -10.75388710499579, 85.17165739487223 -10.092883625114887, 85.31480964559323 -9.739294798173514 C85.43076458930376 -9.390056982628705, 85.54671953301431 -9.040819167083896, 85.88443361483476 -8.023678160072444 C86.05524622786423 -7.372295635936314, 86.2260588408937 -6.720913111800183, 86.3429672951338 -6.275090507338069 C86.46246217258582 -5.661509566873306, 86.58195705003781 -5.047928626408543, 86.68852647324283 -4.500717161706361 C86.74970353748047 -4.026239932257002, 86.81088060171811 -3.551762702807643, 86.9196911723768 -2.7078494038563856 C86.96351463487582 -2.025263601771855, 87.00733809737484 -1.3426777996873243, 87.03551148720227 -0.9038545119740887 C87.03551148720227 -0.45639703843199597, 87.03551148720227 -0.008939564889903218, 87.03551148720227 0.9038545119740818 C87.00229000071305 1.421305979945013, 86.96906851422382 1.9387574479159442, 86.9196911723768 2.7078494038563665 C86.83956616508061 3.32928313797324, 86.75944115778442 3.950716872090114, 86.68852647324283 4.5007171617063415 C86.58887441771766 5.012409405358708, 86.48922236219249 5.524101649011075, 86.3429672951338 6.275090507338063 C86.25123709049289 6.624897533756043, 86.15950688585197 6.974704560174023, 85.88443361483476 8.023678160072425 C85.72482215519382 8.504402445878425, 85.56521069555286 8.985126731684426, 85.31480964559324 9.739294798173496 C85.10932797480427 10.246838497740079, 84.90384630401532 10.754382197306661, 84.63643609448279 11.414890584876687 C84.34475545630762 12.02057167101329, 84.05307481813246 12.626252757149894, 83.8521005439356 13.043580137680259 C83.63432749206983 13.430258243180678, 83.41655444020405 13.816936348681098, 82.96502599696832 14.618670821858945 C82.6129796331334 15.15950857439459, 82.26093326929849 15.700346326930234, 81.97885763317134 16.133690251935548 C81.74100078295231 16.45239676202421, 81.5031439327333 16.771103272112875, 80.89764782988394 17.58241288810125 C80.5110412725167 18.036542948921102, 80.12443471514948 18.49067300974096, 79.72583951010661 18.958885618293998 C79.37684000535953 19.31925626033758, 79.02784050061244 19.67962690238116, 78.4682478855774 20.257452220812972 C77.95581909989916 20.72282648584324, 77.44339031422093 21.188200750873506, 77.13004067003408 21.472776606946738 C76.57300289593714 21.916999408391344, 76.01596512184018 22.36122220983595, 75.71671684396983 22.599864748106445 C75.37462830037438 22.83849090734425, 75.03253975677893 23.077117066582062, 74.234084058143 23.634085197360378 C73.84384455276121 23.870650678824703, 73.45360504737943 24.107216160289024, 72.68823476869423 24.571188121042997 C72.20683926482198 24.822331847064614, 71.72544376094973 25.073475573086235, 71.08552120193758 25.407322762232912 C70.45426557567316 25.686760902447336, 69.82300994940874 25.966199042661763, 69.43252925169978 26.139053264339175 C68.96059652764013 26.312728869291398, 68.48866380358051 26.48640447424362, 67.73605141647002 26.763372789772923 C67.37217979878083 26.87136797590198, 67.00830818109165 26.97936316203103, 66.00305888756664 27.27771587568804 C65.31794294026366 27.434089119860566, 64.63282699296069 27.590462364033094, 64.24067290301657 27.679968976018248 C63.53514228780559 27.794033694413923, 62.82961167259461 27.908098412809597, 62.45613548486103 27.96847914649127 C61.7372328409024 28.037830819947033, 61.01833019694378 28.107182493402796, 60.65677968013321 28.142060836931396 C60.17348716658279 28.157559087169147, 59.690194653032364 28.1730573374069, 58.84999942779542 28.200000762939453 C58.84999942779542 28.200000762939453, 58.84999942779541 28.200000762939453, 58.84999942779541 28.200000762939453 C25.36921181453534 28.200000762939453, -8.11157579872473 28.200000762939453, -58.8499994277954 28.200000762939453 C-59.47297983760451 28.18002299375468, -60.09596024741363 28.16004522456991, -60.6567796801332 28.142060836931396 C-61.29266820043056 28.080717436146145, -61.92855672072792 28.019374035360894, -62.456135484861015 27.96847914649127 C-63.12979739028082 27.859566713949096, -63.80345929570062 27.750654281406923, -64.24067290301656 27.679968976018248 C-64.7638963495774 27.560546638692816, -65.28711979613823 27.44112430136738, -66.0030588875666 27.277715875688045 C-66.39998030101108 27.159911683660738, -66.79690171445556 27.04210749163343, -67.73605141646999 26.763372789772934 C-68.15351427152262 26.609742600129238, -68.57097712657524 26.45611241048554, -69.43252925169976 26.13905326433918 C-69.8967083983198 25.93357492551565, -70.36088754493983 25.728096586692118, -71.08552120193757 25.40732276223292 C-71.5400169886687 25.170212601413734, -71.99451277539983 24.93310244059455, -72.68823476869423 24.571188121043004 C-73.20401627569112 24.258518340432914, -73.71979778268799 23.945848559822824, -74.23408405814297 23.6340851973604 C-74.70507401017079 23.305542995652207, -75.1760639621986 22.977000793944015, -75.71671684396982 22.59986474810645 C-76.18846750020283 22.223656153572815, -76.66021815643583 21.84744755903918, -77.13004067003405 21.47277660694676 C-77.51163127431727 21.126226116470868, -77.89322187860049 20.779675625994976, -78.46824788557737 20.25745222081299 C-78.81061691833152 19.903928085473982, -79.15298595108568 19.550403950134978, -79.7258395101066 18.95888561829401 C-79.99497844749956 18.64273970799285, -80.26411738489254 18.32659379769169, -80.89764782988394 17.58241288810126 C-81.24030730901143 17.123280402991167, -81.5829667881389 16.664147917881074, -81.97885763317133 16.133690251935565 C-82.17678104994705 15.829626733888961, -82.37470446672278 15.525563215842359, -82.96502599696831 14.618670821858965 C-83.21726978055814 14.1707864416424, -83.46951356414797 13.722902061425835, -83.85210054393559 13.043580137680268 C-84.16559928238715 12.392593299487201, -84.47909802083869 11.741606461294133, -84.63643609448279 11.414890584876698 C-84.7962833860724 11.02006468421322, -84.956130677662 10.625238783549742, -85.31480964559323 9.739294798173518 C-85.43694469656083 9.371443484236817, -85.55907974752843 9.003592170300118, -85.88443361483476 8.023678160072436 C-86.04460950757058 7.412858060399688, -86.20478540030642 6.802037960726939, -86.3429672951338 6.2750905073380725 C-86.43029114399843 5.8267009993201695, -86.51761499286307 5.378311491302266, -86.68852647324283 4.500717161706365 C-86.7755037778505 3.8261383627807204, -86.86248108245817 3.1515595638550757, -86.91969117237679 2.7078494038564016 C-86.9620108333133 2.0486865249547397, -87.00433049424981 1.3895236460530778, -87.03551148720227 0.9038545119740923 C-87.03551148720227 0.222161173369404, -87.03551148720227 -0.4595321652352843, -87.03551148720227 -0.9038545119740785 C-86.99133030232798 -1.5920121288017501, -86.94714911745369 -2.280169745629422, -86.9196911723768 -2.707849403856363 C-86.83151743901469 -3.3917074679397774, -86.74334370565259 -4.075565532023192, -86.68852647324283 -4.500717161706351 C-86.6168364680531 -4.868830186667704, -86.54514646286336 -5.2369432116290575, -86.3429672951338 -6.275090507338059 C-86.22641060858551 -6.719571669134186, -86.10985392203723 -7.164052830930313, -85.88443361483478 -8.023678160072421 C-85.71556552272963 -8.53228194801648, -85.54669743062448 -9.040885735960542, -85.31480964559324 -9.739294798173482 C-85.09862229985828 -10.273281721836835, -84.88243495412331 -10.807268645500187, -84.63643609448279 -11.414890584876684 C-84.45425063200896 -11.793202595848, -84.27206516953515 -12.171514606819313, -83.8521005439356 -13.043580137680255 C-83.54859666247508 -13.582482012314014, -83.24509278101453 -14.121383886947772, -82.96502599696832 -14.618670821858956 C-82.65030786862309 -15.102162380647714, -82.33558974027787 -15.585653939436472, -81.97885763317134 -16.133690251935555 C-81.69123298394095 -16.51908107875968, -81.40360833471057 -16.904471905583804, -80.89764782988394 -17.58241288810125 C-80.4829535611358 -18.069536372945176, -80.06825929238765 -18.556659857789104, -79.72583951010661 -18.958885618293998 C-79.39748513003912 -19.29793847410965, -79.0691307499716 -19.6369913299253, -78.4682478855774 -20.25745222081296 C-78.08929938929053 -20.601603218712917, -77.71035089300366 -20.94575421661287, -77.13004067003408 -21.472776606946734 C-76.5857020268423 -21.906872189432534, -76.04136338365052 -22.340967771918333, -75.71671684396983 -22.59986474810644 C-75.39588676306502 -22.82366192403528, -75.0750566821602 -23.047459099964122, -74.234084058143 -23.634085197360378 C-73.67780878108464 -23.97130253934954, -73.12153350402629 -24.3085198813387, -72.68823476869424 -24.571188121042994 C-72.307828889771 -24.769645624415652, -71.92742301084778 -24.968103127788307, -71.08552120193758 -25.407322762232912 C-70.5587803091728 -25.640495330246456, -70.03203941640804 -25.873667898260003, -69.43252925169978 -26.13905326433917 C-69.04445074692201 -26.281869741455765, -68.65637224214423 -26.424686218572358, -67.73605141647002 -26.763372789772923 C-67.31542279523306 -26.888213156631366, -66.8947941739961 -27.013053523489805, -66.00305888756664 -27.277715875688035 C-65.51418152105697 -27.389298944370907, -65.0253041545473 -27.500882013053783, -64.24067290301657 -27.679968976018245 C-63.868436474165435 -27.74014927509828, -63.4962000453143 -27.80032957417831, -62.45613548486103 -27.96847914649127 C-61.76557060749035 -28.03509710968544, -61.07500573011967 -28.101715072879617, -60.65677968013321 -28.142060836931396 C-60.106164261871605 -28.15971800168715, -59.55554884360999 -28.177375166442907, -58.84999942779542 -28.200000762939453 C-58.84999942779542 -28.200000762939453, -58.84999942779542 -28.200000762939453, -58.84999942779541 -28.200000762939453" fill="#e2e8f0" stroke="none" stroke-width="0" style="fill:#e2e8f0 !important;stroke:#64748b !important"></path><path d="M-58.84999942779541 -28.200000762939453 C-32.56684185407761 -28.200000762939453, -6.2836842803598145 -28.200000762939453, 58.84999942779541 -28.200000762939453 M-58.84999942779541 -28.200000762939453 C-22.32285111984725 -28.200000762939453, 14.20429718810091 -28.200000762939453, 58.84999942779541 -28.200000762939453 M58.84999942779541 -28.200000762939453 C58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453 M58.84999942779541 -28.200000762939453 C58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453, 58.84999942779541 -28.200000762939453 M58.84999942779541 -28.200000762939453 C59.49289425138992 -28.179384377265638, 60.13578907498443 -28.158767991591823, 60.65677968013321 -28.142060836931396 M58.84999942779541 -28.200000762939453 C59.40025818541782 -28.1823550355962, 59.95051694304023 -28.164709308252945, 60.65677968013321 -28.142060836931396 M60.65677968013321 -28.142060836931396 C61.1938564412274 -28.090249687717947, 61.7309332023216 -28.0384385385045, 62.45613548486101 -27.968479146491273 M60.65677968013321 -28.142060836931396 C61.21036093729089 -28.088657518832264, 61.763942194448575 -28.03525420073313, 62.45613548486101 -27.968479146491273 M62.45613548486101 -27.968479146491273 C62.819859720592234 -27.909675032781823, 63.18358395632345 -27.850870919072374, 64.24067290301656 -27.67996897601825 M62.45613548486101 -27.968479146491273 C62.876218895200466 -27.900563318503092, 63.296302305539925 -27.832647490514912, 64.24067290301656 -27.67996897601825 M64.24067290301656 -27.67996897601825 C64.78660658082109 -27.555363176609553, 65.33254025862561 -27.430757377200855, 66.0030588875666 -27.277715875688045 M64.24067290301656 -27.67996897601825 C64.91079026949645 -27.527019060043703, 65.58090763597633 -27.374069144069157, 66.0030588875666 -27.277715875688045 M66.0030588875666 -27.277715875688045 C66.54640741327697 -27.11645288535182, 67.08975593898732 -26.955189895015597, 67.73605141647 -26.763372789772927 M66.0030588875666 -27.277715875688045 C66.46065672131297 -27.141903240612166, 66.91825455505933 -27.006090605536286, 67.73605141647 -26.763372789772927 M67.73605141647 -26.763372789772927 C68.29045357038339 -26.55934767229547, 68.84485572429676 -26.355322554818017, 69.43252925169976 -26.13905326433918 M67.73605141647 -26.763372789772927 C68.32922858189087 -26.545078109628438, 68.92240574731174 -26.32678342948395, 69.43252925169976 -26.13905326433918 M69.43252925169976 -26.13905326433918 C70.02584544326615 -25.87640978643223, 70.61916163483254 -25.61376630852528, 71.08552120193757 -25.407322762232916 M69.43252925169976 -26.13905326433918 C69.77616249652606 -25.98693702037261, 70.11979574135235 -25.83482077640604, 71.08552120193757 -25.407322762232916 M71.08552120193757 -25.407322762232916 C71.67965108655348 -25.097365581987148, 72.2737809711694 -24.78740840174138, 72.68823476869423 -24.571188121043 M71.08552120193757 -25.407322762232916 C71.47346001772485 -25.204935330523362, 71.86139883351213 -25.00254789881381, 72.68823476869423 -24.571188121043 M72.68823476869423 -24.571188121043 C73.25191205436782 -24.22948363793225, 73.81558934004143 -23.8877791548215, 74.23408405814298 -23.63408519736039 M72.68823476869423 -24.571188121043 C73.07344636974601 -24.337670584730777, 73.45865797079777 -24.10415304841855, 74.23408405814298 -23.63408519736039 M74.23408405814298 -23.63408519736039 C74.78577608130772 -23.249248724363436, 75.33746810447245 -22.864412251366485, 75.71671684396982 -22.599864748106448 M74.23408405814298 -23.63408519736039 C74.64172728911421 -23.349730926025913, 75.04937052008545 -23.065376654691434, 75.71671684396982 -22.599864748106448 M75.71671684396982 -22.599864748106448 C76.14946833022645 -22.254756953817466, 76.5822198164831 -21.909649159528485, 77.13004067003405 -21.472776606946756 M75.71671684396982 -22.599864748106448 C76.22690862192847 -22.193000381957816, 76.73710039988713 -21.786136015809184, 77.13004067003405 -21.472776606946756 M77.13004067003405 -21.472776606946756 C77.60264885631814 -21.04356635669094, 78.07525704260222 -20.614356106435118, 78.4682478855774 -20.25745222081298 M77.13004067003405 -21.472776606946756 C77.52519742231662 -21.113905699798455, 77.92035417459921 -20.755034792650154, 78.4682478855774 -20.25745222081298 M78.4682478855774 -20.25745222081298 C78.9549320964051 -19.754910815616547, 79.44161630723282 -19.25236941042012, 79.7258395101066 -18.958885618294012 M78.4682478855774 -20.25745222081298 C78.77033919755098 -19.945518139042278, 79.07243050952458 -19.633584057271577, 79.7258395101066 -18.958885618294012 M79.7258395101066 -18.958885618294012 C80.08947251194414 -18.53174160303168, 80.45310551378167 -18.104597587769348, 80.89764782988394 -17.582412888101256 M79.7258395101066 -18.958885618294012 C80.07269782708094 -18.551446102378584, 80.4195561440553 -18.144006586463153, 80.89764782988394 -17.582412888101256 M80.89764782988394 -17.582412888101256 C81.19359983387473 -17.185864164535804, 81.48955183786553 -16.789315440970352, 81.97885763317133 -16.133690251935562 M80.89764782988394 -17.582412888101256 C81.13357015305606 -17.26629846801641, 81.36949247622817 -16.950184047931558, 81.97885763317133 -16.133690251935562 M81.97885763317133 -16.133690251935562 C82.25186978680432 -15.714270269927102, 82.52488194043731 -15.294850287918644, 82.96502599696832 -14.618670821858952 M81.97885763317133 -16.133690251935562 C82.26083507846886 -15.700497174412478, 82.54281252376639 -15.267304096889394, 82.96502599696832 -14.618670821858952 M82.96502599696832 -14.618670821858952 C83.26991752434188 -14.077305041392247, 83.57480905171542 -13.53593926092554, 83.8521005439356 -13.043580137680264 M82.96502599696832 -14.618670821858952 C83.25557041050622 -14.102779794810251, 83.54611482404412 -13.58688876776155, 83.8521005439356 -13.043580137680264 M83.8521005439356 -13.043580137680264 C84.10887655709799 -12.510379252222043, 84.36565257026037 -11.977178366763821, 84.63643609448279 -11.414890584876694 M83.8521005439356 -13.043580137680264 C84.020851382735 -12.693165410223783, 84.1896022215344 -12.342750682767303, 84.63643609448279 -11.414890584876694 M84.63643609448279 -11.414890584876694 C84.78544731293789 -11.04682999435667, 84.93445853139299 -10.678769403836647, 85.31480964559323 -9.739294798173514 M84.63643609448279 -11.414890584876694 C84.87000910313644 -10.83796073767526, 85.10358211179009 -10.261030890473824, 85.31480964559323 -9.739294798173514 M85.31480964559323 -9.739294798173514 C85.43725619288443 -9.370505306940338, 85.55970274017562 -9.00171581570716, 85.88443361483476 -8.023678160072444 M85.31480964559323 -9.739294798173514 C85.48298851414144 -9.232766841770108, 85.65116738268964 -8.726238885366703, 85.88443361483476 -8.023678160072444 M85.88443361483476 -8.023678160072444 C86.06279675269926 -7.343502212322208, 86.24115989056374 -6.663326264571971, 86.3429672951338 -6.275090507338069 M85.88443361483476 -8.023678160072444 C86.02101586172496 -7.502830857559868, 86.15759810861516 -6.981983555047292, 86.3429672951338 -6.275090507338069 M86.3429672951338 -6.275090507338069 C86.46534675612932 -5.646697840034305, 86.58772621712485 -5.018305172730541, 86.68852647324283 -4.500717161706361 M86.3429672951338 -6.275090507338069 C86.47433765288078 -5.6005314854422705, 86.60570801062777 -4.925972463546472, 86.68852647324283 -4.500717161706361 M86.68852647324283 -4.500717161706361 C86.74896589315208 -4.031960956003659, 86.80940531306133 -3.563204750300957, 86.9196911723768 -2.7078494038563856 M86.68852647324283 -4.500717161706361 C86.74627633284865 -4.052820654603275, 86.80402619245447 -3.6049241475001894, 86.9196911723768 -2.7078494038563856 M86.9196911723768 -2.7078494038563856 C86.94592094851214 -2.2992994682543224, 86.97215072464746 -1.890749532652259, 87.03551148720227 -0.9038545119740887 M86.9196911723768 -2.7078494038563856 C86.94484963046048 -2.3159861116611737, 86.97000808854416 -1.9241228194659614, 87.03551148720227 -0.9038545119740887 M87.03551148720227 -0.9038545119740887 C87.03551148720227 -0.4060056056323833, 87.03551148720227 0.09184330070932212, 87.03551148720227 0.9038545119740818 M87.03551148720227 -0.9038545119740887 C87.03551148720227 -0.37451424182000137, 87.03551148720227 0.15482602833408599, 87.03551148720227 0.9038545119740818 M87.03551148720227 0.9038545119740818 C87.00093348635932 1.4424347859631599, 86.96635548551635 1.9810150599522376, 86.9196911723768 2.7078494038563665 M87.03551148720227 0.9038545119740818 C87.01099174471682 1.2857692931649685, 86.98647200223137 1.6676840743558548, 86.9196911723768 2.7078494038563665 M86.9196911723768 2.7078494038563665 C86.82959957265683 3.4065820606857944, 86.73950797293686 4.105314717515222, 86.68852647324283 4.5007171617063415 M86.9196911723768 2.7078494038563665 C86.86404276039937 3.1394474981313896, 86.80839434842194 3.5710455924064126, 86.68852647324283 4.5007171617063415 M86.68852647324283 4.5007171617063415 C86.6141655136651 4.882544972943637, 86.53980455408737 5.264372784180932, 86.3429672951338 6.275090507338063 M86.68852647324283 4.5007171617063415 C86.58227997084305 5.046270496323021, 86.47603346844326 5.591823830939699, 86.3429672951338 6.275090507338063 M86.3429672951338 6.275090507338063 C86.16597063747486 6.950055473828297, 85.98897397981591 7.625020440318531, 85.88443361483476 8.023678160072425 M86.3429672951338 6.275090507338063 C86.21597198686428 6.759378657884539, 86.08897667859475 7.243666808431015, 85.88443361483476 8.023678160072425 M85.88443361483476 8.023678160072425 C85.72150232932968 8.514401232438775, 85.5585710438246 9.005124304805127, 85.31480964559324 9.739294798173496 M85.88443361483476 8.023678160072425 C85.69141633516718 8.605015453304059, 85.49839905549959 9.186352746535691, 85.31480964559324 9.739294798173496 M85.31480964559324 9.739294798173496 C85.0948584586742 10.28257848233046, 84.87490727175513 10.825862166487422, 84.63643609448279 11.414890584876687 M85.31480964559324 9.739294798173496 C85.15436021008362 10.135608005961059, 84.993910774574 10.53192121374862, 84.63643609448279 11.414890584876687 M84.63643609448279 11.414890584876687 C84.43134115492634 11.840774615194343, 84.22624621536991 12.266658645511999, 83.8521005439356 13.043580137680259 M84.63643609448279 11.414890584876687 C84.40394980807118 11.897653333020045, 84.17146352165956 12.380416081163402, 83.8521005439356 13.043580137680259 M83.8521005439356 13.043580137680259 C83.51060900883871 13.649932938012416, 83.16911747374182 14.256285738344573, 82.96502599696832 14.618670821858945 M83.8521005439356 13.043580137680259 C83.56106944847885 13.560335317757778, 83.27003835302209 14.077090497835297, 82.96502599696832 14.618670821858945 M82.96502599696832 14.618670821858945 C82.66031831586109 15.086783645508685, 82.35561063475384 15.554896469158425, 81.97885763317134 16.133690251935548 M82.96502599696832 14.618670821858945 C82.7155983057753 15.001858736244692, 82.46617061458228 15.38504665063044, 81.97885763317134 16.133690251935548 M81.97885763317134 16.133690251935548 C81.73215885008747 16.46424414654645, 81.4854600670036 16.794798041157353, 80.89764782988394 17.58241288810125 M81.97885763317134 16.133690251935548 C81.60250074760908 16.637974191771356, 81.22614386204683 17.142258131607164, 80.89764782988394 17.58241288810125 M80.89764782988394 17.58241288810125 C80.59000689063419 17.94378544060935, 80.28236595138445 18.30515799311745, 79.72583951010661 18.958885618293998 M80.89764782988394 17.58241288810125 C80.42999320811077 18.131746617137818, 79.96233858633762 18.68108034617439, 79.72583951010661 18.958885618293998 M79.72583951010661 18.958885618293998 C79.37809719768454 19.3179581060446, 79.03035488526245 19.677030593795205, 78.4682478855774 20.257452220812972 M79.72583951010661 18.958885618293998 C79.38372312106357 19.31214887825885, 79.04160673202053 19.665412138223704, 78.4682478855774 20.257452220812972 M78.4682478855774 20.257452220812972 C78.01890676537316 20.665531937267914, 77.56956564516892 21.073611653722857, 77.13004067003408 21.472776606946738 M78.4682478855774 20.257452220812972 C77.93600132982114 20.740824460278642, 77.40375477406488 21.224196699744308, 77.13004067003408 21.472776606946738 M77.13004067003408 21.472776606946738 C76.77648215593051 21.754730113357137, 76.42292364182696 22.036683619767537, 75.71671684396983 22.599864748106445 M77.13004067003408 21.472776606946738 C76.69509909159754 21.819630941468386, 76.260157513161 22.166485275990034, 75.71671684396983 22.599864748106445 M75.71671684396983 22.599864748106445 C75.3103056314018 22.88335961673606, 74.90389441883379 23.166854485365672, 74.234084058143 23.634085197360378 M75.71671684396983 22.599864748106445 C75.20749198062096 22.955077968789578, 74.69826711727207 23.310291189472707, 74.234084058143 23.634085197360378 M74.234084058143 23.634085197360378 C73.92434105241675 23.821853227683572, 73.61459804669052 24.009621258006767, 72.68823476869423 24.571188121042997 M74.234084058143 23.634085197360378 C73.74918936218603 23.928031211607017, 73.26429466622906 24.221977225853657, 72.68823476869423 24.571188121042997 M72.68823476869423 24.571188121042997 C72.24145650520487 24.804272054930266, 71.7946782417155 25.037355988817534, 71.08552120193758 25.407322762232912 M72.68823476869423 24.571188121042997 C72.23910814931185 24.805497190695462, 71.78998152992945 25.039806260347927, 71.08552120193758 25.407322762232912 M71.08552120193758 25.407322762232912 C70.49316509705139 25.669541238246495, 69.90080899216521 25.93175971426008, 69.43252925169978 26.139053264339175 M71.08552120193758 25.407322762232912 C70.5549412281286 25.642194777542436, 70.02436125431961 25.87706679285196, 69.43252925169978 26.139053264339175 M69.43252925169978 26.139053264339175 C69.01015323347822 26.29449154344582, 68.58777721525666 26.449929822552463, 67.73605141647002 26.763372789772923 M69.43252925169978 26.139053264339175 C68.81165248476553 26.367541653892893, 68.1907757178313 26.59603004344661, 67.73605141647002 26.763372789772923 M67.73605141647002 26.763372789772923 C67.31737845715276 26.88763272643908, 66.8987054978355 27.011892663105233, 66.00305888756664 27.27771587568804 M67.73605141647002 26.763372789772923 C67.3112457205654 26.889452890466814, 66.88644002466079 27.015532991160708, 66.00305888756664 27.27771587568804 M66.00305888756664 27.27771587568804 C65.53256799931548 27.38510235069139, 65.06207711106431 27.492488825694746, 64.24067290301657 27.679968976018248 M66.00305888756664 27.27771587568804 C65.56991741545683 27.376577590184844, 65.136775943347 27.475439304681654, 64.24067290301657 27.679968976018248 M64.24067290301657 27.679968976018248 C63.551869914054194 27.791329301526726, 62.86306692509182 27.902689627035205, 62.45613548486103 27.96847914649127 M64.24067290301657 27.679968976018248 C63.878992146648116 27.738442715831745, 63.51731139027965 27.796916455645242, 62.45613548486103 27.96847914649127 M62.45613548486103 27.96847914649127 C61.90902343228153 28.0212583882051, 61.36191137970203 28.074037629918934, 60.65677968013321 28.142060836931396 M62.45613548486103 27.96847914649127 C61.8888883001885 28.023200800182078, 61.32164111551597 28.077922453872883, 60.65677968013321 28.142060836931396 M60.65677968013321 28.142060836931396 C60.04181975265092 28.161781404858868, 59.426859825168634 28.181501972786343, 58.84999942779542 28.200000762939453 M60.65677968013321 28.142060836931396 C60.204928089817415 28.15655083795706, 59.75307649950162 28.17104083898272, 58.84999942779542 28.200000762939453 M58.84999942779542 28.200000762939453 C58.84999942779542 28.200000762939453, 58.84999942779541 28.200000762939453, 58.84999942779541 28.200000762939453 M58.84999942779542 28.200000762939453 C58.84999942779542 28.200000762939453, 58.84999942779542 28.200000762939453, 58.84999942779541 28.200000762939453 M58.84999942779541 28.200000762939453 C32.6220168638644 28.200000762939453, 6.394034299933395 28.200000762939453, -58.8499994277954 28.200000762939453 M58.84999942779541 28.200000762939453 C17.31725414552509 28.200000762939453, -24.21549113674523 28.200000762939453, -58.8499994277954 28.200000762939453 M-58.8499994277954 28.200000762939453 C-59.442266080472265 28.18100792416521, -60.034532733149135 28.16201508539097, -60.6567796801332 28.142060836931396 M-58.8499994277954 28.200000762939453 C-59.34893376420659 28.18400090988752, -59.84786810061778 28.168001056835582, -60.6567796801332 28.142060836931396 M-60.6567796801332 28.142060836931396 C-61.07136211234461 28.102066568304284, -61.48594454455602 28.062072299677173, -62.456135484861015 27.96847914649127 M-60.6567796801332 28.142060836931396 C-61.15482495345752 28.094015008400874, -61.65287022678184 28.045969179870355, -62.456135484861015 27.96847914649127 M-62.456135484861015 27.96847914649127 C-63.16580814163024 27.85374477493847, -63.87548079839946 27.739010403385674, -64.24067290301656 27.679968976018248 M-62.456135484861015 27.96847914649127 C-63.15711034849219 27.855150966680636, -63.858085212123356 27.741822786870006, -64.24067290301656 27.679968976018248 M-64.24067290301656 27.679968976018248 C-64.80709454401034 27.550686932708057, -65.37351618500412 27.421404889397866, -66.0030588875666 27.277715875688045 M-64.24067290301656 27.679968976018248 C-64.61630509810391 27.594233378718716, -64.99193729319124 27.50849778141918, -66.0030588875666 27.277715875688045 M-66.0030588875666 27.277715875688045 C-66.4999644775212 27.130236904900187, -66.9968700674758 26.98275793411233, -67.73605141646999 26.763372789772934 M-66.0030588875666 27.277715875688045 C-66.69215344728588 27.07319622749452, -67.38124800700517 26.868676579300992, -67.73605141646999 26.763372789772934 M-67.73605141646999 26.763372789772934 C-68.10397901523416 26.62797203234228, -68.47190661399831 26.49257127491163, -69.43252925169976 26.13905326433918 M-67.73605141646999 26.763372789772934 C-68.38156329485419 26.525818451481154, -69.0270751732384 26.288264113189374, -69.43252925169976 26.13905326433918 M-69.43252925169976 26.13905326433918 C-69.7686767365265 25.990250744267232, -70.10482422135324 25.841448224195286, -71.08552120193757 25.40732276223292 M-69.43252925169976 26.13905326433918 C-70.0836736656522 25.850810947795193, -70.73481807960464 25.56256863125121, -71.08552120193757 25.40732276223292 M-71.08552120193757 25.40732276223292 C-71.5635419726161 25.157939632356847, -72.04156274329463 24.90855650248077, -72.68823476869423 24.571188121043004 M-71.08552120193757 25.40732276223292 C-71.63293242273642 25.12173867897578, -72.18034364353527 24.836154595718646, -72.68823476869423 24.571188121043004 M-72.68823476869423 24.571188121043004 C-73.12359985809827 24.30726724535702, -73.5589649475023 24.043346369671042, -74.23408405814297 23.6340851973604 M-72.68823476869423 24.571188121043004 C-73.276755356154 24.21442348239403, -73.86527594361377 23.857658843745053, -74.23408405814297 23.6340851973604 M-74.23408405814297 23.6340851973604 C-74.57693547678342 23.394926889515528, -74.91978689542387 23.155768581670657, -75.71671684396982 22.59986474810645 M-74.23408405814297 23.6340851973604 C-74.73264560416297 23.28631024523833, -75.23120715018297 22.93853529311626, -75.71671684396982 22.59986474810645 M-75.71671684396982 22.59986474810645 C-76.01494513537558 22.36203562189849, -76.31317342678135 22.124206495690526, -77.13004067003405 21.47277660694676 M-75.71671684396982 22.59986474810645 C-76.00751134395856 22.367963872732073, -76.29830584394728 22.136062997357698, -77.13004067003405 21.47277660694676 M-77.13004067003405 21.47277660694676 C-77.56847298257047 21.074603980984488, -78.0069052951069 20.676431355022217, -78.46824788557737 20.25745222081299 M-77.13004067003405 21.47277660694676 C-77.40986528266826 21.218647297505896, -77.6896898953025 20.964517988065037, -78.46824788557737 20.25745222081299 M-78.46824788557737 20.25745222081299 C-78.94242583477843 19.76782455752925, -79.41660378397951 19.278196894245504, -79.7258395101066 18.95888561829401 M-78.46824788557737 20.25745222081299 C-78.8165441977198 19.897807682866905, -79.16484050986222 19.538163144920823, -79.7258395101066 18.95888561829401 M-79.7258395101066 18.95888561829401 C-80.18863980503048 18.415254057793636, -80.65144009995434 17.871622497293266, -80.89764782988394 17.58241288810126 M-79.7258395101066 18.95888561829401 C-80.02075174198612 18.612464929746942, -80.31566397386565 18.266044241199875, -80.89764782988394 17.58241288810126 M-80.89764782988394 17.58241288810126 C-81.17422519128225 17.211824420543483, -81.45080255268057 16.841235952985702, -81.97885763317133 16.133690251935565 M-80.89764782988394 17.58241288810126 C-81.12522752933938 17.277476823768097, -81.35280722879483 16.97254075943494, -81.97885763317133 16.133690251935565 M-81.97885763317133 16.133690251935565 C-82.3423984595298 15.57519391826836, -82.70593928588829 15.016697584601154, -82.96502599696831 14.618670821858965 M-81.97885763317133 16.133690251935565 C-82.35346935718287 15.558186046520971, -82.72808108119443 14.982681841106375, -82.96502599696831 14.618670821858965 M-82.96502599696831 14.618670821858965 C-83.29768213921182 14.028006156218519, -83.63033828145534 13.437341490578072, -83.85210054393559 13.043580137680268 M-82.96502599696831 14.618670821858965 C-83.17190922144823 14.251328707596738, -83.37879244592814 13.88398659333451, -83.85210054393559 13.043580137680268 M-83.85210054393559 13.043580137680268 C-84.03989090897406 12.653629426607766, -84.22768127401253 12.263678715535267, -84.63643609448279 11.414890584876698 M-83.85210054393559 13.043580137680268 C-84.0421535292897 12.648931047110011, -84.23220651464382 12.254281956539755, -84.63643609448279 11.414890584876698 M-84.63643609448279 11.414890584876698 C-84.81821146002515 10.965901917599451, -84.9999868255675 10.516913250322206, -85.31480964559323 9.739294798173518 M-84.63643609448279 11.414890584876698 C-84.82236142611411 10.955651421125573, -85.00828675774544 10.496412257374448, -85.31480964559323 9.739294798173518 M-85.31480964559323 9.739294798173518 C-85.5175625601377 9.128635323855486, -85.72031547468218 8.517975849537454, -85.88443361483476 8.023678160072436 M-85.31480964559323 9.739294798173518 C-85.43997425528131 9.362318936065325, -85.56513886496941 8.98534307395713, -85.88443361483476 8.023678160072436 M-85.88443361483476 8.023678160072436 C-86.0144029229092 7.528048859330166, -86.14437223098363 7.032419558587897, -86.3429672951338 6.2750905073380725 M-85.88443361483476 8.023678160072436 C-86.06185994871117 7.347074651942164, -86.23928628258759 6.670471143811893, -86.3429672951338 6.2750905073380725 M-86.3429672951338 6.2750905073380725 C-86.47447639080595 5.599819095518821, -86.60598548647809 4.92454768369957, -86.68852647324283 4.500717161706365 M-86.3429672951338 6.2750905073380725 C-86.47707865564321 5.586457015568356, -86.61119001615262 4.897823523798639, -86.68852647324283 4.500717161706365 M-86.68852647324283 4.500717161706365 C-86.77426479459436 3.835747672250483, -86.86000311594589 3.170778182794601, -86.91969117237679 2.7078494038564016 M-86.68852647324283 4.500717161706365 C-86.74087659100485 4.094699986044162, -86.79322670876687 3.6886828103819598, -86.91969117237679 2.7078494038564016 M-86.91969117237679 2.7078494038564016 C-86.95173673343871 2.2087139236056506, -86.98378229450063 1.7095784433548993, -87.03551148720227 0.9038545119740923 M-86.91969117237679 2.7078494038564016 C-86.94832051272027 2.2619243188190703, -86.97694985306376 1.8159992337817386, -87.03551148720227 0.9038545119740923 M-87.03551148720227 0.9038545119740923 C-87.03551148720227 0.36529795992506175, -87.03551148720227 -0.17325859212396877, -87.03551148720227 -0.9038545119740785 M-87.03551148720227 0.9038545119740923 C-87.03551148720227 0.4051687609136949, -87.03551148720227 -0.09351699014670245, -87.03551148720227 -0.9038545119740785 M-87.03551148720227 -0.9038545119740785 C-86.98938636635762 -1.6222905006568962, -86.94326124551299 -2.3407264893397137, -86.9196911723768 -2.707849403856363 M-87.03551148720227 -0.9038545119740785 C-87.00438505911677 -1.388673754206361, -86.97325863103127 -1.8734929964386433, -86.9196911723768 -2.707849403856363 M-86.9196911723768 -2.707849403856363 C-86.8655775850447 -3.1275437012676512, -86.8114639977126 -3.54723799867894, -86.68852647324283 -4.500717161706351 M-86.9196911723768 -2.707849403856363 C-86.87082251783649 -3.0868650382636273, -86.82195386329619 -3.4658806726708917, -86.68852647324283 -4.500717161706351 M-86.68852647324283 -4.500717161706351 C-86.56460182839028 -5.137044021541262, -86.44067718353772 -5.773370881376172, -86.3429672951338 -6.275090507338059 M-86.68852647324283 -4.500717161706351 C-86.61295184537704 -4.8887769030939126, -86.53737721751126 -5.276836644481474, -86.3429672951338 -6.275090507338059 M-86.3429672951338 -6.275090507338059 C-86.21849805274847 -6.749745673864246, -86.09402881036313 -7.224400840390434, -85.88443361483478 -8.023678160072421 M-86.3429672951338 -6.275090507338059 C-86.21275794651643 -6.771635186704781, -86.08254859789906 -7.2681798660715025, -85.88443361483478 -8.023678160072421 M-85.88443361483478 -8.023678160072421 C-85.76200851144556 -8.392403065689468, -85.63958340805634 -8.761127971306516, -85.31480964559324 -9.739294798173482 M-85.88443361483478 -8.023678160072421 C-85.69085425750498 -8.606708341667694, -85.49727490017519 -9.18973852326297, -85.31480964559324 -9.739294798173482 M-85.31480964559324 -9.739294798173482 C-85.04669135360751 -10.401552163092752, -84.7785730616218 -11.063809528012023, -84.63643609448279 -11.414890584876684 M-85.31480964559324 -9.739294798173482 C-85.1326823367544 -10.1891527721974, -84.95055502791556 -10.639010746221317, -84.63643609448279 -11.414890584876684 M-84.63643609448279 -11.414890584876684 C-84.46600546790351 -11.768793427599766, -84.29557484132425 -12.12269627032285, -83.8521005439356 -13.043580137680255 M-84.63643609448279 -11.414890584876684 C-84.40967145976175 -11.88577220086083, -84.18290682504072 -12.356653816844974, -83.8521005439356 -13.043580137680255 M-83.8521005439356 -13.043580137680255 C-83.67458001241992 -13.358785817289416, -83.49705948090423 -13.673991496898577, -82.96502599696832 -14.618670821858956 M-83.8521005439356 -13.043580137680255 C-83.6270026633779 -13.443264218242549, -83.40190478282017 -13.842948298804842, -82.96502599696832 -14.618670821858956 M-82.96502599696832 -14.618670821858956 C-82.6201248113934 -15.148531661838236, -82.27522362581848 -15.678392501817516, -81.97885763317134 -16.133690251935555 M-82.96502599696832 -14.618670821858956 C-82.64351932178117 -15.112591411576973, -82.32201264659402 -15.606512001294993, -81.97885763317134 -16.133690251935555 M-81.97885763317134 -16.133690251935555 C-81.70567667838577 -16.49972784405125, -81.43249572360021 -16.865765436166946, -80.89764782988394 -17.58241288810125 M-81.97885763317134 -16.133690251935555 C-81.64863942266469 -16.576152570516623, -81.31842121215803 -17.01861488909769, -80.89764782988394 -17.58241288810125 M-80.89764782988394 -17.58241288810125 C-80.55509493679882 -17.984795008130817, -80.21254204371373 -18.38717712816038, -79.72583951010661 -18.958885618293998 M-80.89764782988394 -17.58241288810125 C-80.51353188844024 -18.033617329737258, -80.12941594699655 -18.484821771373266, -79.72583951010661 -18.958885618293998 M-79.72583951010661 -18.958885618293998 C-79.2762951288748 -19.423077100195925, -78.826750747643 -19.887268582097857, -78.4682478855774 -20.25745222081296 M-79.72583951010661 -18.958885618293998 C-79.42013432863601 -19.274551317024557, -79.11442914716542 -19.590217015755115, -78.4682478855774 -20.25745222081296 M-78.4682478855774 -20.25745222081296 C-78.07358395986391 -20.615875555910694, -77.67892003415042 -20.97429889100843, -77.13004067003408 -21.472776606946734 M-78.4682478855774 -20.25745222081296 C-78.01306576763263 -20.670836576871526, -77.55788364968785 -21.084220932930094, -77.13004067003408 -21.472776606946734 M-77.13004067003408 -21.472776606946734 C-76.71508624380688 -21.80369171946189, -76.3001318175797 -22.134606831977045, -75.71671684396983 -22.59986474810644 M-77.13004067003408 -21.472776606946734 C-76.59380124767333 -21.900413276349113, -76.05756182531256 -22.32804994575149, -75.71671684396983 -22.59986474810644 M-75.71671684396983 -22.59986474810644 C-75.15607843570395 -22.990941832067186, -74.59544002743807 -23.382018916027928, -74.234084058143 -23.634085197360378 M-75.71671684396983 -22.59986474810644 C-75.20936067075077 -22.9537744514493, -74.70200449753172 -23.30768415479216, -74.234084058143 -23.634085197360378 M-74.234084058143 -23.634085197360378 C-73.73707847340623 -23.935372903556818, -73.24007288866947 -24.236660609753255, -72.68823476869424 -24.571188121042994 M-74.234084058143 -23.634085197360378 C-73.68560764481207 -23.966574822326766, -73.13713123148112 -24.299064447293155, -72.68823476869424 -24.571188121042994 M-72.68823476869424 -24.571188121042994 C-72.09255514690713 -24.881953798178323, -71.49687552512002 -25.192719475313652, -71.08552120193758 -25.407322762232912 M-72.68823476869424 -24.571188121042994 C-72.34242355136192 -24.751597611622614, -71.99661233402959 -24.932007102202235, -71.08552120193758 -25.407322762232912 M-71.08552120193758 -25.407322762232912 C-70.50778167285526 -25.66307091372344, -69.93004214377294 -25.91881906521397, -69.43252925169978 -26.13905326433917 M-71.08552120193758 -25.407322762232912 C-70.66949207933497 -25.591486513743643, -70.25346295673236 -25.775650265254377, -69.43252925169978 -26.13905326433917 M-69.43252925169978 -26.13905326433917 C-68.82611912682535 -26.36221779588671, -68.2197090019509 -26.585382327434246, -67.73605141647002 -26.763372789772923 M-69.43252925169978 -26.13905326433917 C-69.04667082933219 -26.2810527306066, -68.6608124069646 -26.42305219687403, -67.73605141647002 -26.763372789772923 M-67.73605141647002 -26.763372789772923 C-67.32021055116822 -26.88679217580125, -66.90436968586643 -27.010211561829582, -66.00305888756664 -27.277715875688035 M-67.73605141647002 -26.763372789772923 C-67.25612244501082 -26.905813189303434, -66.77619347355163 -27.048253588833944, -66.00305888756664 -27.277715875688035 M-66.00305888756664 -27.277715875688035 C-65.61583829805632 -27.36609644839327, -65.22861770854601 -27.454477021098505, -64.24067290301657 -27.679968976018245 M-66.00305888756664 -27.277715875688035 C-65.61101775917197 -27.367196704936667, -65.21897663077729 -27.456677534185303, -64.24067290301657 -27.679968976018245 M-64.24067290301657 -27.679968976018245 C-63.662132853034464 -27.773502844654256, -63.083592803052355 -27.867036713290272, -62.45613548486103 -27.96847914649127 M-64.24067290301657 -27.679968976018245 C-63.71872840236355 -27.76435291514377, -63.19678390171053 -27.848736854269298, -62.45613548486103 -27.96847914649127 M-62.45613548486103 -27.96847914649127 C-62.052180408697915 -28.007448206861667, -61.64822533253481 -28.046417267232062, -60.65677968013321 -28.142060836931396 M-62.45613548486103 -27.96847914649127 C-61.73996702441831 -28.037567056551588, -61.02379856397559 -28.10665496661191, -60.65677968013321 -28.142060836931396 M-60.65677968013321 -28.142060836931396 C-60.21076565562005 -28.1563636385839, -59.76475163110689 -28.170666440236403, -58.84999942779542 -28.200000762939453 M-60.65677968013321 -28.142060836931396 C-60.113386628403106 -28.15948639444997, -59.569993576673 -28.176911951968542, -58.84999942779542 -28.200000762939453 M-58.84999942779542 -28.200000762939453 C-58.84999942779542 -28.200000762939453, -58.84999942779542 -28.200000762939453, -58.84999942779541 -28.200000762939453 M-58.84999942779542 -28.200000762939453 C-58.84999942779542 -28.200000762939453, -58.84999942779541 -28.200000762939453, -58.84999942779541 -28.200000762939453" fill="none" stroke="#64748b" stroke-dasharray="0 0" stroke-width="1.3" style="fill:#e2e8f0 !important;stroke:#64748b !important"></path></g><g class="label" style="color:#161a1d !important" transform="translate(0, -16.200000762939453)"><rect></rect><g><rect class="background" style="stroke: none"></rect><text style="fill:#161a1d !important" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">Trình</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> duyệt</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> của</tspan></tspan><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">khách</tspan></tspan></text></g></g></g><g class="node default edge" data-look="neo" id="el-diagram-4-flowchart-LB-1" transform="translate(326.9281692504883, 55.5)"><polygon class="label-container" points="24.857142857142858,0 176.85714285714286,0 201.71428571428572,-43.5 176.85714285714286,-87 24.857142857142858,-87 0,-43.5" style="fill:#bae6fd !important;stroke:#0284c7 !important" transform="translate(-100.85714285714286,43.5)"></polygon><g class="label" style="color:#161a1d !important" transform="translate(0, -8.5)"><rect></rect><g><rect class="background" style="stroke: none"></rect><text style="fill:#161a1d !important" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">Load</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> balancer</tspan></tspan></text></g></g></g><g class="node default app" data-look="neo" id="el-diagram-4-flowchart-API-3" transform="translate(658.0353088378906, 55.49999999999999)"><rect class="basic label-container" height="71.79999923706055" style="fill:#a7f3d0 !important;stroke:#059669 !important" width="152" x="-76" y="-35.89999961853027"></rect><g class="label" style="color:#161a1d !important" transform="translate(0, -23.899999618530273)"><rect></rect><g><rect class="background" style="stroke: none"></rect><text style="fill:#161a1d !important" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">API</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> đặt</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> hàng</tspan></tspan><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">(pool</tspan><tspan class="text-inner-tspan" font-style="normal" font-weight="normal"> 20</tspan></tspan><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="2.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">connection)</tspan></tspan></text></g></g></g><g class="node default store" data-look="neo" id="el-diagram-4-flowchart-PG-5" transform="translate(943.9884338378906, 55.49999999999999)"><path class="basic label-container outer-path" d="M0,13.382899628252789 a72,13.382899628252789 0,0,0 144,0 a72,13.382899628252789 0,0,0 -144,0 l0,54.38289962825279 a72,13.382899628252789 0,0,0 144,0 l0,-54.38289962825279" style="fill:#fde68a !important;stroke:#d97706 !important" transform="translate(-72, -40.57434944237918)"></path><g class="label" style="color:#161a1d !important" transform="translate(0, 1.4999990463256836)"><rect></rect><g><rect class="background" style="stroke: none"></rect><text style="fill:#161a1d !important" y="-10.1"><tspan class="text-outer-tspan row" dy="1.1em" x="0" y="-0.1em"><tspan class="text-inner-tspan" font-style="normal" font-weight="normal">Postgres</tspan></tspan></text></g></g></g></g></g></g><defs><filter height="130%" id="el-diagram-4-drop-shadow" width="130%"><fedropshadow dx="4" dy="4" flood-color="#000000" flood-opacity="0.06" stddeviation="0"></fedropshadow></filter></defs><defs><filter height="150%" id="el-diagram-4-drop-shadow-small" width="150%"><fedropshadow dx="2" dy="2" flood-color="#000000" flood-opacity="0.06" stddeviation="0"></fedropshadow></filter></defs></svg></div></figure>
-<p>Request của khách đi theo các mũi tên liền. Mũi tên chấm là <code>/health</code>: load balancer tự gọi, không có khách nào chờ kết quả của nó, nhưng API vẫn phải trả lời nó như mọi request khác. Bạn sẽ gặp lại <code>/health</code> khi tính lỗi.</p>
-<p>Buổi tối, tải tăng từ <strong>180 request/giây</strong> lúc <strong>19:00</strong> lên <strong>300 request/giây</strong> lúc <strong>21:00</strong>. Đặt hàng (<code>POST /orders</code>) chỉ chiếm một phần nhỏ trong số đó: <strong>12 request/giây</strong> lúc <strong>19:00</strong>, <strong>17 request/giây</strong> lúc <strong>20:00</strong> và <strong>20 request/giây</strong> lúc <strong>21:00</strong>. Phần còn lại là xem giỏ hàng, xem sản phẩm, xem đơn và <code>/health</code>.</p>
-<p>Dashboard của team có ba panel, và cả ba đều xanh suốt buổi:</p>
-<div class="lesson-table-scroll"><table>
-<thead>
-<tr>
-<th>Giờ</th>
-<th>Latency trung bình (đỏ khi trên 500 ms)</th>
-<th>Tỉ lệ lỗi trên mọi request (đỏ khi trên 1%)</th>
-<th>CPU của API</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>19:00</td>
-<td>90 ms</td>
-<td>0,0%</td>
-<td>30%</td>
-</tr>
-<tr>
-<td>20:00</td>
-<td>105 ms</td>
-<td>0,1%</td>
-<td>40%</td>
-</tr>
-<tr>
-<td>21:00</td>
-<td>124 ms</td>
-<td>0,5%</td>
-<td>45%</td>
-</tr>
-</tbody>
-</table></div>
-<p>Nếu dashboard của bạn cũng có latency trung bình, số lỗi và CPU, thì bạn đang nhìn đúng ba panel này. Mỗi panel gộp nhiều request lại thành một giá trị duy nhất, và vấn đề nằm ở chỗ nó gộp những request nào, theo cách nào. Panel đầu tiên chỉ tính request thành công, tức là request mà API trả về mã 2xx. Dòng 503 trong log vì vậy không được tính vào con số <strong>124 ms</strong> kia.</p>
-<h2 id="vì-sao-180-request-chờ-vài-giây-vẫn-không-làm-panel-latency-đỏ-lên">Vì sao 180 request chờ vài giây vẫn không làm panel latency đỏ lên</h2>
-<p>Trước hết cần thống nhất latency là gì. Latency của một request là khoảng thời gian từ lúc API nhận request tới lúc API trả xong response. Nó trả lời câu hỏi: khách phải chờ bao lâu cho một lần bấm. Panel “Latency trung bình” cộng latency của mọi request thành công trong một phút, rồi chia cho số request đó.</p>
-<p>Phút <strong>21:00</strong> có <strong>17.910 request</strong> thành công. Phần lớn xong rất nhanh, trung bình khoảng <strong>100 ms</strong>. Còn lại khoảng <strong>180 request</strong> phải chờ lâu, trung bình khoảng <strong>2,5 giây</strong>, trong đó có lần đặt hàng mất <strong>3.240 ms</strong> trong log ở trên. Nếu phải trả lời ngay, bạn nghĩ <strong>180 request</strong> đó đẩy số trung bình lên tới đâu? Sát ngưỡng đỏ <strong>500 ms</strong>, hay vượt qua luôn?</p>
-<p>Cộng latency của hai nhóm rồi chia cho tổng số request thành công:</p>
-<pre><code>Nhóm nhanh:   17.730 request × 100 ms   = 1.773.000 ms
-Nhóm chậm:       180 request × 2.500 ms =   450.000 ms
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker>
+  <marker id="a-sat" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--sat)"/></marker>
+  <marker id="a-thr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--thr)"/></marker>
+  <marker id="a-pct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--pct)"/></marker>
+  <linearGradient id="g-lat" x1="0" x2="1"><stop offset="0" stop-color="#5eead4" stop-opacity=".25"/><stop offset=".85" stop-color="#5eead4" stop-opacity=".55"/><stop offset="1" stop-color="#fb7185" stop-opacity=".9"/></linearGradient>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">Thiết kế hệ thống · Đọc dashboard · Bản chi tiết có ví dụ</div>
+  <h1>Ba panel <span class="g">vẫn xanh</span>,<br>trong khi khách <span class="r">chờ 3 giây rồi nhận 503</span></h1>
+  <div class="sub">Mỗi panel gộp nhiều request thành một con số. Vấn đề nằm ở chỗ nó gộp <b>request nào</b>, theo <b>cách nào</b>. Toàn bộ số liệu bên dưới là số minh hoạ của bài, phút 21:00 tại API đặt hàng.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 330" role="img" aria-label="Ba panel cũ xanh so với thực tế cùng phút 21:00, và lý do mỗi panel che mất vấn đề">
+      <text class="lb" x="135" y="22" text-anchor="middle" fill="var(--ok)">DASHBOARD CŨ · 21:00</text>
+      <text class="lb" x="565" y="22" text-anchor="middle" fill="var(--err)">THỰC TẾ · CÙNG PHÚT</text>
+
+      <!-- row 1 -->
+      <rect class="box" x="20" y="40" width="230" height="74" rx="8" stroke="var(--ok)"/>
+      <text class="sm" x="34" y="60">Latency trung bình</text>
+      <text class="big" x="34" y="86" fill="var(--ok)">124 ms</text>
+      <text class="sm" x="34" y="104">ngưỡng đỏ 500 ms · XANH</text>
+      <path class="ln" d="M252,77 L446,77" marker-end="url(#a-dim)"/>
+      <text class="sm" x="349" y="68" text-anchor="middle" fill="var(--pct)">180 req chậm bị chia đều</text>
+      <text class="sm" x="349" y="94" text-anchor="middle">cho 17.910 req → chỉ +24 ms</text>
+      <rect class="box" x="450" y="40" width="230" height="74" rx="8" stroke="var(--err)"/>
+      <text class="sm" x="464" y="60">p99 request thành công</text>
+      <text class="big" x="464" y="86" fill="var(--err)">2.000 ms</text>
+      <text class="sm" x="464" y="104">~180 khách/phút chờ ≥ 2 s</text>
+
+      <!-- row 2 -->
+      <rect class="box" x="20" y="134" width="230" height="74" rx="8" stroke="var(--ok)"/>
+      <text class="sm" x="34" y="154">Tỉ lệ lỗi · mọi request</text>
+      <text class="big" x="34" y="180" fill="var(--ok)">0,5%</text>
+      <text class="sm" x="34" y="198">ngưỡng đỏ 1% · XANH</text>
+      <path class="ln" d="M252,171 L446,171" marker-end="url(#a-dim)"/>
+      <text class="sm" x="349" y="162" text-anchor="middle" fill="var(--err)">mẫu số 18.000 req cả API</text>
+      <text class="sm" x="349" y="188" text-anchor="middle">thay vì 1.200 lần đặt hàng</text>
+      <rect class="box" x="450" y="134" width="230" height="74" rx="8" stroke="var(--err)"/>
+      <text class="sm" x="464" y="154">Lỗi của POST /orders</text>
+      <text class="big" x="464" y="180" fill="var(--err)">7,5%</text>
+      <text class="sm" x="464" y="198">90 lần 503, mỗi lần chờ ~3 s</text>
+
+      <!-- row 3 -->
+      <rect class="box" x="20" y="228" width="230" height="74" rx="8" stroke="var(--ok)"/>
+      <text class="sm" x="34" y="248">CPU của API</text>
+      <text class="big" x="34" y="274" fill="var(--ok)">45%</text>
+      <text class="sm" x="34" y="292">"còn rảnh hơn một nửa"</text>
+      <path class="ln" d="M252,265 L446,265" marker-end="url(#a-dim)"/>
+      <text class="sm" x="349" y="256" text-anchor="middle" fill="var(--sat)">đo utilization của CPU,</text>
+      <text class="sm" x="349" y="282" text-anchor="middle">không đo hàng chờ ở pool</text>
+      <rect class="box" x="450" y="228" width="230" height="74" rx="8" stroke="var(--err)"/>
+      <text class="sm" x="464" y="248">Connection pool</text>
+      <text class="big" x="464" y="274" fill="var(--sat)">20/20 + 25 chờ</text>
+      <text class="sm" x="464" y="292">saturation đã xảy ra</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Mỗi panel cũ có một cách riêng để giấu đúng nhóm khách đang khổ</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Trung bình</b></span>
+    <span>02 <b>p50 · p95 · p99</b></span>
+    <span>03 <b>Throughput</b></span>
+    <span>04 <b>Error rate</b></span>
+    <span>05 <b>Saturation</b></span>
+    <span>06 <b>Checklist</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Latency trung bình</div>
+    <h2 class="c-pct">Số trung bình trả lời "tính chung mỗi request mất bao lâu" — còn khách hỏi "tôi phải chờ bao lâu"</h2>
+    <p class="desc"><b>Latency</b> của một request = thời gian từ lúc API nhận request tới lúc trả xong response. Panel "trung bình" cộng latency của mọi request <b>thành công (2xx)</b> trong một phút rồi chia cho số request. Vấn đề nằm ngay trong phép chia: thời gian chờ của một nhóm nhỏ bị <b>chia đều cho tất cả</b>. Nhóm chậm chỉ chiếm 1% số request nhưng chiếm 20% tổng latency — vậy mà kết quả chỉ nhích từ 100 lên 124 ms, còn cách ngưỡng đỏ gần 380 ms. Và nhìn con số 124 ms, bạn không biết nhóm chậm có bao nhiêu request, chờ 500 ms hay 3 giây.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 250" role="img" aria-label="Nhóm chậm chiếm 1 phần trăm số request, 20 phần trăm tổng latency, nhưng chỉ đẩy trung bình từ 100 lên 124 ms">
+        <text class="lb" x="20" y="22" fill="var(--ink-dim)">SỐ REQUEST (17.910)</text>
+        <rect x="20" y="32" width="654" height="22" rx="4" fill="#5eead4" fill-opacity=".28"/>
+        <rect x="674" y="32" width="6" height="22" rx="2" fill="var(--err)"/>
+        <text class="sm" x="30" y="47" fill="var(--ink)">nhóm nhanh 17.730 req · ~100 ms · 99%</text>
+        <text class="sm" x="668" y="70" text-anchor="end" fill="var(--err)">nhóm chậm 180 req · ~2.500 ms · 1% ↑</text>
+
+        <text class="lb" x="20" y="102" fill="var(--ink-dim)">TỔNG LATENCY (2.223.000 ms)</text>
+        <rect x="20" y="112" width="529" height="22" rx="4" fill="#5eead4" fill-opacity=".28"/>
+        <rect x="549" y="112" width="131" height="22" rx="4" fill="var(--err)" fill-opacity=".75"/>
+        <text class="sm" x="30" y="127" fill="var(--ink)">1.773.000 ms · 80%</text>
+        <text class="sm" x="614" y="127" text-anchor="middle" fill="#0d0d0f">450.000 · 20%</text>
+
+        <text class="lb" x="20" y="176" fill="var(--ink-dim)">KẾT QUẢ TRÊN PANEL — thang 0 → 500 ms</text>
+        <line class="grid" x1="20" y1="206" x2="680" y2="206"/>
+        <rect x="20" y="196" width="132" height="20" rx="3" fill="#5eead4" fill-opacity=".25"/>
+        <rect x="152" y="196" width="32" height="20" rx="0" fill="var(--pct)" fill-opacity=".7"/>
+        <line x1="680" y1="186" x2="680" y2="228" stroke="var(--err)" stroke-width="2"/>
+        <text class="sm" x="676" y="242" text-anchor="end" fill="var(--err)">ngưỡng đỏ 500 ms</text>
+        <text class="sm" x="152" y="232" text-anchor="middle">100</text>
+        <text class="sm" x="190" y="190" fill="var(--pct)">124 ms (+24)</text>
+        <path class="ln ln-d" d="M196,206 L672,206" stroke="var(--ok)"/>
+        <text class="sm" x="430" y="200" text-anchor="middle" fill="var(--ok)">còn cách ~380 ms → panel XANH</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — 1% request mang 20% thời gian chờ, nhưng phép chia làm nó gần như biến mất</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — phép chia của phút 21:00 (số trong bài)</div>
+      <pre>Nhóm nhanh:   17.730 request × <span class="val">100 ms</span>   = 1.773.000 ms
+Nhóm chậm:       180 request × <span class="val">2.500 ms</span> =   450.000 ms
 Tổng latency:                             2.223.000 ms
-Trung bình:   2.223.000 ms ÷ 17.910 request ≈ 124 ms
-</code></pre>
-<p>Không có nhóm chậm, số trung bình là <strong>100 ms</strong>. Thêm <strong>180 request</strong> chờ trung bình <strong>2,5 giây</strong> vào, số trung bình lên <strong>124 ms</strong>.</p>
-<p>Chỉ nhích thêm <strong>24 ms</strong>.</p>
-<p>Lý do nằm ngay trong phép chia: thời gian chờ của <strong>180 request</strong> bị chia đều cho gần <strong>18.000 request</strong>, nên với bộ số liệu này, nó chỉ cộng thêm vài chục ms vào kết quả. Panel vẫn cách ngưỡng đỏ gần <strong>380 ms</strong>.</p>
-<figure class="el-figure"><img alt="Chuỗi phép tính trên 17.910 request thành công trong phút 21:00. Nhóm nhanh 17.730 request nhân 100 ms được 1.773.000 ms, nhóm chậm 180 request nhân 2.500 ms được 450.000 ms; cộng lại thành tổng latency 2.223.000 ms, chia cho 17.910 request được trung bình khoảng 124 ms, trong khi nếu không có nhóm chậm thì trung bình là 100 ms." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/1f/1fc2480fb253687fe37eaca77d3191099c89686c3c6b53485bf6db2523de8f54/generations/f9c8cc2ea4b9087ee4d910fa63a6471ff55c69959d5821fcce010cc2d7df0724" width="1586"/></figure>
-<p>Quan trọng hơn, nhìn con số <strong>124 ms</strong>, bạn không biết nhóm chậm có bao nhiêu request, cũng không biết những request đó chờ <strong>500 ms</strong> hay <strong>3 giây</strong>. Số trung bình cho biết “tính chung thì mỗi request mất bao lâu”, còn khách đang hỏi “tôi phải chờ bao lâu”.</p>
-<p>Cách đọc dashboard để thấy được nhóm khách đó có thể tóm lại trong hai câu:</p>
-<p><strong>Bạn đọc latency của request thành công theo p50, p95 và p99, để số trung bình không che mất những request chậm nhất. Bạn cũng đọc throughput cùng với latency, tính error rate trên request của đúng thao tác cần theo dõi, và xem cả saturation chứ không chỉ utilization của tài nguyên chính.</strong></p>
-<p>Phần còn lại của bài giải thích từng vế, bắt đầu với p50, p95 và p99.</p>
-<h2 id="p50-p95-và-p99-cho-biết-nhóm-request-chậm-phải-chờ-bao-lâu">p50, p95 và p99 cho biết nhóm request chậm phải chờ bao lâu</h2>
-<p>Percentile trả lời một câu hỏi mà số trung bình không trả lời được: bao nhiêu phần trăm request xong dưới một mốc thời gian. Cách hiểu đơn giản như sau. Bạn lấy latency của mọi request thành công trong phút đó và xếp từ nhanh tới chậm.</p>
-<p>p50, còn gọi là median, là giá trị đứng ở giữa danh sách: một nửa số request xong nhanh hơn mức này. p95 là giá trị ở vị trí <strong>95%</strong> của danh sách, p99 là giá trị ở vị trí <strong>99%</strong>. Công cụ monitoring có thể tính hơi khác một chút, chẳng hạn nội suy giữa hai giá trị liền nhau, nhưng ý nghĩa vẫn vậy.</p>
-<p>Với <strong>17.910 request</strong> thành công của phút <strong>21:00</strong>, khoảng <strong>1%</strong>, tức là khoảng <strong>180 request</strong>, có latency từ p99 trở lên. Khoảng <strong>900 request</strong> có latency từ p95 trở lên. Mỗi percentile chỉ thẳng vào một nhóm request cụ thể ở cuối danh sách đã xếp.</p>
-<p>Team thêm p50, p95, p99 vào dashboard, cùng một panel throughput, rồi xem lại số liệu của chính buổi tối hôm đó:</p>
-<div class="lesson-table-scroll"><table>
-<thead>
-<tr>
-<th>Giờ</th>
-<th>Số request xử lý xong mỗi giây</th>
-<th>Latency trung bình của request thành công</th>
-<th>p50</th>
-<th>p95</th>
-<th>p99</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>19:00</td>
-<td>180</td>
-<td>90 ms</td>
-<td>70 ms</td>
-<td>200 ms</td>
-<td>320 ms</td>
-</tr>
-<tr>
-<td>20:00</td>
-<td>250</td>
-<td>105 ms</td>
-<td>70 ms</td>
-<td>240 ms</td>
-<td>900 ms</td>
-</tr>
-<tr>
-<td>21:00</td>
-<td>300</td>
-<td>124 ms</td>
-<td>70 ms</td>
-<td>280 ms</td>
-<td>2.000 ms</td>
-</tr>
-</tbody>
-</table></div>
-<p>Cột trung bình chỉ tăng từ <strong>90 ms</strong> lên <strong>124 ms</strong>. Cột p99 tăng từ <strong>320 ms</strong> lên <strong>2.000 ms</strong>, gấp hơn sáu lần. Giờ thì nhóm khách chờ lâu đã hiện ra trên dashboard.</p>
-<p>Hai cột còn lại nói về phần lớn request, và phần này vẫn nhanh. p50 giữ ở <strong>70 ms</strong> suốt buổi, nên một nửa số request vẫn xong nhanh như lúc <strong>19:00</strong>. p95 chỉ lên <strong>280 ms</strong>, nghĩa là <strong>95%</strong> request vẫn xong dưới <strong>280 ms</strong>. Hai percentile này không cho biết gì về <strong>1%</strong> request chậm nhất. Muốn biết nhóm chậm nhất này chờ bao lâu thì phải nhìn p99: từ <strong>2 giây</strong> trở lên.</p>
-<p>Chỗ này rất dễ đọc nhầm. p99 bằng <strong>2 giây</strong> nghe như chỉ có vài khách xui xẻo bị chậm. Nhưng riêng phút <strong>21:00</strong>, <strong>1%</strong> đó là khoảng <strong>180 request</strong> thành công, mà phút này lại là lúc có nhiều khách đặt hàng nhất. Với một hệ thống đang đông khách, <strong>1%</strong> request có thể là hàng trăm request mỗi phút.</p>
-<figure class="el-figure"><img alt="Một dải biểu diễn 17.910 request thành công trong phút 21:00 xếp từ nhanh tới chậm, latency tăng dần sang phải. Ba vạch đánh dấu p50 bằng 70 ms ở giữa, p95 bằng 280 ms và p99 bằng 2.000 ms gần cuối dải. Hai ngoặc lồng nhau chạy tới cuối dải: từ p95 trở lên có khoảng 900 request, từ p99 trở lên có khoảng 180 request." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/5b/5b3fd90416a70f0434c24f91b0ca98e2b8524f706ffc86f668dc163cd6aa6b35/generations/c0a8fbbb6a7965f57551e898e300c62dd19670aabe780dfe9fb8bdf2825c8e10" width="1586"/></figure>
-<h2 id="throughput-tăng-cùng-lúc-với-p99-còn-tỉ-lệ-lỗi-của-đặt-hàng-bị-pha-loãng">Throughput tăng cùng lúc với p99, còn tỉ lệ lỗi của đặt hàng bị pha loãng</h2>
-<p>Cột “Số request xử lý xong mỗi giây” trong bảng trên chính là throughput: số request API xử lý xong mỗi giây, tính trên mọi request, kể cả <code>/health</code>. Throughput cho biết hệ thống làm xong bao nhiêu việc, còn latency cho biết mỗi việc mất bao lâu. Hai số này có thể đi theo hai hướng khác nhau, nên cần hai panel riêng.</p>
-<p>Buổi tối đó, throughput tăng từ <strong>180</strong> lên <strong>300 request/giây</strong>, và đúng lúc ấy p99 tăng từ <strong>320 ms</strong> lên <strong>2.000 ms</strong>. API làm xong nhiều việc hơn, nhưng một nhóm request phải chờ lâu hơn hẳn. Chỉ nhìn panel throughput, bạn sẽ nghĩ API đang phục vụ tốt hơn bao giờ hết.</p>
-<p>Throughput có ý nghĩa nhất khi so sánh với số request đang tới mỗi giây. Đó là hai số khác nhau, nên muốn so sánh thì dashboard phải đếm riêng số request tới, ngoài số request xử lý xong. Khi số request tới nhiều hơn số request API xử lý xong, phần chênh lệch không biến mất: những request đó nằm lại chờ, và hàng chờ dài ra. Hàng chờ của buổi tối hôm đó nằm ở đâu, bảng thứ hai của dashboard mới sẽ cho thấy.</p>
-<p>Nhưng trước đó, hãy xem panel lỗi. Error rate là số request lỗi chia cho số request trong một tập đã chọn, trong một khoảng thời gian. Cùng một số lượng lỗi, đổi tập request làm mẫu số là đổi luôn kết quả.</p>
-<p>Panel cũ chia số request lỗi cho mọi request API nhận được: giỏ hàng, sản phẩm, xem đơn và cả <code>/health</code>. Các endpoint đọc gần như luôn thành công, còn mọi lỗi lúc <strong>21:00</strong> lại dồn vào đặt hàng. Phút đó có <strong>1.200 request</strong> <code>POST /orders</code> (<strong>20 request/giây</strong> nhân <strong>60 giây</strong>), và đây là phép chia trên hai mẫu số:</p>
-<pre><code>Mẫu số là mọi request API nhận:   90 lỗi ÷ 18.000 request = 0,5%
-Mẫu số là request POST /orders:   90 lỗi ÷  1.200 request = 7,5%
-7,5% ≈ cứ khoảng 13 lần bấm "Đặt hàng" thì có 1 lần lỗi
-</code></pre>
-<p>Cùng <strong>90 request</strong> lỗi, cùng một phút. Panel cũ ghi <strong>0,5%</strong>, dưới ngưỡng đỏ <strong>1%</strong>, vì <strong>90 lỗi</strong> đó bị chia cho gần <strong>18.000 request</strong> của cả API. Tính trên đúng thao tác đặt hàng, tỉ lệ là <strong>7,5%</strong>, gấp <strong>15 lần</strong> con số trên panel cũ. Error rate thấp có khi chỉ vì mẫu số quá lớn, nên panel lỗi phải ghi rõ nó chia cho tập request nào.</p>
-<figure class="el-figure"><img alt="Hai nửa vẽ cùng một tập request trong phút 21:00: hình bầu dục lớn là cả API với 18.000 request, bên trong có POST /orders với 1.200 request chứa toàn bộ 90 lỗi; /health và giỏ hàng, sản phẩm, xem đơn nằm ngoài POST /orders. Nửa trái lấy cả API làm mẫu số: 90 lỗi chia 18.000 request được 0,5%, dưới ngưỡng đỏ 1% của panel cũ. Nửa phải lấy POST /orders làm mẫu số: 90 lỗi chia 1.200 request được 7,5%, cứ khoảng 13 lần bấm Đặt hàng thì có 1 lần lỗi." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/b2/b21ed2f3edd21a854b60f96fd0eb9675ca413ea281fec575f9541f2b191b76f6/generations/875419e9cd9d4d9d7220a3e0b2e1bf00866d83ec638f33f543362113c9fd057a" width="1586"/></figure>
-<p>Đây là phần còn lại của dashboard mới, cùng ba mốc giờ:</p>
-<div class="lesson-table-scroll"><table>
-<thead>
-<tr>
-<th>Giờ</th>
-<th>Tỉ lệ lỗi của đặt hàng (%)</th>
-<th>p99 latency của request lỗi</th>
-<th>CPU API</th>
-<th>Connection đang dùng</th>
-<th>Số request đang chờ connection</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>19:00</td>
-<td>0</td>
-<td>không có request lỗi</td>
-<td>30%</td>
-<td>14/20</td>
-<td>0</td>
-</tr>
-<tr>
-<td>20:00</td>
-<td>2</td>
-<td>3.020 ms</td>
-<td>40%</td>
-<td>20/20</td>
-<td>khoảng 8</td>
-</tr>
-<tr>
-<td>21:00</td>
-<td>7,5</td>
-<td>3.040 ms</td>
-<td>45%</td>
-<td>20/20</td>
-<td>khoảng 25</td>
-</tr>
-</tbody>
-</table></div>
-<p>Error rate cho biết lỗi xảy ra thường xuyên tới đâu. Nó không cho biết khách chờ bao lâu rồi mới nhận lỗi, và đó là việc của panel latency của request lỗi. Lúc <strong>21:00</strong>, p99 latency của request lỗi là <strong>3.040 ms</strong>: khách bấm “Đặt hàng”, chờ khoảng <strong>3 giây</strong>, rồi mới nhận 503.</p>
-<p>Panel này được tách riêng khỏi latency của request thành công. Nếu gộp chung, percentile sẽ trộn hai chuyện khác nhau: một lỗi trả về ngay trong vài ms làm API trông nhanh hơn thực tế, còn một lỗi phải chờ <strong>3 giây</strong> như ở đây lại lẫn vào nhóm request thành công chậm, và bạn không còn biết bao nhiêu khách chờ lâu mà vẫn đặt được hàng.</p>
-<p>Mốc <strong>3 giây</strong> cũng có lý do. API chờ một connection của pool tối đa <strong>3 giây</strong>; quá mốc đó mà vẫn chưa lấy được connection thì API trả 503. Request đặt hàng ghi vào nhiều bảng trong một transaction nên giữ connection lâu nhất, và mọi lỗi 503 lúc <strong>21:00</strong> đều rơi vào thao tác này. Nghĩa là những request lỗi kia đang chờ connection, chứ không chờ CPU.</p>
-<h2 id="cpu-mới-45-nhưng-request-đã-phải-xếp-hàng-chờ-connection">CPU mới 45%, nhưng request đã phải xếp hàng chờ connection</h2>
-<p>Panel CPU là một số đo utilization, tức là phần tài nguyên đang được dùng. Với CPU, đó là phần trăm thời gian CPU bận. Với connection pool, đó là số connection đang được dùng trên tổng <strong>20 connection</strong>. Utilization trả lời câu hỏi: tài nguyên này đang bận tới mức nào.</p>
-<p>Saturation trả lời một câu hỏi khác: có bao nhiêu việc đang phải xếp hàng chờ vì tài nguyên đã được dùng hết. Với connection pool, saturation là số request đang chờ connection, hoặc thời gian mỗi request phải chờ.</p>
-<p>Hãy nhìn lại ba cột cuối của bảng thứ hai. Lúc <strong>19:00</strong>, pool dùng <strong>14/20 connection</strong> và không request nào phải chờ. Lúc <strong>20:00</strong>, cả <strong>20 connection</strong> đều bận và khoảng <strong>8 request</strong> đang chờ. Lúc <strong>21:00</strong>, pool vẫn dùng <strong>20/20 connection</strong>, còn số request chờ lên khoảng <strong>25</strong>. Suốt khoảng thời gian đó, CPU của API chỉ tăng từ <strong>30%</strong> lên <strong>45%</strong>.</p>
-<p>CPU và connection pool là hai tài nguyên khác nhau. Một request đang chờ connection thì gần như không dùng CPU, nên CPU thấp không nói lên điều gì về hàng chờ ở pool. Nếu chỉ có panel CPU, kỹ sư trực sẽ thấy CPU còn rảnh hơn một nửa và kết luận API chịu tải tốt, trong khi khoảng <strong>25 request</strong> đang xếp hàng ở pool và request nào chờ quá <strong>3 giây</strong> thì nhận 503.</p>
-<p>Cũng đừng coi utilization <strong>100%</strong> là saturation. Pool dùng đủ <strong>20 connection</strong> mà không request nào phải chờ thì mọi request vẫn được phục vụ ngay, và đó chưa phải saturation. Saturation bắt đầu khi có request phải chờ, kể cả khi số request chờ giữ ổn định ở khoảng <strong>8</strong> như lúc <strong>20:00</strong> chứ không tăng thêm. Những request tới mà API chưa kịp phục vụ sẽ nằm lại chờ ở chính hàng chờ connection này.</p>
-<figure class="el-figure"><img alt="Hai tình huống của cùng một connection pool, cả hai đều có 20/20 connection đang dùng. Bên trái, pool dùng đủ 20 connection nhưng hàng chờ connection không có request nào, nên utilization 100% mà chưa phải saturation. Bên phải, lúc 20:00, khoảng 8 request đang chờ connection bên ngoài pool, nên đã có saturation dù số request chờ giữ ổn định." decoding="async" height="992" loading="lazy" src="https://assets.200lab.io/sha256/02/025a08ee2eb7ae562bcd0bdc6063315fe224f9f8c4cf4cbefe5cd40cac0e940a/generations/7b43fe401f354ebb69b240ba14cd56d8141027ed6d1002b4bf1afe6633468cbc" width="1586"/></figure>
-<p>Cách nhìn mỗi tài nguyên qua utilization, saturation và lỗi có tên là USE method, do Brendan Gregg đặt ra. Dùng nó để kiểm tra lần lượt từng tài nguyên và tìm bottleneck (thành phần giới hạn tốc độ của cả hệ thống) là một việc riêng. Dashboard mới chỉ cho thấy triệu chứng và tài nguyên mà request đang xếp hàng chờ; vì sao pool bị dồn việc thì phải lần theo từng chặng mới trả lời được.</p>
-<p>Muốn có dashboard như vậy, team phải làm thêm hai việc:</p>
-<ul>
-<li><strong>Thêm panel, và ghi rõ trên mỗi panel tập request và khoảng thời gian mà nó tính.</strong> Không ghi thì vài tháng sau không ai còn nhớ panel lỗi có tính <code>/health</code> hay không.</li>
-<li><strong>Tính percentile từ latency đo được của từng request.</strong> Từ số trung bình không suy ra được p99, nên công cụ monitoring phải nhận được latency của từng request khi đo, chứ không chỉ tổng latency và số request.</li>
-</ul>
-<p>Percentile cũng chỉ có ý nghĩa khi có đủ nhiều request. Nếu một phút chỉ có <strong>50 request</strong>, p99 gần như chỉ dựa vào đúng request chậm nhất trong phút đó.</p>
-<h2 id="trước-khi-kết-luận-hệ-thống-vẫn-ổn">Trước khi kết luận hệ thống vẫn ổn</h2>
-<p>Mỗi số liệu trên dashboard nên gắn với một câu hỏi rõ ràng. Dashboard của bạn trả lời được những câu nào trong bốn câu dưới đây? Mỗi câu cần ít nhất một panel riêng:</p>
-<ol>
-<li><strong>Bao nhiêu phần trăm request xong dưới một mốc thời gian?</strong> Panel p50, p95, p99 của request thành công trả lời câu này; latency trung bình thì không.</li>
-<li><strong>Mỗi giây hệ thống xử lý xong bao nhiêu request, so với số request đang tới?</strong> Panel throughput chỉ cho biết vế đầu; vế sau cần thêm một panel đếm riêng số request tới mỗi giây.</li>
-<li><strong>Lỗi được tính trên tập request nào?</strong> Panel error rate phải ghi rõ mẫu số, chẳng hạn chỉ request <code>POST /orders</code>, và đi kèm panel latency của request lỗi.</li>
-<li><strong>Request đang phải xếp hàng chờ ở tài nguyên nào?</strong> Câu này cần panel saturation của tài nguyên chính, như số request đang chờ connection; phần trăm CPU không trả lời được.</li>
-</ol>
-<p>Buổi tối hôm đó, cả ba panel cũ đều xanh, trong khi riêng phút <strong>21:00</strong> đã có khoảng <strong>180 request</strong> chờ từ <strong>2 giây</strong> trở lên và <strong>90 lần</strong> bấm “Đặt hàng” nhận 503. Trong bốn câu hỏi trên, câu nào dashboard của bạn chưa có panel trả lời thì đó là panel cần thêm trước khi nói hệ thống vẫn ổn.</p>
-<h2 id="tài-liệu-tham-khảo">Tài liệu tham khảo</h2>
-<ul>
-<li><a href="https://sre.google/sre-book/monitoring-distributed-systems/" rel="noopener" target="_blank">Monitoring Distributed Systems</a>: bốn tín hiệu latency, traffic, errors, saturation mà Google SRE theo dõi, và vì sao latency của request lỗi cần tách riêng khỏi latency của request thành công.</li>
-<li><a href="https://sre.google/sre-book/service-level-objectives/" rel="noopener" target="_blank">Service Level Objectives</a>: vì sao chỉ số latency nên dùng percentile thay vì số trung bình.</li>
-<li><a href="https://dataintensive.net/" rel="noopener" target="_blank">Designing Data-Intensive Applications (DDIA)</a>: chương 1 mô tả tải và đo hiệu năng bằng percentile (sách trả phí).</li>
-<li><a href="https://www.brendangregg.com/usemethod.html" rel="noopener" target="_blank">The USE Method</a>: định nghĩa utilization, saturation và errors cho từng tài nguyên, và cách dùng ba số đo này để kiểm tra một hệ thống.</li>
-</ul>
+Trung bình:   2.223.000 ms ÷ 17.910 request ≈ <span class="good">124 ms</span>   <span class="cm"># không có nhóm chậm: 100 ms</span></pre>
+      <p>Trong cùng phút, access log ghi <code>POST /orders 200 3240ms</code> và <code>POST /orders 503 3010ms</code>. Dòng 503 thậm chí <b>không được tính</b> vào 124 ms, vì panel chỉ lấy request 2xx.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Percentile</div>
+    <h2 class="c-pct">p50, p95, p99 — mỗi percentile chỉ thẳng vào một nhóm request ở cuối danh sách</h2>
+    <p class="desc">Lấy latency của mọi request thành công trong phút, <b>xếp từ nhanh tới chậm</b>. <b>p50</b> (median) là giá trị đứng giữa: một nửa xong nhanh hơn. <b>p95</b> là giá trị ở vị trí 95%, <b>p99</b> ở vị trí 99%. Công cụ monitoring có thể nội suy giữa hai giá trị liền kề, nhưng ý nghĩa không đổi: percentile trả lời "<b>bao nhiêu % request xong dưới một mốc thời gian</b>". p50 và p95 mô tả phần đông; chúng không nói gì về 1% chậm nhất — muốn biết nhóm đó chờ bao lâu thì phải nhìn p99.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 256" role="img" aria-label="Dải 17.910 request xếp từ nhanh tới chậm với vạch p50, p95, p99; vùng 90 đến 100 phần trăm được phóng to">
+        <text class="lb" x="40" y="20" fill="var(--ink-dim)">17.910 REQUEST THÀNH CÔNG · XẾP NHANH → CHẬM</text>
+        <!-- latency curve -->
+        <path d="M40,150 L360,146" stroke="var(--pct)" stroke-width="2" fill="none"/>
+        <path d="M380,145 C 470,142 520,138 540,130 C 590,112 615,90 632,64 C 645,46 655,40 660,36" stroke="var(--pct)" stroke-width="2" fill="none"/>
+        <text class="sm" x="60" y="138">latency từng request</text>
+        <!-- strip -->
+        <rect x="40" y="160" width="320" height="16" rx="3" fill="#5eead4" fill-opacity=".22"/>
+        <rect x="380" y="160" width="280" height="16" rx="3" fill="url(#g-lat)"/>
+        <text x="370" y="174" text-anchor="middle" fill="var(--ink-dim)">≈</text>
+        <text class="sm" x="40" y="196">0%</text>
+        <text class="sm" x="360" y="196" text-anchor="end">90%</text>
+        <text class="sm" x="380" y="196">90%</text>
+        <text class="sm" x="660" y="196" text-anchor="end">100%</text>
+        <text class="sm" x="380" y="216">phóng to 90–100%</text>
+        <!-- p50 -->
+        <line x1="218" y1="96" x2="218" y2="180" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="218" y="88" text-anchor="middle">p50 = 70 ms</text>
+        <!-- p95 -->
+        <line x1="520" y1="96" x2="520" y2="180" stroke="var(--sat)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="520" y="88" text-anchor="middle" fill="var(--sat)">p95 = 280 ms</text>
+        <!-- p99 -->
+        <line x1="632" y1="44" x2="632" y2="180" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="626" y="36" text-anchor="end" fill="var(--err)">p99 = 2.000 ms</text>
+        <!-- brackets -->
+        <path d="M632,204 L632,210 L660,210 L660,204" stroke="var(--err)" fill="none" stroke-width="1.2"/>
+        <text class="sm" x="660" y="224" text-anchor="end" fill="var(--err)">≥ p99: ~180 req</text>
+        <path d="M520,232 L520,238 L660,238 L660,232" stroke="var(--sat)" fill="none" stroke-width="1.2"/>
+        <text class="sm" x="590" y="252" text-anchor="middle" fill="var(--sat)">≥ p95: ~900 req</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — p50 và p95 nằm ở phần "bằng phẳng"; chỉ p99 chạm vào đoạn cong vút ở cuối</div>
+    </div>
+
+    <div class="tscroll"><table>
+      <tr><th>Giờ</th><th>Trung bình</th><th>p50</th><th>p95</th><th>p99</th></tr>
+      <tr><td class="num">19:00</td><td class="num">90 ms</td><td class="num">70 ms</td><td class="num">200 ms</td><td class="num"><span class="mini" style="width:13px;background:var(--pct)"></span>320 ms</td></tr>
+      <tr><td class="num">20:00</td><td class="num">105 ms</td><td class="num">70 ms</td><td class="num">240 ms</td><td class="num"><span class="mini" style="width:36px;background:var(--sat)"></span>900 ms</td></tr>
+      <tr><td class="num">21:00</td><td class="num">124 ms</td><td class="num">70 ms</td><td class="num">280 ms</td><td class="num"><span class="mini" style="width:80px;background:var(--err)"></span><b style="color:var(--err)">2.000 ms</b></td></tr>
+    </table></div>
+    <div class="note"><b>Đọc bảng:</b> trung bình chỉ tăng 90 → 124 ms (+38%), p99 tăng 320 → 2.000 ms (<b>gấp hơn 6 lần</b>). p50 đứng yên 70 ms cả buổi — một nửa khách vẫn thấy API nhanh như lúc 19:00.</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — "1%" nghe ít, nhưng là bao nhiêu người?</div>
+      <div class="before-after">
+        <div><b class="h" style="color:var(--ink-dim)">ĐỌC NHẦM</b>"p99 = 2 s, chắc chỉ vài khách xui xẻo."</div>
+        <div><b class="h" style="color:var(--err)">ĐỌC ĐÚNG</b>1% × 17.910 = <b>~180 request mỗi phút</b> — đúng vào phút đông khách đặt hàng nhất.</div>
       </div>
-      <footer class="lesson-nav" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-23.html"></footer>
-    </article>
-  </main>
-  <script src="../../../lessons/lessons.js"></script>
-  <script src="../../../assets/app.js"></script>
+      <p><b>Edge case — ít request:</b> nếu một phút chỉ có 50 request, p99 gần như chỉ là <b>request chậm nhất</b> trong phút đó; một request lạc lõng cũng đủ làm p99 nhảy vọt.</p>
+      <pre><span class="cm"># Ví dụ minh hoạ thêm (Prometheus, không có trong bài):</span>
+<span class="cm"># p99 của POST /orders thành công, tính từ histogram latency từng request</span>
+<span class="kw">histogram_quantile</span>(<span class="val">0.99</span>,
+  sum by (le) (rate(http_request_duration_seconds_bucket{
+    route=<span class="val">"/orders"</span>, method=<span class="val">"POST"</span>, code=~<span class="val">"2.."</span>}[1m])))</pre>
+      <p class="hint">Percentile phải tính từ latency đo được của <b>từng request</b> (histogram/bucket). Từ tổng latency + số request chỉ ra được trung bình, không bao giờ suy ra được p99.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Throughput</div>
+    <h2 class="c-thr">Throughput tăng không có nghĩa là phục vụ tốt hơn — nó có thể đi cùng p99 tăng vọt</h2>
+    <p class="desc"><b>Throughput</b> = số request API <b>xử lý xong mỗi giây</b> (tính mọi request, kể cả <code>/health</code>). Throughput nói hệ thống làm xong <b>bao nhiêu việc</b>; latency nói mỗi việc mất <b>bao lâu</b>. Hai số có thể đi theo hai hướng, nên cần hai panel. Throughput có ý nghĩa nhất khi đặt cạnh <b>số request đang tới mỗi giây</b> — một số khác, phải đếm riêng. Khi request tới nhiều hơn request xử lý xong, phần chênh lệch không biến mất: nó nằm lại chờ, và <b>hàng chờ dài ra</b>.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 240" role="img" aria-label="Throughput tăng từ 180 lên 300 request mỗi giây trong khi p99 tăng từ 320 lên 2000 ms">
+        <line class="grid" x1="70" y1="190" x2="630" y2="190"/>
+        <line class="grid" x1="70" y1="40" x2="630" y2="40" stroke-dasharray="3 4"/>
+        <text class="sm" x="62" y="194" text-anchor="end">0</text>
+        <text class="sm" x="62" y="44" text-anchor="end" fill="var(--thr)">300/s</text>
+        <text class="sm" x="638" y="44" fill="var(--pct)">2.000 ms</text>
+        <text class="sm" x="638" y="194">0</text>
+        <!-- throughput bars: scale 150px / 300 -->
+        <rect x="120" y="100" width="60" height="90" rx="3" fill="var(--thr)" fill-opacity=".55"/>
+        <rect x="320" y="65" width="60" height="125" rx="3" fill="var(--thr)" fill-opacity=".55"/>
+        <rect x="520" y="40" width="60" height="150" rx="3" fill="var(--thr)" fill-opacity=".55"/>
+        <text class="sm" x="150" y="94" text-anchor="middle" fill="var(--thr)">180/s</text>
+        <text class="sm" x="350" y="59" text-anchor="middle" fill="var(--thr)">250/s</text>
+        <text class="sm" x="550" y="34" text-anchor="middle" fill="var(--thr)">300/s</text>
+        <!-- p99 line: scale 150px / 2000ms -->
+        <path d="M150,166 L350,122.5 L550,40" stroke="var(--pct)" stroke-width="2.5" fill="none"/>
+        <circle cx="150" cy="166" r="5" fill="var(--pct)"/><circle cx="350" cy="122.5" r="5" fill="var(--sat)"/><circle cx="550" cy="40" r="5" fill="var(--err)"/>
+        <text class="sm" x="190" y="172" fill="var(--pct)">p99 320 ms</text>
+        <text class="sm" x="342" y="106" text-anchor="end" fill="var(--sat)">p99 900 ms</text>
+        <text class="sm" x="596" y="70" fill="var(--err)">p99 2.000</text>
+        <text class="sm" x="150" y="210" text-anchor="middle">19:00</text>
+        <text class="sm" x="350" y="210" text-anchor="middle">20:00</text>
+        <text class="sm" x="550" y="210" text-anchor="middle">21:00</text>
+        <rect x="80" y="222" width="10" height="10" fill="var(--thr)" fill-opacity=".55"/><text class="sm" x="96" y="231">throughput (req xử lý xong/giây)</text>
+        <line x1="380" y1="227" x2="400" y2="227" stroke="var(--pct)" stroke-width="2.5"/><text class="sm" x="406" y="231">p99 latency</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Cột cao nhất (throughput) đúng lúc đường p99 vọt lên cao nhất</div>
+    </div>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 120" role="img" aria-label="Request tới nhiều hơn request xử lý xong thì phần chênh lệch nằm lại trong hàng chờ">
+        <rect class="box" x="20" y="34" width="170" height="52" rx="8" stroke="var(--thr)"/>
+        <text class="sm" x="105" y="56" text-anchor="middle" fill="var(--thr)">REQUEST TỚI / GIÂY</text>
+        <text class="sm" x="105" y="74" text-anchor="middle">panel đếm riêng</text>
+        <path class="ln" stroke="var(--thr)" d="M190,60 L250,60" marker-end="url(#a-thr)"/>
+        <rect class="box" x="254" y="26" width="200" height="68" rx="8" stroke="var(--sat)" stroke-dasharray="5 4"/>
+        <text class="sm" x="354" y="48" text-anchor="middle" fill="var(--sat)">HÀNG CHỜ</text>
+        <g fill="var(--sat)"><circle cx="290" cy="70" r="5"/><circle cx="308" cy="70" r="5"/><circle cx="326" cy="70" r="5"/><circle cx="344" cy="70" r="5"/><circle cx="362" cy="70" r="5"/><circle cx="380" cy="70" r="5"/><circle cx="398" cy="70" r="5" fill-opacity=".5"/><circle cx="416" cy="70" r="5" fill-opacity=".25"/></g>
+        <path class="ln" stroke="var(--thr)" d="M454,60 L514,60" marker-end="url(#a-thr)"/>
+        <rect class="box" x="518" y="34" width="162" height="52" rx="8" stroke="var(--thr)"/>
+        <text class="sm" x="599" y="56" text-anchor="middle" fill="var(--thr)">XỬ LÝ XONG / GIÂY</text>
+        <text class="sm" x="599" y="74" text-anchor="middle">= throughput</text>
+        <text class="sm" x="354" y="112" text-anchor="middle">tới &gt; xong ⇒ chênh lệch nằm lại · hàng chờ dài ra · latency tăng</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — Throughput một mình không cho biết có ai đang phải đứng chờ</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — cùng phút 21:00, hai cách đọc</div>
+      <div class="before-after">
+        <div><b class="h" style="color:var(--ink-dim)">CHỈ NHÌN THROUGHPUT</b>300 req/s — cao nhất buổi tối. "API đang phục vụ tốt hơn bao giờ hết."</div>
+        <div><b class="h" style="color:var(--thr)">THROUGHPUT + p99</b>300 req/s <b>nhưng</b> p99 = 2.000 ms. Làm xong nhiều việc hơn, trong khi một nhóm khách chờ lâu gấp 6 lần lúc 19:00.</div>
+      </div>
+      <pre><span class="cm"># Ví dụ minh hoạ thêm (số tự đặt, không có trong bài):</span>
+Đặt hàng tới:      <span class="val">22</span> req/s
+Đặt hàng xử lý xong: <span class="val">20</span> req/s    <span class="cm"># bị giới hạn bởi pool</span>
+Chênh lệch:         2 req/s  →  sau 10 giây đã có <span class="bad">~20 request</span> đứng chờ</pre>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Error rate</div>
+    <h2 class="c-err">Error rate = lỗi ÷ một tập request đã chọn — đổi mẫu số là đổi luôn kết luận</h2>
+    <p class="desc">Cùng 90 lỗi trong cùng một phút, nhưng chia cho <b>18.000 request của cả API</b> (giỏ hàng, sản phẩm, xem đơn, cả <code>/health</code>) thì ra 0,5%; chia cho <b>1.200 lần POST /orders</b> thì ra 7,5% — gấp 15 lần. Các endpoint đọc gần như luôn thành công nên chúng <b>pha loãng</b> lỗi của thao tác đặt hàng. Thêm nữa, error rate chỉ cho biết lỗi <b>xảy ra thường xuyên tới đâu</b>, không cho biết khách <b>chờ bao lâu rồi mới nhận lỗi</b> — việc đó cần một panel latency riêng cho request lỗi.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 250" role="img" aria-label="Tập 18000 request của cả API chứa tập 1200 request POST orders, trong đó có toàn bộ 90 lỗi; hai phép chia cho hai kết quả khác nhau">
+        <ellipse cx="190" cy="128" rx="172" ry="108" fill="var(--panel)" stroke="var(--ink-dim)" stroke-width="1.5"/>
+        <text class="lb" x="190" y="58" text-anchor="middle" fill="var(--ink-dim)">CẢ API · 18.000 REQ / PHÚT</text>
+        <text class="sm" x="70" y="96">/health</text>
+        <text class="sm" x="62" y="128">giỏ hàng</text>
+        <text class="sm" x="70" y="160">sản phẩm</text>
+        <text class="sm" x="92" y="192">xem đơn</text>
+        <ellipse cx="240" cy="140" rx="100" ry="62" fill="#2a1218" stroke="var(--err)" stroke-width="1.5"/>
+        <text class="sm" x="240" y="104" text-anchor="middle" fill="var(--err)">POST /orders · 1.200</text>
+        <g fill="var(--err)">
+          <circle cx="204" cy="128" r="3"/><circle cx="216" cy="128" r="3"/><circle cx="228" cy="128" r="3"/><circle cx="240" cy="128" r="3"/><circle cx="252" cy="128" r="3"/><circle cx="264" cy="128" r="3"/><circle cx="276" cy="128" r="3"/>
+          <circle cx="204" cy="140" r="3"/><circle cx="216" cy="140" r="3"/><circle cx="228" cy="140" r="3"/><circle cx="240" cy="140" r="3"/><circle cx="252" cy="140" r="3"/><circle cx="264" cy="140" r="3"/><circle cx="276" cy="140" r="3"/>
+          <circle cx="216" cy="152" r="3"/><circle cx="228" cy="152" r="3"/><circle cx="240" cy="152" r="3"/><circle cx="252" cy="152" r="3"/><circle cx="264" cy="152" r="3"/>
+        </g>
+        <text class="sm" x="240" y="178" text-anchor="middle" fill="var(--ink)">toàn bộ 90 lỗi 503</text>
+
+        <rect class="box" x="400" y="34" width="280" height="84" rx="8" stroke="var(--ok)"/>
+        <text class="lb" x="414" y="54" fill="var(--ink-dim)">MẪU SỐ = CẢ API (panel cũ)</text>
+        <text x="414" y="80">90 ÷ 18.000 = <tspan fill="var(--ok)" font-weight="700">0,5%</tspan></text>
+        <text class="sm" x="414" y="102" fill="var(--ok)">dưới ngưỡng 1% → XANH</text>
+
+        <rect class="box" x="400" y="138" width="280" height="84" rx="8" stroke="var(--err)"/>
+        <text class="lb" x="414" y="158" fill="var(--ink-dim)">MẪU SỐ = POST /orders</text>
+        <text x="414" y="184">90 ÷ 1.200 = <tspan fill="var(--err)" font-weight="700">7,5%</tspan></text>
+        <text class="sm" x="414" y="206" fill="var(--err)">≈ cứ ~13 lần bấm "Đặt hàng" có 1 lỗi</text>
+
+        <path class="ln ln-d" d="M362,100 L396,78" marker-end="url(#a-dim)"/>
+        <path class="ln ln-d" stroke="var(--err)" d="M338,158 L396,178" marker-end="url(#a-err)"/>
+      </svg>
+      <div class="fig-cap">Hình 6 — Cùng tử số, khác mẫu số: lỗi "chìm" trong biển request đọc luôn thành công</div>
+    </div>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Request đặt hàng chờ connection tối đa 3 giây rồi nhận 503, so với lỗi trả về ngay">
+        <text class="lb" x="20" y="20" fill="var(--ink-dim)">VÌ SAO LATENCY CỦA REQUEST LỖI PHẢI TÁCH RIÊNG</text>
+        <line class="grid" x1="130" y1="140" x2="680" y2="140"/>
+        <text class="sm" x="130" y="158" text-anchor="middle">0</text>
+        <text class="sm" x="313" y="158" text-anchor="middle">1 s</text>
+        <text class="sm" x="497" y="158" text-anchor="middle">2 s</text>
+        <text class="sm" x="680" y="158" text-anchor="middle">3 s</text>
+        <text class="sm" x="20" y="60">POST /orders</text>
+        <rect x="130" y="48" width="550" height="18" rx="3" fill="var(--sat)" fill-opacity=".3" stroke="var(--sat)" stroke-dasharray="4 3"/>
+        <text class="sm" x="405" y="61" text-anchor="middle" fill="var(--sat)">chờ connection từ pool (tối đa 3.000 ms)</text>
+        <text class="sm" x="676" y="86" text-anchor="end" fill="var(--err)">timeout → 503 · p99 lỗi = 3.040 ms</text>
+        <text class="sm" x="20" y="118">lỗi trả ngay</text>
+        <rect x="130" y="106" width="4" height="18" fill="var(--err)"/>
+        <text class="sm" x="142" y="120" fill="var(--ink-dim)">vài ms — gộp chung sẽ làm API trông NHANH hơn thực tế</text>
+      </svg>
+      <div class="fig-cap">Hình 7 — Lỗi chậm lẫn vào nhóm thành công chậm; lỗi nhanh kéo percentile xuống — gộp kiểu nào cũng sai</div>
+    </div>
+
+    <div class="tscroll"><table>
+      <tr><th>Giờ</th><th>Đặt hàng tới</th><th>Tỉ lệ lỗi đặt hàng</th><th>p99 latency request lỗi</th></tr>
+      <tr><td class="num">19:00</td><td class="num">12 req/s</td><td class="num">0%</td><td>không có request lỗi</td></tr>
+      <tr><td class="num">20:00</td><td class="num">17 req/s</td><td class="num"><span class="mini" style="width:16px;background:var(--sat)"></span>2%</td><td class="num">3.020 ms</td></tr>
+      <tr><td class="num">21:00</td><td class="num">20 req/s</td><td class="num"><span class="mini" style="width:60px;background:var(--err)"></span><b style="color:var(--err)">7,5%</b></td><td class="num">3.040 ms</td></tr>
+    </table></div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — hai phép chia trong bài &amp; cách viết panel đúng</div>
+      <pre>Mẫu số là mọi request API nhận:   90 lỗi ÷ 18.000 request = <span class="good">0,5%</span>
+Mẫu số là request POST /orders:   90 lỗi ÷  1.200 request = <span class="bad">7,5%</span>
+<span class="cm"># 1.200 = 20 req/s × 60 giây</span></pre>
+      <pre><span class="cm"># Ví dụ minh hoạ thêm (Prometheus) — ghi rõ mẫu số ngay trong query:</span>
+  sum(rate(http_requests_total{route=<span class="val">"/orders"</span>, method=<span class="val">"POST"</span>, code=~<span class="val">"5.."</span>}[1m]))
+<span class="kw">/</span> sum(rate(http_requests_total{route=<span class="val">"/orders"</span>, method=<span class="val">"POST"</span>}[1m]))</pre>
+      <p><b>Vì sao lại là 3 giây?</b> API chờ một connection tối đa 3 giây, quá mốc đó thì trả 503. Đặt hàng ghi nhiều bảng trong một transaction nên giữ connection lâu nhất — mọi 503 lúc 21:00 đều rơi vào thao tác này. Tức là request lỗi đang <b>chờ connection</b>, không phải chờ CPU.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Utilization vs Saturation</div>
+    <h2 class="c-sat">CPU mới 45%, nhưng request đã phải xếp hàng chờ connection</h2>
+    <p class="desc"><b>Utilization</b> trả lời "tài nguyên đang bận tới mức nào" — với CPU là % thời gian CPU bận, với pool là số connection đang dùng trên 20. <b>Saturation</b> trả lời câu khác: "có bao nhiêu việc đang <b>xếp hàng</b> vì tài nguyên đã dùng hết" — với pool là số request đang chờ connection, hoặc thời gian chờ. CPU và connection pool là <b>hai tài nguyên khác nhau</b>: request đang chờ connection gần như không tốn CPU, nên CPU thấp không nói gì về hàng chờ ở pool. Và utilization 100% <b>chưa phải</b> saturation — saturation bắt đầu khi có request phải chờ, kể cả khi hàng chờ đứng yên.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 300" role="img" aria-label="Bốn trạng thái của connection pool 20 connection: 14 trên 20 không chờ, 20 trên 20 không chờ, 20 trên 20 với 8 chờ, 20 trên 20 với 25 chờ">
+        <!-- column helper: slots 5x4 at 18px pitch -->
+        <g id="c1">
+          <text class="lb" x="87" y="20" text-anchor="middle" fill="var(--ink-dim)">19:00</text>
+          <g fill="var(--pct)" fill-opacity=".7">
+            <rect x="42" y="34" width="14" height="14" rx="2"/><rect x="60" y="34" width="14" height="14" rx="2"/><rect x="78" y="34" width="14" height="14" rx="2"/><rect x="96" y="34" width="14" height="14" rx="2"/><rect x="114" y="34" width="14" height="14" rx="2"/>
+            <rect x="42" y="52" width="14" height="14" rx="2"/><rect x="60" y="52" width="14" height="14" rx="2"/><rect x="78" y="52" width="14" height="14" rx="2"/><rect x="96" y="52" width="14" height="14" rx="2"/><rect x="114" y="52" width="14" height="14" rx="2"/>
+            <rect x="42" y="70" width="14" height="14" rx="2"/><rect x="60" y="70" width="14" height="14" rx="2"/><rect x="78" y="70" width="14" height="14" rx="2"/><rect x="96" y="70" width="14" height="14" rx="2"/>
+          </g>
+          <g fill="none" stroke="var(--line)" stroke-width="1.5">
+            <rect x="114" y="70" width="14" height="14" rx="2"/><rect x="42" y="88" width="14" height="14" rx="2"/><rect x="60" y="88" width="14" height="14" rx="2"/><rect x="78" y="88" width="14" height="14" rx="2"/><rect x="96" y="88" width="14" height="14" rx="2"/><rect x="114" y="88" width="14" height="14" rx="2"/>
+          </g>
+          <text class="sm" x="85" y="124" text-anchor="middle">pool 14/20</text>
+          <text class="sm" x="85" y="146" text-anchor="middle" fill="var(--ok)">hàng chờ: 0</text>
+        </g>
+
+        <g>
+          <text class="lb" x="262" y="20" text-anchor="middle" fill="var(--ink-dim)">GIẢ ĐỊNH</text>
+          <g fill="var(--pct)" fill-opacity=".7">
+            <rect x="217" y="34" width="14" height="14" rx="2"/><rect x="235" y="34" width="14" height="14" rx="2"/><rect x="253" y="34" width="14" height="14" rx="2"/><rect x="271" y="34" width="14" height="14" rx="2"/><rect x="289" y="34" width="14" height="14" rx="2"/>
+            <rect x="217" y="52" width="14" height="14" rx="2"/><rect x="235" y="52" width="14" height="14" rx="2"/><rect x="253" y="52" width="14" height="14" rx="2"/><rect x="271" y="52" width="14" height="14" rx="2"/><rect x="289" y="52" width="14" height="14" rx="2"/>
+            <rect x="217" y="70" width="14" height="14" rx="2"/><rect x="235" y="70" width="14" height="14" rx="2"/><rect x="253" y="70" width="14" height="14" rx="2"/><rect x="271" y="70" width="14" height="14" rx="2"/><rect x="289" y="70" width="14" height="14" rx="2"/>
+            <rect x="217" y="88" width="14" height="14" rx="2"/><rect x="235" y="88" width="14" height="14" rx="2"/><rect x="253" y="88" width="14" height="14" rx="2"/><rect x="271" y="88" width="14" height="14" rx="2"/><rect x="289" y="88" width="14" height="14" rx="2"/>
+          </g>
+          <text class="sm" x="260" y="124" text-anchor="middle">pool 20/20 = 100%</text>
+          <text class="sm" x="260" y="146" text-anchor="middle" fill="var(--ok)">hàng chờ: 0</text>
+        </g>
+
+        <g>
+          <text class="lb" x="437" y="20" text-anchor="middle" fill="var(--ink-dim)">20:00</text>
+          <g fill="var(--pct)" fill-opacity=".7">
+            <rect x="392" y="34" width="14" height="14" rx="2"/><rect x="410" y="34" width="14" height="14" rx="2"/><rect x="428" y="34" width="14" height="14" rx="2"/><rect x="446" y="34" width="14" height="14" rx="2"/><rect x="464" y="34" width="14" height="14" rx="2"/>
+            <rect x="392" y="52" width="14" height="14" rx="2"/><rect x="410" y="52" width="14" height="14" rx="2"/><rect x="428" y="52" width="14" height="14" rx="2"/><rect x="446" y="52" width="14" height="14" rx="2"/><rect x="464" y="52" width="14" height="14" rx="2"/>
+            <rect x="392" y="70" width="14" height="14" rx="2"/><rect x="410" y="70" width="14" height="14" rx="2"/><rect x="428" y="70" width="14" height="14" rx="2"/><rect x="446" y="70" width="14" height="14" rx="2"/><rect x="464" y="70" width="14" height="14" rx="2"/>
+            <rect x="392" y="88" width="14" height="14" rx="2"/><rect x="410" y="88" width="14" height="14" rx="2"/><rect x="428" y="88" width="14" height="14" rx="2"/><rect x="446" y="88" width="14" height="14" rx="2"/><rect x="464" y="88" width="14" height="14" rx="2"/>
+          </g>
+          <text class="sm" x="435" y="124" text-anchor="middle">pool 20/20</text>
+          <text class="sm" x="435" y="146" text-anchor="middle" fill="var(--sat)">hàng chờ: ~8</text>
+          <g fill="var(--sat)">
+            <circle cx="390" cy="164" r="5"/><circle cx="403" cy="164" r="5"/><circle cx="416" cy="164" r="5"/><circle cx="429" cy="164" r="5"/><circle cx="442" cy="164" r="5"/><circle cx="455" cy="164" r="5"/><circle cx="468" cy="164" r="5"/><circle cx="481" cy="164" r="5"/>
+          </g>
+        </g>
+
+        <g>
+          <text class="lb" x="612" y="20" text-anchor="middle" fill="var(--ink-dim)">21:00</text>
+          <g fill="var(--pct)" fill-opacity=".7">
+            <rect x="567" y="34" width="14" height="14" rx="2"/><rect x="585" y="34" width="14" height="14" rx="2"/><rect x="603" y="34" width="14" height="14" rx="2"/><rect x="621" y="34" width="14" height="14" rx="2"/><rect x="639" y="34" width="14" height="14" rx="2"/>
+            <rect x="567" y="52" width="14" height="14" rx="2"/><rect x="585" y="52" width="14" height="14" rx="2"/><rect x="603" y="52" width="14" height="14" rx="2"/><rect x="621" y="52" width="14" height="14" rx="2"/><rect x="639" y="52" width="14" height="14" rx="2"/>
+            <rect x="567" y="70" width="14" height="14" rx="2"/><rect x="585" y="70" width="14" height="14" rx="2"/><rect x="603" y="70" width="14" height="14" rx="2"/><rect x="621" y="70" width="14" height="14" rx="2"/><rect x="639" y="70" width="14" height="14" rx="2"/>
+            <rect x="567" y="88" width="14" height="14" rx="2"/><rect x="585" y="88" width="14" height="14" rx="2"/><rect x="603" y="88" width="14" height="14" rx="2"/><rect x="621" y="88" width="14" height="14" rx="2"/><rect x="639" y="88" width="14" height="14" rx="2"/>
+          </g>
+          <text class="sm" x="610" y="124" text-anchor="middle">pool 20/20</text>
+          <text class="sm" x="610" y="146" text-anchor="middle" fill="var(--err)">hàng chờ: ~25</text>
+          <g fill="var(--err)">
+            <circle cx="565" cy="164" r="4.5"/><circle cx="577" cy="164" r="4.5"/><circle cx="589" cy="164" r="4.5"/><circle cx="601" cy="164" r="4.5"/><circle cx="613" cy="164" r="4.5"/><circle cx="625" cy="164" r="4.5"/><circle cx="637" cy="164" r="4.5"/><circle cx="649" cy="164" r="4.5"/><circle cx="661" cy="164" r="4.5"/>
+            <circle cx="565" cy="176" r="4.5"/><circle cx="577" cy="176" r="4.5"/><circle cx="589" cy="176" r="4.5"/><circle cx="601" cy="176" r="4.5"/><circle cx="613" cy="176" r="4.5"/><circle cx="625" cy="176" r="4.5"/><circle cx="637" cy="176" r="4.5"/><circle cx="649" cy="176" r="4.5"/><circle cx="661" cy="176" r="4.5"/>
+            <circle cx="565" cy="188" r="4.5"/><circle cx="577" cy="188" r="4.5"/><circle cx="589" cy="188" r="4.5"/><circle cx="601" cy="188" r="4.5"/><circle cx="613" cy="188" r="4.5"/><circle cx="625" cy="188" r="4.5"/><circle cx="637" cy="188" r="4.5"/>
+          </g>
+        </g>
+
+        <!-- verdict row -->
+        <line class="grid" x1="20" y1="206" x2="680" y2="206"/>
+        <text class="lb" x="85" y="226" text-anchor="middle" fill="var(--ok)">CHƯA SATURATION</text>
+        <text class="lb" x="260" y="226" text-anchor="middle" fill="var(--ok)">UTIL 100% ≠ SATURATION</text>
+        <text class="lb" x="435" y="226" text-anchor="middle" fill="var(--sat)">ĐÃ SATURATION</text>
+        <text class="lb" x="610" y="226" text-anchor="middle" fill="var(--err)">SATURATION TĂNG</text>
+        <!-- CPU bars -->
+        <text class="sm" x="20" y="256">CPU</text>
+        <rect x="40" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="40" y="246" width="30" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
+        <text class="sm" x="85" y="276" text-anchor="middle">30%</text>
+        <text class="sm" x="260" y="256" text-anchor="middle">—</text>
+        <rect x="385" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="385" y="246" width="40" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
+        <text class="sm" x="435" y="276" text-anchor="middle">40%</text>
+        <rect x="560" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="560" y="246" width="45" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
+        <text class="sm" x="610" y="276" text-anchor="middle">45% — vẫn "xanh"</text>
+        <text class="sm" x="350" y="296" text-anchor="middle">■ connection đang dùng   □ connection rảnh   ● request đang chờ connection</text>
+      </svg>
+      <div class="fig-cap">Hình 8 — Hàng chờ ở pool tăng 0 → 8 → 25 trong khi CPU chỉ nhích 30 → 45%</div>
+    </div>
+
+    <div class="compare">
+      <div class="card">
+        <h3 class="c-thr">UTILIZATION</h3>
+        <div class="formula">"đang bận tới mức nào?"</div>
+        <ul>
+          <li>CPU: <b>% thời gian bận</b></li>
+          <li>Pool: <b>connection đang dùng / 20</b></li>
+          <li>100% vẫn có thể phục vụ ngay mọi request</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="c-sat">SATURATION</h3>
+        <div class="formula">"bao nhiêu việc đang xếp hàng?"</div>
+        <ul>
+          <li>Pool: <b>số request chờ connection</b> hoặc <b>thời gian chờ</b></li>
+          <li>Bắt đầu khi có request phải chờ — kể cả hàng chờ ổn định ~8</li>
+          <li>Request chờ quá 3 s → 503</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note"><b>USE method</b> (Brendan Gregg): nhìn mỗi tài nguyên qua <b>U</b>tilization · <b>S</b>aturation · <b>E</b>rrors để tìm bottleneck. Dashboard mới chỉ cho thấy <b>triệu chứng</b> và <b>tài nguyên request đang chờ</b>; vì sao pool bị dồn việc thì phải lần theo từng chặng mới trả lời được.</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Trường hợp thực tế — kỹ sư trực lúc 21:00</div>
+      <div class="before-after">
+        <div><b class="h" style="color:var(--ink-dim)">CHỈ CÓ PANEL CPU</b>"CPU 45%, còn rảnh hơn một nửa → API chịu tải tốt, hệ thống bình thường."</div>
+        <div><b class="h" style="color:var(--sat)">CÓ PANEL SATURATION</b>Pool 20/20 + ~25 request đang chờ; request nào chờ quá 3 s nhận 503 → 90 lần/phút.</div>
+      </div>
+      <pre><span class="cm"># Ví dụ minh hoạ thêm — nơi thường lấy số "request đang chờ connection":</span>
+node-postgres  : pool.<span class="kw">waitingCount</span>
+HikariCP (JVM) : <span class="kw">hikaricp_connections_pending</span>
+<span class="cm"># đặt cạnh: connection đang dùng (utilization) + thời gian chờ lấy connection</span></pre>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="tag">06. Checklist</div>
+    <h2>Bốn câu hỏi — mỗi câu cần ít nhất một panel riêng trước khi nói "hệ thống vẫn ổn"</h2>
+    <p class="desc">Mỗi số liệu trên dashboard nên gắn với một câu hỏi rõ ràng. Câu nào dashboard của bạn chưa có panel trả lời, đó là panel cần thêm trước. Kèm theo hai việc bắt buộc: <b>ghi rõ trên mỗi panel tập request và khoảng thời gian nó tính</b> (vài tháng sau không ai nhớ panel lỗi có tính <code>/health</code> không), và <b>tính percentile từ latency từng request</b>.</p>
+
+    <ul class="check">
+      <li><span class="n" style="background:rgba(94,234,212,.14);color:var(--pct)">1</span><div><div class="q">Bao nhiêu % request xong dưới một mốc thời gian?</div><div class="a">→ panel p50 / p95 / p99 của request thành công. Latency trung bình không trả lời được.</div></div></li>
+      <li><span class="n" style="background:rgba(96,165,250,.14);color:var(--thr)">2</span><div><div class="q">Mỗi giây xử lý xong bao nhiêu request, so với số request đang tới?</div><div class="a">→ panel throughput (vế đầu) + panel đếm riêng request tới mỗi giây (vế sau).</div></div></li>
+      <li><span class="n" style="background:rgba(251,113,133,.14);color:var(--err)">3</span><div><div class="q">Lỗi được tính trên tập request nào?</div><div class="a">→ error rate ghi rõ mẫu số (vd chỉ <code>POST /orders</code>) + panel latency của request lỗi.</div></div></li>
+      <li><span class="n" style="background:rgba(245,165,36,.14);color:var(--sat)">4</span><div><div class="q">Request đang xếp hàng chờ ở tài nguyên nào?</div><div class="a">→ panel saturation của tài nguyên chính, vd số request chờ connection. % CPU không trả lời được.</div></div></li>
+    </ul>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — dashboard cũ vs dashboard mới, cùng phút 21:00</div>
+      <div class="tscroll" style="margin-bottom:0"><table>
+        <tr><th>Câu hỏi</th><th>Panel cũ</th><th>Panel mới</th></tr>
+        <tr><td>Khách chờ bao lâu?</td><td class="num" style="color:var(--ok)">TB 124 ms</td><td class="num" style="color:var(--err)">p99 2.000 ms</td></tr>
+        <tr><td>Làm xong bao nhiêu?</td><td class="num">—</td><td class="num" style="color:var(--thr)">300 req/s</td></tr>
+        <tr><td>Lỗi thường tới đâu?</td><td class="num" style="color:var(--ok)">0,5% (cả API)</td><td class="num" style="color:var(--err)">7,5% (POST /orders)</td></tr>
+        <tr><td>Lỗi chờ bao lâu?</td><td class="num">—</td><td class="num" style="color:var(--err)">p99 3.040 ms</td></tr>
+        <tr><td>Xếp hàng ở đâu?</td><td class="num" style="color:var(--ok)">CPU 45%</td><td class="num" style="color:var(--sat)">pool 20/20 + 25 chờ</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="ref-label">🔗 Tài liệu tham khảo (từ bài học)</div>
+    <ul class="ref-links">
+      <li><span class="d">Google SRE — Monitoring Distributed Systems: bốn tín hiệu latency, traffic, errors, saturation; tách latency request lỗi</span><a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener">sre.google/sre-book/monitoring-distributed-systems/</a></li>
+      <li><span class="d">Google SRE — Service Level Objectives: vì sao dùng percentile thay vì trung bình</span><a href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">sre.google/sre-book/service-level-objectives/</a></li>
+      <li><span class="d">Designing Data-Intensive Applications — chương 1: tải và đo hiệu năng bằng percentile (sách trả phí)</span><a href="https://dataintensive.net/" target="_blank" rel="noopener">dataintensive.net</a></li>
+      <li><span class="d">Brendan Gregg — The USE Method: utilization, saturation, errors cho từng tài nguyên</span><a href="https://www.brendangregg.com/usemethod.html" target="_blank" rel="noopener">brendangregg.com/usemethod.html</a></li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>Percentile cho latency · throughput cạnh request tới · error rate đúng mẫu số · saturation chứ không chỉ utilization — đủ bốn thứ mới được nói "hệ thống vẫn ổn"</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-23.html"></nav>
+<script src="../../../lessons/lessons.js"></script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
 </body>
 </html>

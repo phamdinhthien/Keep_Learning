@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Chuyển một trang bài học 200Lab đã lưu (Ctrl+S trong trình duyệt) thành một file
-HTML gọn, xếp theo Khóa => Môn => Bài giảng:
+"""Thêm một bài giảng vào site, xếp theo Khóa => Lớp => Bài giảng:
 
-    lessons/<khóa>/<môn>/<mã-bài>.html
+    lessons/<khóa>/<lớp>/<mã-bài>.html
 
-rồi cập nhật danh sách bài ở lessons/lessons.js.
+rồi cập nhật danh sách bài ở lessons/lessons.js. Nhận hai loại file:
+
+  * Trang HTML tự chứa (infographic, ghi chú...): giữ nguyên trang, chỉ chèn thanh điều hướng.
+  * Trang bài học 200Lab đã lưu (Ctrl+S): trích nội dung và dựng lại theo giao diện site.
 
 Cách dùng:
-    python3 tools/import_lesson.py "bai-hoc.html" --khoa "System Design" [--order 2]
+    python3 tools/import_lesson.py bai.html --lop "Tên lớp" --id sd1-23 --title "Tên bài" --order 2
     python3 tools/import_lesson.py --rebuild      # chỉ dựng lại lessons/lessons.js
 
-Môn mặc định lấy từ breadcrumb của trang 200Lab (tên khóa học trên 200Lab).
-Cần: pip install beautifulsoup4
+Với trang 200Lab, Lớp và mã bài tự lấy từ trang. Cần: pip install beautifulsoup4
 """
 import argparse
 import html
@@ -54,16 +55,16 @@ def read_meta(soup, src_text):
         t = span.get_text(" ", strip=True)
         if "phút đọc" in t:
             read_time = t
-    mon = ""
+    lop = ""
     bc = soup.find("nav", attrs={"aria-label": "Đường dẫn bài học"})
     if bc:
         parts = [p.get_text(" ", strip=True) for p in bc.find_all(["a", "span", "li"]) if p.get_text(strip=True)]
         parts = [p for p in dict.fromkeys(parts) if p not in ("Khóa học", title)]
-        mon = parts[0] if parts else ""
+        lop = parts[0] if parts else ""
     m = re.search(r"/courses/([^/]+)/", url)
-    mon_slug = m.group(1) if m else ""
+    lop_slug = m.group(1) if m else ""
     return article, {"title": title, "description": desc, "readTime": read_time,
-                     "mon": mon, "monSlug": mon_slug, "source": url}
+                     "lop": lop, "lopSlug": lop_slug, "source": url}
 
 
 def clean_body(article, img_dir, img_prefix, src_path):
@@ -126,6 +127,10 @@ def build_toc(body_html):
     return f'<nav class="toc" aria-label="Trong bài này">\n      <p class="toc-title">Trong bài này</p>\n      <ol>\n{lis}\n      </ol>\n    </nav>'
 
 
+FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+         '  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700'
+         '&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">')
+
 TEMPLATE = """<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -133,24 +138,17 @@ TEMPLATE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title_e} · System Design Notes</title>
   <meta name="description" content="{desc_e}">
-  <meta name="lesson:id" content="{id_e}">
-  <meta name="lesson:order" content="{order}">
-  <meta name="lesson:khoa" content="{khoa_e}">
-  <meta name="lesson:mon" content="{mon_e}">
-  <meta name="lesson:mon-order" content="{mon_order}">
-  <meta name="lesson:read-time" content="{read_e}">
-  <meta name="lesson:source" content="{source_e}">
-  <script>try{{var t=localStorage.getItem("sd-theme");if(t)document.documentElement.dataset.theme=t}}catch(e){{}}</script>
+{meta_tags}
+  {fonts}
   <link rel="stylesheet" href="{root}assets/style.css">
 </head>
 <body class="lesson-page" data-root="{root}">
   <header class="topbar">
     <a class="brand" href="{root}index.html">System Design Notes</a>
-    <button class="theme-toggle" type="button" aria-label="Đổi giao diện sáng/tối">◐</button>
   </header>
   <main class="lesson-layout">
     <nav class="crumbs" aria-label="Đường dẫn">
-      <a href="{root}index.html">Khóa học</a><span>›</span><a href="{root}index.html#/{khoa_slug}">{khoa_h}</a><span>›</span><a href="{root}index.html#/{khoa_slug}/{mon_slug}">{mon_h}</a>
+      {crumbs}
     </nav>
     <article class="lesson">
       <header class="lesson-head">
@@ -172,6 +170,73 @@ TEMPLATE = """<!DOCTYPE html>
 """
 
 
+def meta_tags(info):
+    rows = [("lesson:id", info["id"]), ("lesson:title", info["title"]), ("lesson:description", info["description"]),
+            ("lesson:order", info["order"]), ("lesson:khoa", info["khoa"]), ("lesson:lop", info["lop"]),
+            ("lesson:lop-order", info["lopOrder"]), ("lesson:read-time", info["readTime"]),
+            ("lesson:source", info["source"])]
+    return "\n".join(f'  <meta name="{n}" content="{html.escape(str(v), quote=True)}">' for n, v in rows)
+
+
+def crumbs_html(info, root):
+    e = lambda s: html.escape(s, quote=True)
+    return (f'<a href="{root}index.html">Khóa học</a><span>›</span>'
+            f'<a href="{root}index.html#/{info["khoaSlug"]}">{e(info["khoa"])}</a><span>›</span>'
+            f'<a href="{root}index.html#/{info["khoaSlug"]}/{info["lopSlug"]}">{e(info["lop"])}</a>')
+
+
+def render_article(info, body, root):
+    """Bài import từ trang 200Lab đã lưu: dựng lại thành bài viết theo giao diện của site."""
+    e = lambda s: html.escape(s, quote=True)
+    source_link = f' · <a href="{e(info["source"])}" target="_blank" rel="noopener">Bài gốc trên 200Lab</a>' if info["source"] else ""
+    return TEMPLATE.format(
+        root=root, title_e=e(info["title"]), desc_e=e(info["description"]), meta_tags=meta_tags(info), fonts=FONTS,
+        crumbs=crumbs_html(info, root), title_h=html.escape(info["title"]), desc_h=html.escape(info["description"]),
+        read_h=html.escape(info["readTime"]), source_link=source_link, path_e=e(info["path"]),
+        toc=build_toc(body), body=body,
+    )
+
+
+SDN_BLOCK = re.compile(r"\n<!-- sdn:(head|bar|foot) -->.*?<!-- /sdn:\1 -->\n", re.S)
+
+
+def render_standalone(info, text, root):
+    """Bài là một trang HTML tự chứa (infographic...): giữ nguyên trang, chỉ chèn thanh điều hướng của site.
+    Phần chèn nằm giữa các dấu <!-- sdn:... --> nên import lại bao nhiêu lần cũng không bị lặp."""
+    e = lambda s: html.escape(s, quote=True)
+    text = SDN_BLOCK.sub("", text)
+    head = (f'\n<!-- sdn:head -->\n{meta_tags(info)}\n'
+            f'  <link rel="stylesheet" href="{root}assets/shell.css">\n<!-- /sdn:head -->\n')
+    bar = (f'\n<!-- sdn:bar -->\n<nav class="sdn-bar" aria-label="Điều hướng">'
+           f'<a class="sdn-brand" href="{root}index.html">System Design Notes</a>'
+           f'<span class="sdn-crumbs">{crumbs_html(info, root)}</span></nav>\n<!-- /sdn:bar -->\n')
+    foot = (f'\n<!-- sdn:foot -->\n<nav class="sdn-nav" aria-label="Bài trước, bài sau" '
+            f'data-root="{root}" data-lesson-id="{e(info["path"])}"></nav>\n'
+            f'<script src="{root}lessons/lessons.js"></script>\n<script src="{root}assets/app.js"></script>\n'
+            f'<!-- /sdn:foot -->\n')
+    if not re.search(r"</head>", text, re.I) or not re.search(r"<body[^>]*>", text, re.I):
+        sys.exit("Trang HTML cần có đủ <head> và <body>.")
+    text = re.sub(r"</head>", lambda m: head + m.group(0), text, count=1, flags=re.I)
+    text = re.sub(r"<body[^>]*>", lambda m: m.group(0) + bar, text, count=1, flags=re.I)
+    i = text.lower().rfind("</body>")
+    return text[:i] + foot + text[i:] if i >= 0 else text + foot
+
+
+def standalone_meta(soup):
+    """Đoán tiêu đề, mô tả, thời gian đọc cho trang HTML tự chứa (đều ghi đè được bằng tham số)."""
+    title = soup.title.get_text(" ", strip=True) if soup.title else ""
+    desc_el = soup.find("meta", attrs={"name": "description"})
+    desc = desc_el.get("content", "") if desc_el else ""
+    if not desc:
+        sub = soup.find(class_="sub") or soup.find("p")
+        desc = re.sub(r"\s+", " ", sub.get_text()).strip() if sub else ""
+    body = soup.body or soup
+    for t in body.find_all(["script", "style", "svg"]):
+        t.decompose()
+    words = len(body.get_text(" ", strip=True).split())
+    return {"title": title, "description": desc, "readTime": f"{max(1, round(words / 200))} phút đọc", "source": ""}
+
+
 def rebuild_manifest():
     lessons = []
     for f in sorted(LESSONS.rglob("*.html")):
@@ -179,27 +244,27 @@ def rebuild_manifest():
         meta = lambda n: (soup.find("meta", attrs={"name": n}) or {}).get("content", "")
         rel = f.relative_to(LESSONS)
         if len(rel.parts) != 3:
-            print(f"Bỏ qua {rel}: bài phải nằm ở lessons/<khóa>/<môn>/<bài>.html")
+            print(f"Bỏ qua {rel}: bài phải nằm ở lessons/<khóa>/<lớp>/<bài>.html")
             continue
         lessons.append({
             "id": meta("lesson:id") or f.stem,
             "path": rel.as_posix(),
             "khoa": meta("lesson:khoa"),
             "khoaSlug": rel.parts[0],
-            "mon": meta("lesson:mon"),
-            "monSlug": rel.parts[1],
-            "monOrder": float(meta("lesson:mon-order") or 9999),
+            "lop": meta("lesson:lop"),
+            "lopSlug": rel.parts[1],
+            "lopOrder": float(meta("lesson:lop-order") or 9999),
             "order": float(meta("lesson:order") or 9999),
-            "title": soup.find("h1").get_text(" ", strip=True),
-            "description": meta("description"),
+            "title": meta("lesson:title") or soup.find("h1").get_text(" ", strip=True),
+            "description": meta("lesson:description") or meta("description"),
             "readTime": meta("lesson:read-time"),
         })
-    lessons.sort(key=lambda x: (x["khoa"], x["monOrder"], x["mon"], x["order"], x["id"]))
+    lessons.sort(key=lambda x: (x["khoa"], x["lopOrder"], x["lop"], x["order"], x["id"]))
     for l in lessons:
-        for k in ("order", "monOrder"):
+        for k in ("order", "lopOrder"):
             l[k] = int(l[k]) if l[k].is_integer() else l[k]
     js = ("// File này được sinh tự động bởi tools/import_lesson.py — đừng sửa tay.\n"
-          "// Mỗi phần tử là một bài giảng; trang chủ nhóm lại theo khoa (Khóa) => mon (Môn).\n"
+          "// Mỗi phần tử là một bài giảng; trang chủ nhóm lại theo khoa (Khóa) => lop (Lớp).\n"
           "window.LESSONS = " + json.dumps(lessons, ensure_ascii=False, indent=2) + ";\n")
     (LESSONS / "lessons.js").write_text(js, encoding="utf-8")
     return lessons
@@ -219,12 +284,15 @@ def num(x):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("source", nargs="?", help="file .html đã lưu từ trang bài học")
+    ap.add_argument("source", nargs="?", help="file .html: trang 200Lab đã lưu, hoặc một trang HTML tự chứa")
     ap.add_argument("--khoa", default=DEFAULT_KHOA, help=f'tên Khóa (mặc định "{DEFAULT_KHOA}")')
-    ap.add_argument("--mon", help="tên Môn (mặc định lấy từ breadcrumb trang 200Lab)")
-    ap.add_argument("--mon-order", type=float, help="thứ tự của Môn trong Khóa")
-    ap.add_argument("--id", help="mã bài (mặc định lấy từ URL gốc, ví dụ sd1-23)")
-    ap.add_argument("--order", type=float, help="thứ tự của bài trong Môn (mặc định: cuối danh sách)")
+    ap.add_argument("--lop", help="tên Lớp (trang 200Lab: mặc định lấy từ breadcrumb)")
+    ap.add_argument("--lop-order", type=float, help="thứ tự của Lớp trong Khóa")
+    ap.add_argument("--id", help="mã bài, cũng là tên file (trang 200Lab: mặc định lấy từ URL gốc, ví dụ sd1-23)")
+    ap.add_argument("--order", type=float, help="thứ tự của bài trong Lớp (mặc định: cuối danh sách)")
+    ap.add_argument("--title", help="tên bài giảng hiển thị trong danh sách")
+    ap.add_argument("--description", help="mô tả ngắn của bài")
+    ap.add_argument("--read-time", help='thời gian đọc, ví dụ "16 phút đọc"')
     ap.add_argument("--rebuild", action="store_true", help="chỉ dựng lại lessons/lessons.js")
     args = ap.parse_args()
 
@@ -239,45 +307,50 @@ def main():
     src = Path(args.source)
     text = src.read_text(encoding="utf-8")
     soup = BeautifulSoup(text, "html.parser")
-    article, meta = read_meta(soup, text)
-    mon = args.mon or meta["mon"] or "Chưa phân môn"
+    is_200lab = soup.find("article", attrs={"data-lesson-reader": True}) is not None
+    if is_200lab:
+        article, meta = read_meta(soup, text)
+    else:
+        article, meta = None, standalone_meta(BeautifulSoup(text, "html.parser"))
+        meta.update(lop="", lopSlug="")
+    for key, val in (("title", args.title), ("description", args.description), ("readTime", args.read_time)):
+        if val:
+            meta[key] = val
+
+    lop = args.lop or meta["lop"] or "Chưa phân lớp"
     lesson_id = args.id or (meta["source"].rstrip("/").rsplit("/", 1)[-1] if meta["source"] else "") or src.stem
     lesson_id = slugify(lesson_id)
     khoa_slug = slugify(args.khoa)
-    mon_slug = slugify(meta["monSlug"]) if (meta["monSlug"] and not args.mon) else slugify(mon)
+    lop_slug = slugify(meta["lopSlug"]) if (meta["lopSlug"] and not args.lop) else slugify(lop)
 
-    mon_dir = LESSONS / khoa_slug / mon_slug
-    out = mon_dir / f"{lesson_id}.html"
-    siblings = list(mon_dir.glob("*.html")) if mon_dir.is_dir() else []
+    lop_dir = LESSONS / khoa_slug / lop_slug
+    out = lop_dir / f"{lesson_id}.html"
+    siblings = [f for f in lop_dir.glob("*.html") if f != out] if lop_dir.is_dir() else []
 
     order = args.order if args.order is not None else existing_meta(out, "order")
     if order is None:
         order = len(siblings) + 1
-    mon_order = args.mon_order if args.mon_order is not None else existing_meta(out, "mon-order")
-    if mon_order is None and siblings:
-        mon_order = existing_meta(siblings[0], "mon-order")
-    if mon_order is None:
+    lop_order = args.lop_order if args.lop_order is not None else existing_meta(out, "lop-order")
+    if lop_order is None and siblings:
+        lop_order = existing_meta(siblings[0], "lop-order")
+    if lop_order is None:
         khoa_dir = LESSONS / khoa_slug
-        mon_order = len([d for d in khoa_dir.iterdir() if d.is_dir()]) + 1 if khoa_dir.is_dir() else 1
-    order, mon_order = num(order), num(mon_order)
+        lop_order = len([d for d in khoa_dir.iterdir() if d.is_dir()]) + 1 if khoa_dir.is_dir() else 1
 
+    info = dict(meta, id=lesson_id, order=num(order), khoa=args.khoa, khoaSlug=khoa_slug, lop=lop,
+                lopSlug=lop_slug, lopOrder=num(lop_order), path=out.relative_to(LESSONS).as_posix())
     root = "../../../"
-    body = clean_body(article, mon_dir / "img" / lesson_id, f"img/{lesson_id}", src)
-    e = lambda s: html.escape(s, quote=True)
-    source_link = f' · <a href="{e(meta["source"])}" target="_blank" rel="noopener">Bài gốc trên 200Lab</a>' if meta["source"] else ""
-    mon_dir.mkdir(parents=True, exist_ok=True)
-    out.write_text(TEMPLATE.format(
-        root=root, title_e=e(meta["title"]), desc_e=e(meta["description"]), id_e=e(lesson_id),
-        order=order, mon_order=mon_order, khoa_e=e(args.khoa), mon_e=e(mon),
-        read_e=e(meta["readTime"]), source_e=e(meta["source"]),
-        khoa_slug=khoa_slug, mon_slug=mon_slug, khoa_h=html.escape(args.khoa), mon_h=html.escape(mon),
-        title_h=html.escape(meta["title"]), desc_h=html.escape(meta["description"]),
-        read_h=html.escape(meta["readTime"]), source_link=source_link,
-        path_e=e(out.relative_to(LESSONS).as_posix()), toc=build_toc(body), body=body,
-    ), encoding="utf-8")
+    lop_dir.mkdir(parents=True, exist_ok=True)
+    if is_200lab:
+        body = clean_body(article, lop_dir / "img" / lesson_id, f"img/{lesson_id}", src)
+        page = render_article(info, body, root)
+    else:
+        page = render_standalone(info, text, root)
+    out.write_text(page, encoding="utf-8")
     total = len(rebuild_manifest())
-    print(f"Đã tạo {out.relative_to(ROOT)}\n  Khóa: {args.khoa}\n  Môn:  {mon} (thứ tự {mon_order})\n"
-          f"  Bài:  {meta['title']} (thứ tự {order})\nTổng cộng {total} bài.")
+    print(f"Đã tạo {out.relative_to(ROOT)} ({'trang 200Lab' if is_200lab else 'trang HTML tự chứa'})\n"
+          f"  Khóa: {args.khoa}\n  Lớp:  {lop} (thứ tự {info['lopOrder']})\n"
+          f"  Bài:  {info['title']} (thứ tự {info['order']})\nTổng cộng {total} bài.")
 
 
 if __name__ == "__main__":

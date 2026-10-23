@@ -1,18 +1,5 @@
 (function () {
-  var root = document.documentElement;
   var lessons = window.LESSONS || [];
-
-  // Nút đổi giao diện sáng/tối, nhớ lựa chọn trong trình duyệt.
-  var toggle = document.querySelector(".theme-toggle");
-  if (toggle) {
-    toggle.addEventListener("click", function () {
-      var dark = root.dataset.theme
-        ? root.dataset.theme === "dark"
-        : matchMedia("(prefers-color-scheme: dark)").matches;
-      root.dataset.theme = dark ? "light" : "dark";
-      try { localStorage.setItem("sd-theme", root.dataset.theme); } catch (e) {}
-    });
-  }
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -34,12 +21,12 @@
     return groups;
   }
 
-  // ---------- Trang bài học: bài trước / bài sau trong cùng Môn ----------
-  var nav = document.querySelector(".lesson-nav");
+  // ---------- Trang bài học: bài trước / bài sau trong cùng Lớp ----------
+  var nav = document.querySelector(".lesson-nav, .sdn-nav");
   if (nav) {
-    var base = document.body.dataset.root || "";
+    var base = nav.dataset.root || document.body.dataset.root || "";
     var me = lessons.find(function (l) { return l.path === nav.dataset.lessonId; });
-    var same = me ? lessons.filter(function (l) { return l.khoaSlug === me.khoaSlug && l.monSlug === me.monSlug; }) : [];
+    var same = me ? lessons.filter(function (l) { return l.khoaSlug === me.khoaSlug && l.lopSlug === me.lopSlug; }) : [];
     var idx = same.indexOf(me);
     [[idx - 1, "prev", "← Bài trước"], [idx + 1, "next", "Bài tiếp theo →"]].forEach(function (p) {
       var l = idx >= 0 && same[p[0]];
@@ -53,10 +40,10 @@
     return;
   }
 
-  // ---------- Trang chủ: #/ → Khóa, #/<khóa> → Môn, #/<khóa>/<môn> → Bài ----------
+  // ---------- Trang chủ: #/ → Khóa, #/<khóa> → Lớp, #/<khóa>/<lớp> → Bài ----------
   var view = document.getElementById("view");
   if (!view) return;
-  var fold = function (s) { return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase(); };
+  var fold = function (s) { return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase(); };
 
   function crumbs(parts) {
     var n = el("nav", "crumbs");
@@ -89,14 +76,14 @@
   function lessonList(list, showPath) {
     var ul = el("ul", "list");
     list.forEach(function (l, i) {
-      var meta = [showPath ? l.khoa + " › " + l.mon : "", l.readTime].filter(Boolean).join(" · ");
+      var meta = [showPath ? l.khoa + " › " + l.lop : "", l.readTime].filter(Boolean).join(" · ");
       ul.appendChild(card("lessons/" + l.path, String(i + 1), l.title, l.description, meta, "lesson"));
     });
     return ul;
   }
 
   function renderHome(q) {
-    view.appendChild(header("", "Khóa học", "Ghi chép bài học từ 200Lab, xếp theo Khóa › Môn › Bài giảng."));
+    view.appendChild(header("", "Khóa học", "Ghi chép bài học từ 200Lab, xếp theo Khóa › Lớp › Bài giảng."));
     var input = el("input", "search");
     input.type = "search";
     input.placeholder = "Tìm bài giảng (gõ không dấu cũng được)…";
@@ -109,7 +96,7 @@
       results.textContent = "";
       var query = fold(input.value.trim());
       if (query) {
-        var hits = lessons.filter(function (l) { return fold([l.title, l.description, l.mon, l.khoa, l.id].join(" ")).indexOf(query) >= 0; });
+        var hits = lessons.filter(function (l) { return fold([l.title, l.description, l.lop, l.khoa, l.id].join(" ")).indexOf(query) >= 0; });
         results.appendChild(el("h2", "section-title", hits.length + " bài giảng khớp"));
         if (hits.length) results.appendChild(lessonList(hits, true));
         return;
@@ -118,9 +105,9 @@
       if (!khoas.length) { results.appendChild(el("p", "empty", "Chưa có bài học nào.")); return; }
       var ul = el("ul", "list grid");
       khoas.forEach(function (k, i) {
-        var mons = groupBy(k.lessons, "monSlug", "mon");
+        var lops = groupBy(k.lessons, "lopSlug", "lop");
         ul.appendChild(card("#/" + k.slug, String(i + 1), k.name, "",
-          mons.length + " môn · " + k.lessons.length + " bài giảng · " + minutes(k.lessons) + " phút đọc", "khoa"));
+          lops.length + " lớp · " + k.lessons.length + " bài giảng · " + minutes(k.lessons) + " phút đọc", "khoa"));
       });
       results.appendChild(ul);
     }
@@ -132,20 +119,20 @@
   }
 
   function renderKhoa(k) {
-    var mons = groupBy(k.lessons, "monSlug", "mon");
+    var lops = groupBy(k.lessons, "lopSlug", "lop");
     view.appendChild(crumbs([{ name: "Khóa học", href: "#/" }, { name: k.name }]));
-    view.appendChild(header("Khóa", k.name, mons.length + " môn · " + k.lessons.length + " bài giảng"));
+    view.appendChild(header("Khóa", k.name, lops.length + " lớp · " + k.lessons.length + " bài giảng"));
     var ul = el("ul", "list");
-    mons.forEach(function (m, i) {
+    lops.forEach(function (m, i) {
       ul.appendChild(card("#/" + k.slug + "/" + m.slug, String(i + 1), m.name, "",
-        m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc", "mon"));
+        m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc", "lop"));
     });
     view.appendChild(ul);
   }
 
-  function renderMon(k, m) {
+  function renderLop(k, m) {
     view.appendChild(crumbs([{ name: "Khóa học", href: "#/" }, { name: k.name, href: "#/" + k.slug }, { name: m.name }]));
-    view.appendChild(header("Môn · " + k.name, m.name, m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc"));
+    view.appendChild(header("Lớp · " + k.name, m.name, m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc"));
     view.appendChild(lessonList(m.lessons, false));
   }
 
@@ -155,8 +142,8 @@
     if (hash.indexOf("?q=") === 0) return renderHome(hash.slice(3));
     var parts = hash.replace(/^\//, "").split("/").filter(Boolean);
     var k = parts[0] && groupBy(lessons, "khoaSlug", "khoa").find(function (x) { return x.slug === parts[0]; });
-    var m = k && parts[1] && groupBy(k.lessons, "monSlug", "mon").find(function (x) { return x.slug === parts[1]; });
-    if (m) renderMon(k, m);
+    var m = k && parts[1] && groupBy(k.lessons, "lopSlug", "lop").find(function (x) { return x.slug === parts[1]; });
+    if (m) renderLop(k, m);
     else if (k) renderKhoa(k);
     else renderHome("");
     document.title = (m ? m.name : k ? k.name : "Khóa học") + " · System Design Notes";

@@ -1,138 +1,140 @@
+/* Bộ nền CARBON — lấy theo trang bài giảng (p99-throughput-error-saturation.html).
+   Accent theo vai trò, dùng cố định trên toàn site:
+   --pct  #5eead4  accent chính (link, số thứ tự, viền khi hover)
+   --thr  #60a5fa  link phụ
+   --err  #fb7185  cảnh báo
+   --sat  #f5a524  nhấn phụ
+   --ok   #86efac
+   --example #c084fc  khối ví dụ (viền nét đứt) */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef1f5;
-  --text: #161a1f;
-  --text-2: #3a414b;
-  --muted: #6b7380;
-  --rule: #dde2e8;
-  --accent: #0f9d7a;
-  --accent-soft: #e2f5ef;
-  --code-bg: #f0f2f5;
+  --bg: #0d0d0f;
+  --panel: #17171a;
+  --panel-2: #1d1d21;
+  --line: #2a2a30;
+  --ink: #ededf0;
+  --ink-dim: #9a9aa5;
+  --pct: #5eead4;
+  --thr: #60a5fa;
+  --err: #fb7185;
+  --sat: #f5a524;
+  --ok: #86efac;
+  --example: #c084fc;
+  --example-bg: #160f1f;
   --radius: 12px;
-  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121419; --surface: #1a1d24; --surface-2: #222631; --text: #eef0f3; --text-2: #c3c8d0;
-    --muted: #8a919c; --rule: #2c313c; --accent: #3ddbb0; --accent-soft: #163a31; --code-bg: #0d0f13;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #121419; --surface: #1a1d24; --surface-2: #222631; --text: #eef0f3; --text-2: #c3c8d0;
-  --muted: #8a919c; --rule: #2c313c; --accent: #3ddbb0; --accent-soft: #163a31; --code-bg: #0d0f13;
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font: 17px/1.7 var(--font); -webkit-font-smoothing: antialiased;
-}
-a { color: var(--accent); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: var(--pct); }
+::selection { background: rgb(94 234 212 / .25); }
+:focus-visible { outline: 2px solid var(--pct); outline-offset: 2px; }
 
 .topbar {
   position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 10px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule);
+  gap: 12px; height: 54px; padding: 0 20px; border-bottom: 1px solid var(--line);
+  background: rgb(13 13 15 / .88); backdrop-filter: blur(10px);
 }
-.brand { font-weight: 700; text-decoration: none; color: var(--text); }
-.theme-toggle {
-  border: 1px solid var(--rule); background: var(--surface); color: var(--text);
-  border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer;
+.brand {
+  display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink);
+  font: 600 13px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.brand::before {
+  content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--pct);
+  box-shadow: 14px 0 0 var(--thr), 28px 0 0 var(--err), 42px 0 0 var(--sat);
+  margin-right: 42px;
 }
 
-/* ---------- Trang chủ: Khóa › Môn › Bài ---------- */
-.home { max-width: 880px; margin: 0 auto; padding: 28px 16px 64px; }
-.page-head { margin-bottom: 24px; }
-.page-head .kicker { margin: 0 0 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
-.page-head h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.22; margin: 0 0 8px; letter-spacing: -.02em; }
-.page-head .sub { color: var(--muted); margin: 0; }
+/* ---------- Trang chủ: Khóa › Lớp › Bài ---------- */
+.home { max-width: 840px; margin: 0 auto; padding: 44px 20px 72px; }
+.page-head { margin-bottom: 28px; }
+.page-head .kicker { margin: 0 0 12px; font: 500 12px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-dim); }
+.page-head h1 { font-size: clamp(26px, 5.4vw, 40px); font-weight: 800; line-height: 1.25; letter-spacing: -.01em; margin: 0 0 12px; }
+.page-head .sub { color: var(--ink-dim); font-size: 15px; margin: 0; max-width: 600px; }
+.page-head .sub b { color: var(--ink); font-weight: 600; }
 .search {
-  width: 100%; padding: 12px 14px; font: inherit; color: var(--text); background: var(--surface);
-  border: 1px solid var(--rule); border-radius: var(--radius); margin-bottom: 24px;
+  width: 100%; height: 46px; padding: 0 16px; margin-bottom: 32px; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; font: 14px var(--mono);
 }
-.search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-.section-title { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
+.search::placeholder { color: var(--ink-dim); }
+.search:focus { outline: none; border-color: var(--pct); }
+.section-title { margin: 0 0 12px; font: 600 12px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .list.grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .card {
-  display: grid; grid-template-columns: auto 1fr; align-content: start; gap: 4px 16px; height: 100%;
-  padding: 16px 18px; text-decoration: none; color: var(--text);
-  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
-  transition: border-color .15s, transform .15s;
+  display: grid; grid-template-columns: auto 1fr; align-content: start; gap: 4px 14px; height: 100%;
+  padding: 16px 18px; text-decoration: none; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  transition: border-color .15s, background-color .15s;
 }
-.card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.card:hover { border-color: var(--pct); background: var(--panel-2); }
 .card .num {
-  grid-row: span 3; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 15px;
+  grid-row: span 3; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px;
+  background: rgb(94 234 212 / .14); color: var(--pct); font: 700 13px/1 var(--mono);
 }
-.card-khoa { padding: 20px; }
-.card-khoa .t { font-size: 20px; }
-.card-mon .num { border-radius: 10px; }
+.card-khoa { padding: 22px; }
+.card-khoa .t { font-size: 20px; font-weight: 800; }
+.card-lop .num { background: rgb(96 165 250 / .14); color: var(--thr); }
+.card-lesson .num { background: rgb(245 165 36 / .14); color: var(--sat); }
 .card .t { font-weight: 700; line-height: 1.4; }
-.card .d { color: var(--text-2); font-size: 15px; line-height: 1.5; }
-.card .m { color: var(--muted); font-size: 13px; }
-.empty { color: var(--muted); }
+.card .d { color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
+.card .m { color: var(--ink-dim); font: 12px/1.5 var(--mono); letter-spacing: .02em; }
+.empty { color: var(--ink-dim); font-family: var(--mono); font-size: 13px; }
 
-.crumbs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
-.crumbs a { color: var(--muted); text-decoration: none; }
-.crumbs a:hover { color: var(--accent); }
-.crumbs b { color: var(--text-2); font-weight: 600; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-bottom: 22px; font: 12px/1.6 var(--mono); color: var(--ink-dim); }
+.crumbs a { color: var(--ink-dim); text-decoration: none; }
+.crumbs a:hover { color: var(--pct); }
+.crumbs b { color: var(--ink); font-weight: 500; }
 
-/* ---------- Trang bài học ---------- */
-.lesson-layout { max-width: 800px; margin: 0 auto; padding: 24px 16px 64px; }
-.lesson-head .eyebrow { margin: 0 0 8px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
-.lesson-head h1 { font-size: clamp(26px, 4.5vw, 36px); line-height: 1.25; margin: 0 0 12px; letter-spacing: -.02em; }
-.lesson-head .lead { color: var(--text-2); margin: 0 0 8px; }
-.lesson-head .meta { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+.site-foot { max-width: 840px; margin: 0 auto; padding: 28px 20px 40px; border-top: 1px solid var(--line); text-align: center; color: var(--ink-dim); font: 12.5px/1.6 var(--mono); }
 
-.toc { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 28px; }
-.toc-title { margin: 0 0 6px; font-weight: 700; font-size: 15px; }
+/* ---------- Trang bài giảng dạng bài viết (import từ trang 200Lab đã lưu) ---------- */
+.lesson-layout { max-width: 800px; margin: 0 auto; padding: 32px 20px 72px; }
+.lesson-head h1 { font-size: clamp(26px, 4.8vw, 38px); font-weight: 800; line-height: 1.25; margin: 0 0 12px; }
+.lesson-head .lead { color: var(--ink-dim); margin: 0 0 10px; max-width: 62ch; }
+.lesson-head .meta { color: var(--ink-dim); font: 12px/1.6 var(--mono); margin: 0 0 26px; }
+.toc { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 32px; }
+.toc-title { margin: 0 0 8px; font: 600 12px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
 .toc ol { margin: 0; padding-left: 20px; font-size: 15px; }
-.toc a { color: var(--text-2); text-decoration: none; }
-.toc a:hover { color: var(--accent); }
-
-.prose { color: var(--text-2); overflow-wrap: anywhere; }
-.prose h2 { color: var(--text); font-size: 24px; line-height: 1.35; margin: 40px 0 12px; scroll-margin-top: 72px; }
-.prose h3 { color: var(--text); font-size: 19px; margin: 28px 0 8px; scroll-margin-top: 72px; }
+.toc a { color: var(--ink); text-decoration: none; }
+.toc a:hover { color: var(--pct); }
+.prose { color: #c9c9d1; font-size: 16.5px; line-height: 1.72; overflow-wrap: anywhere; }
+.prose h2 { color: var(--ink); font-size: 23px; font-weight: 700; line-height: 1.35; margin: 0 0 12px; padding-top: 36px; border-top: 1px solid var(--line); scroll-margin-top: 70px; }
+.prose h2:not(:first-child) { margin-top: 36px; }
+.prose h3 { color: var(--ink); font-size: 18px; margin: 26px 0 8px; }
 .prose p { margin: 0 0 16px; }
-.prose strong { color: var(--text); }
+.prose strong { color: var(--ink); }
 .prose ul, .prose ol { padding-left: 22px; margin: 0 0 16px; }
 .prose li { margin-bottom: 6px; }
-.prose code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
-.prose pre {
-  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px;
-  overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 18px;
-}
-.prose pre code { background: none; padding: 0; font-size: inherit; white-space: pre; }
+.prose code { font: .82em var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+.prose pre { background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; color: #dfe4ea; font: 13px/1.55 var(--mono); margin: 0 0 18px; }
+.prose pre code { background: none; border: 0; padding: 0; font: inherit; white-space: pre; }
 .prose figure { margin: 8px 0 22px; }
-.prose img { display: block; max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--rule); background: var(--surface); }
-.prose .el-diagram { background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.prose img { display: block; max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+.prose .el-diagram { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; overflow-x: auto; }
 .prose .el-diagram svg { display: block; margin: 0 auto; height: auto; }
-.lesson-table-scroll { overflow-x: auto; margin: 0 0 18px; }
-.prose table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.prose th, .prose td { border: 1px solid var(--rule); padding: 8px 10px; text-align: left; vertical-align: top; }
-.prose th { background: var(--surface-2); color: var(--text); }
-.callout { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 10px; padding: 14px 18px; margin: 0 0 22px; }
-.callout .callout-title { font-weight: 700; color: var(--text); margin: 0 0 6px; }
+.lesson-table-scroll { overflow-x: auto; margin: 0 0 20px; }
+.prose table { width: 100%; border-collapse: collapse; font-size: 14px; border: 1px solid var(--line); }
+.prose th, .prose td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+.prose th { background: var(--panel); color: var(--ink-dim); font: 500 11px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.prose tr:nth-child(even) td { background: rgb(255 255 255 / .015); }
+.callout { border: 1px dashed var(--example); background: var(--example-bg); border-radius: 10px; padding: 16px 18px; margin: 0 0 24px; }
+.callout .callout-title { margin: 0 0 8px; font: 500 11px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--example); }
 .callout ul { margin-bottom: 0; }
 
-.lesson-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.lesson-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); }
 .lesson-nav a {
-  flex: 1; max-width: 48%; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius);
-  background: var(--surface); text-decoration: none; color: var(--text); font-size: 15px; line-height: 1.4;
+  flex: 1; max-width: 48%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel); text-decoration: none; color: var(--ink); font-size: 14px; font-weight: 600; line-height: 1.4;
 }
-.lesson-nav a:hover { border-color: var(--accent); }
+.lesson-nav a:hover { border-color: var(--pct); }
 .lesson-nav a.next { margin-left: auto; text-align: right; }
-.lesson-nav small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
+.lesson-nav small { display: block; color: var(--ink-dim); font: 500 11px/1.6 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 
-@media (max-width: 640px) {
-  body { font-size: 16px; }
+@media (max-width: 560px) {
   .lesson-nav { flex-direction: column; }
   .lesson-nav a { max-width: none; }
 }
