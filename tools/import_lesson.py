@@ -329,7 +329,7 @@ def main():
 
     order = args.order if args.order is not None else existing_meta(out, "order")
     if order is None:
-        order = len(siblings) + 1
+        order = max([float(existing_meta(f, "order") or 0) for f in siblings] + [0]) + 1
     lop_order = args.lop_order if args.lop_order is not None else existing_meta(out, "lop-order")
     if lop_order is None and siblings:
         lop_order = existing_meta(siblings[0], "lop-order")

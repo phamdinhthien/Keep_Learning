@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Non-functional Requirement — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON
+     Accent theo vai trò, cố định suốt trang:
+     --fn    #60a5fa  functional requirement — "làm gì"
+     --nfr   #5eead4  non-functional requirement — "tốt tới mức nào"
+     --load  #f5a524  tải, hàng chờ, lượt xuất
+     --err   #fb7185  sự cố, timeout 60 s, lỗi
+     --ok    #86efac  test xanh, đạt mốc
+     --example #c084fc  khối ví dụ (viền nét đứt) */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --fn:#60a5fa; --nfr:#5eead4; --load:#f5a524; --err:#fb7185; --ok:#86efac;
+    --example:#c084fc; --example-bg:#160f1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.4vw,40px);font-weight:800;letter-spacing:-.01em;max-width:720px;margin:0 auto 14px;line-height:1.25;}
+  h1 .g{color:var(--ok);} h1 .r{color:var(--err);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:600px;margin:0 auto;}
+  .sub b{color:var(--ink);}
+  .toc{display:flex;justify-content:center;gap:10px 18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc span b{color:var(--ink);font-weight:600;}
+
+  .fig{margin:26px 0 22px;}
+  .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;fill:var(--ink);}
+  svg text.sm{font-size:10.5px;fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg text.big{font-size:16px;font-weight:700;}
+  svg .box{fill:var(--panel);stroke:var(--line);stroke-width:1.5;}
+  svg .ln{stroke:var(--ink-dim);stroke-width:1.5;fill:none;}
+  svg .ln-d{stroke-dasharray:4 4;}
+  svg .grid{stroke:var(--line);stroke-width:1;}
+
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;line-height:1.35;}
+  .c-fn{color:var(--fn);} .c-nfr{color:var(--nfr);} .c-load{color:var(--load);} .c-err{color:var(--err);} .c-ok{color:var(--ok);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media (max-width:560px){.compare{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);}
+  .card ul li{margin-bottom:6px;}
+  .card ul li b{color:var(--ink);}
+  .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+
+  /* 8 NFR grid */
+  .nfr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+  @media (max-width:600px){.nfr-grid{grid-template-columns:1fr;}}
+  .nfr{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--nfr);border-radius:10px;padding:14px 16px;}
+  .nfr .hd{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
+  .nfr .no{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--nfr);background:rgba(94,234,212,.12);padding:1px 7px;border-radius:5px;}
+  .nfr .nm{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;color:var(--nfr);}
+  .nfr .q{font-size:13px;color:var(--ink);font-weight:600;margin-bottom:5px;}
+  .nfr .a{font-size:12.8px;color:var(--ink-dim);}
+  .nfr .a b{color:var(--ink);font-weight:600;}
+  .nfr.speed{border-left-color:var(--load);} .nfr.speed .no{color:var(--load);background:rgba(245,165,36,.12);} .nfr.speed .nm{color:var(--load);}
+
+  .tscroll{overflow-x:auto;margin-bottom:22px;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;border:1px solid var(--line);min-width:520px;}
+  th,td{text-align:left;padding:9px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);font-weight:500;}
+  td.num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;white-space:nowrap;}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+
+  .note{border-left:3px solid var(--line);background:var(--panel);padding:12px 16px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--ink-dim);margin-bottom:20px;}
+  .note b{color:var(--ink);}
+
+  .danger-label{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--err);margin-bottom:10px;}
+  .mistakes{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .mistakes li{display:grid;grid-template-columns:26px 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;}
+  .mistakes .ico{width:24px;height:24px;border-radius:6px;background:rgba(251,113,133,.14);color:var(--err);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;}
+  .mistakes .t{font-weight:600;font-size:14px;margin-bottom:3px;}
+  .mistakes .d{font-size:13px;color:var(--ink-dim);}
+  .mistakes .d b{color:var(--ink);}
+
+  .check{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:22px;counter-reset:q;}
+  .check li{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:13.5px;}
+  @media (max-width:520px){.check li{grid-template-columns:1fr;gap:4px;}}
+  .check .k{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--nfr);letter-spacing:.04em;}
+  .check .k.sp{color:var(--load);}
+
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);}
+  .example-box p + p{margin-top:8px;}
+  .example-box .hint{font-size:12px;color:var(--ink-dim);font-style:italic;}
+  .before-after{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:560px){.before-after{grid-template-columns:1fr;}}
+  .before-after > div{font-size:13px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
+  .before-after b.h{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  .example-box pre + p,.example-box p + pre,.example-box pre + pre,.example-box .before-after + p,.example-box p + .before-after,.example-box pre + .before-after,.example-box .before-after + pre{margin-top:10px;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:var(--err);} pre .good{color:var(--ok);} pre .nf{color:var(--nfr);} pre .dim{color:#6b6b75;}
+
+  .ref-label{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  .ref-links{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .ref-links li{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:13px;}
+  .ref-links .d{color:var(--ink);display:block;margin-bottom:3px;}
+  .ref-links a{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--fn);word-break:break-all;}
+
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;max-width:760px;margin:0 auto;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="non-functional-requirement">
+  <meta name="lesson:title" content="Tính năng qua hết test vẫn không dùng được vì thiếu non-functional requirement">
+  <meta name="lesson:description" content="Tính năng &quot;Xuất hóa đơn tháng&quot; làm đúng cả sáu dòng requirement, code không đổi một ký tự — vậy mà vẫn hỏng đêm cuối tháng. Lý do: bản requirement chỉ nói tính năng làm gì, không nói nó phải làm tốt tới mức nào. Mọi con số trong trang là số minh hoạ của bài.">
+  <meta name="lesson:order" content="3">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Khóa học</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-fn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--fn)"/></marker>
+  <marker id="a-nfr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--nfr)"/></marker>
+  <marker id="a-load" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--load)"/></marker>
+  <marker id="a-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">Thiết kế hệ thống · Requirement · Bản chi tiết có ví dụ</div>
+  <h1><span class="g">12/12 test xanh</span> lúc 17:00,<br>request <span class="r">bị cắt lúc 23:55</span></h1>
+  <div class="sub">Tính năng "Xuất hóa đơn tháng" làm đúng cả sáu dòng requirement, code không đổi một ký tự — vậy mà vẫn hỏng đêm cuối tháng. Lý do: bản requirement chỉ nói tính năng <b>làm gì</b>, không nói nó phải làm <b>tốt tới mức nào</b>. Mọi con số trong trang là số minh hoạ của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Dòng thời gian ngày cuối tháng: 17:00 test xanh, 21:00 xuất thử 5 giây, 23:40 cao điểm, 23:50 p99 40 giây, 23:55 load balancer cắt request, 23:57 ticket, 23:58 log không có exception">
+      <line x1="30" y1="125" x2="250" y2="125" stroke="var(--ok)" stroke-width="2"/>
+      <text x="268" y="130" text-anchor="middle" fill="var(--ink-dim)">≈</text>
+      <line x1="286" y1="125" x2="400" y2="125" stroke="var(--load)" stroke-width="2"/>
+      <line x1="400" y1="125" x2="680" y2="125" stroke="var(--err)" stroke-width="2"/>
+      <text class="lb" x="30" y="20" fill="var(--ink-dim)">NGÀY CUỐI THÁNG · CODE KHÔNG ĐỔI MỘT KÝ TỰ</text>
+
+      <!-- 17:00 -->
+      <circle cx="60" cy="125" r="6" fill="var(--ok)"/>
+      <line class="grid" x1="60" y1="70" x2="60" y2="118"/>
+      <text x="60" y="48" text-anchor="middle" fill="var(--ok)">17:00</text>
+      <text class="sm" x="22" y="64">12/12 pass · deploy</text>
+      <!-- 21:00 -->
+      <circle cx="200" cy="125" r="6" fill="var(--ok)"/>
+      <line class="grid" x1="200" y1="132" x2="200" y2="168"/>
+      <text x="200" y="186" text-anchor="middle" fill="var(--ok)">21:00</text>
+      <text class="sm" x="200" y="202" text-anchor="middle">vài chục cửa hàng thử</text>
+      <text class="sm" x="200" y="216" text-anchor="middle">~5 s / file</text>
+      <!-- 23:40 -->
+      <circle cx="320" cy="125" r="6" fill="var(--load)"/>
+      <line class="grid" x1="320" y1="70" x2="320" y2="118"/>
+      <text x="320" y="48" text-anchor="middle" fill="var(--load)">23:40</text>
+      <text class="sm" x="320" y="64" text-anchor="middle">bắt đầu chốt sổ</text>
+      <!-- 23:50 -->
+      <circle cx="420" cy="125" r="6" fill="var(--load)"/>
+      <line class="grid" x1="420" y1="132" x2="420" y2="168"/>
+      <text x="420" y="186" text-anchor="middle" fill="var(--load)">23:50</text>
+      <text class="sm" x="420" y="202" text-anchor="middle">p99 = 40 giây</text>
+      <!-- 23:55 -->
+      <circle cx="520" cy="125" r="7" fill="var(--err)"/>
+      <line class="grid" x1="520" y1="70" x2="520" y2="117"/>
+      <text x="520" y="48" text-anchor="middle" fill="var(--err)">23:55</text>
+      <text class="sm" x="520" y="64" text-anchor="middle">LB cắt ở 60 s</text>
+      <!-- 23:57 -->
+      <circle cx="600" cy="125" r="6" fill="var(--err)"/>
+      <line class="grid" x1="600" y1="132" x2="600" y2="168"/>
+      <text x="600" y="186" text-anchor="middle" fill="var(--err)">23:57</text>
+      <text class="sm" x="600" y="202" text-anchor="middle">ticket: "chờ cả phút</text>
+      <text class="sm" x="600" y="216" text-anchor="middle">rồi báo lỗi"</text>
+      <!-- 23:58 -->
+      <circle cx="666" cy="125" r="6" fill="var(--err)"/>
+      <line class="grid" x1="666" y1="70" x2="666" y2="118"/>
+      <text x="666" y="48" text-anchor="end" fill="var(--err)">23:58</text>
+      <text class="sm" x="680" y="64" text-anchor="end">log: 0 exception</text>
+      <text class="sm" x="350" y="244" text-anchor="middle">File nào render xong cũng đúng · chạy lại 12 test vẫn xanh · tháng sau lặp lại y hệt</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Lỗi không test nào bắt được, chỉ lộ ra mỗi tháng một lần, đúng lúc đông người dùng nhất</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Functional vs NFR</b></span>
+    <span>02 <b>Phép tính hàng chờ</b></span>
+    <span>03 <b>Tám nhóm NFR</b></span>
+    <span>04 <b>Hai cách dựng</b></span>
+    <span>05 <b>Lỗi hay gặp</b></span>
+    <span>06 <b>Tám câu hỏi</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Hai loại requirement</div>
+    <h2><span class="c-fn">Functional</span> nói hệ thống làm gì — <span class="c-nfr">Non-functional</span> nói làm tốt tới mức nào, trong điều kiện nào</h2>
+    <p class="desc"><b>Functional requirement</b>: hệ thống làm gì, nhận gì, trả gì, theo luật nghiệp vụ nào. <b>Non-functional requirement</b> (tài liệu thiết kế còn gọi là <b>quality attribute</b>): hệ thống làm việc đó tốt tới mức nào, trong điều kiện nào. Test chức năng chạy trên máy CI với <b>một request</b>, nên chỉ trả lời được loại câu đầu. Phần lớn non-functional requirement chỉ kiểm tra được <b>dưới tải thật, theo thời gian, hoặc khi có sự cố</b> — vì vậy bộ test xanh không cho bạn biết gì về chúng. Mười hai test bám đúng requirement; lỗi nằm ở chỗ requirement chỉ có một loại câu.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 200" role="img" aria-label="Đường đi của request theo bản requirement ban đầu: trang quản trị, load balancer timeout 60 giây, app render PDF ngay trong request, Postgres bảng invoices">
+        <rect class="box" x="10" y="60" width="130" height="56" rx="8"/>
+        <text class="sm" x="75" y="84" text-anchor="middle" fill="var(--ink)">Trang quản trị</text>
+        <text class="sm" x="75" y="102" text-anchor="middle">bấm "Xuất"</text>
+        <path class="ln" d="M140,88 L176,88" marker-end="url(#a-dim)"/>
+        <rect class="box" x="180" y="60" width="150" height="56" rx="8" stroke="var(--err)"/>
+        <text class="sm" x="255" y="84" text-anchor="middle" fill="var(--err)">LOAD BALANCER</text>
+        <text class="sm" x="255" y="102" text-anchor="middle">timeout 60 giây</text>
+        <path class="ln" d="M330,88 L366,88" marker-end="url(#a-dim)"/>
+        <rect class="box" x="370" y="44" width="170" height="88" rx="8" stroke="var(--load)"/>
+        <text class="sm" x="455" y="66" text-anchor="middle" fill="var(--load)">APP</text>
+        <text class="sm" x="455" y="84" text-anchor="middle" fill="var(--ink)">render PDF ngay</text>
+        <text class="sm" x="455" y="100" text-anchor="middle" fill="var(--ink)">trong request</text>
+        <text class="sm" x="455" y="120" text-anchor="middle">2 instance × 4 worker</text>
+        <path class="ln" d="M540,88 L576,88" marker-end="url(#a-dim)"/>
+        <rect class="box" x="580" y="60" width="110" height="56" rx="8" stroke="var(--fn)"/>
+        <text class="sm" x="635" y="84" text-anchor="middle" fill="var(--fn)">POSTGRES</text>
+        <text class="sm" x="635" y="102" text-anchor="middle">bảng invoices</text>
+
+        <path class="ln ln-d" stroke="var(--err)" d="M255,116 L255,160 L455,160 L455,132"/>
+        <text class="sm" x="355" y="180" text-anchor="middle" fill="var(--err)">request nằm lại ở ô app suốt thời gian render — LB chỉ chờ tối đa 60 s</text>
+        <text class="sm" x="455" y="30" text-anchor="middle" fill="var(--load)">tối đa 8 file render cùng lúc</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Sơ đồ "rất bình thường": chỉ hỏng khi request phải chờ lâu hơn thời gian render của chính nó</div>
+    </div>
+
+    <div class="compare">
+      <div class="card">
+        <h3 class="c-fn">FUNCTIONAL</h3>
+        <div class="formula">"file có đúng không?"</div>
+        <ul>
+          <li>"File gồm đủ mọi hóa đơn đã chốt"</li>
+          <li>Kiểm tra bằng <b>1 request trên CI</b></li>
+          <li>12 test: 3 chọn tháng · 4 tổng tiền &amp; thuế · 2 tên cửa hàng · 2 tải file · 1 tháng rỗng</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="c-nfr">NON-FUNCTIONAL</h3>
+        <div class="formula">"tốt tới mức nào, trong điều kiện nào?"</div>
+        <ul>
+          <li>"Người dùng có file trong bao lâu khi <b>hai nghìn cửa hàng</b> cùng bấm"</li>
+          <li>Kiểm tra <b>dưới tải thật / theo thời gian / khi sự cố</b></li>
+          <li>0 trong 12 test hỏi điều này</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — bản requirement ban đầu (sáu dòng, ai review cũng gật đầu)</div>
+      <pre><span class="kw">Requirement: Xuất hóa đơn tháng</span>
+1. Chủ cửa hàng chọn được tháng cần xuất trên trang quản trị.
+2. File gồm đủ mọi hóa đơn đã chốt của cửa hàng trong tháng đó.
+3. Tổng tiền và tiền thuế trong file khớp với bảng invoices.
+4. Mỗi trang PDF in tên cửa hàng.
+5. Bấm "Xuất" thì tải về được một file PDF.
+6. Tháng chưa có hóa đơn nào thì báo "Không có hóa đơn", không trả file rỗng.
+<span class="bad"># thiếu: chờ được bao lâu? bao nhiêu cửa hàng bấm cùng một phút?</span></pre>
+      <p>Dòng nào cũng rõ, dòng nào cũng viết test được, code làm đúng cả sáu. Nhưng cả sáu dòng đều cùng một kiểu câu: <b>hệ thống làm gì</b>.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Phép tính hàng chờ</div>
+    <h2 class="c-load">Chỉ thiếu 0,1 lượt/giây — đủ để thời gian chờ vượt 60 giây sau 15 phút</h2>
+    <p class="desc">Hệ thống render được <b>8 file / 5 giây = 1,6 file/giây</b>. Đêm cuối tháng có <b>2.040 lượt</b> trong 20 phút = <b>1,7 lượt/giây</b>. Tốc độ render đạt ~<b>94%</b> mức cần — khoảng hụt nhỏ, nhưng mỗi phút có thêm <b>6 lượt</b> xếp hàng, và hàng chờ không bao giờ kịp ngắn lại trong 20 phút đó. Vì vậy người bấm sau luôn chờ lâu hơn người bấm trước. Chỗ hỏng không nằm ở code render (vẫn đúng 5 giây/file) mà ở hai câu chưa ai hỏi: <b>chờ được bao lâu</b> và <b>bao nhiêu cửa hàng xuất cùng lúc</b>.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 280" role="img" aria-label="Thời gian chờ ước lượng của một request mới tăng tuyến tính từ 5 giây lúc 23:40 lên 42,5 giây lúc 23:50 và 61 giây lúc 23:55, vượt mốc timeout 60 giây">
+        <line class="grid" x1="80" y1="230" x2="650" y2="230"/>
+        <line class="grid" x1="80" y1="50" x2="80" y2="230"/>
+        <text class="sm" x="72" y="234" text-anchor="end">0 s</text>
+        <text class="sm" x="72" y="140" text-anchor="end">40 s</text>
+        <line class="grid" x1="80" y1="140" x2="650" y2="140" stroke-dasharray="2 4"/>
+        <text class="sm" x="72" y="54" text-anchor="end">80 s</text>
+        <!-- 60s timeout line -->
+        <line x1="80" y1="95" x2="650" y2="95" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text class="sm" x="84" y="88" fill="var(--err)">timeout load balancer · 60 s</text>
+        <!-- danger zone -->
+        <rect x="491" y="50" width="149" height="180" fill="var(--err)" fill-opacity=".06"/>
+        <!-- wait line -->
+        <path d="M80,218.75 L640,50" stroke="var(--load)" stroke-width="2.5" fill="none"/>
+        <circle cx="80" cy="218.75" r="5" fill="var(--ok)"/>
+        <circle cx="360" cy="134.4" r="5" fill="var(--load)"/>
+        <circle cx="500" cy="92.75" r="6" fill="var(--err)"/>
+        <text class="sm" x="100" y="226" fill="var(--ok)">5 s (chỉ render)</text>
+        <text class="sm" x="372" y="158" fill="var(--load)">~60 đang chờ → 42,5 s</text>
+        <text class="sm" x="512" y="118" fill="var(--err)">~90 đang chờ → 61 s</text>
+        <text class="sm" x="566" y="150" text-anchor="middle" fill="var(--err)">vùng bị cắt</text>
+        <!-- x labels -->
+        <text class="sm" x="80" y="250" text-anchor="middle">23:40</text>
+        <text class="sm" x="360" y="250" text-anchor="middle">23:50</text>
+        <text class="sm" x="500" y="250" text-anchor="middle">23:55</text>
+        <text class="sm" x="640" y="250" text-anchor="middle">24:00</text>
+        <text class="sm" x="360" y="272" text-anchor="middle">hàng chờ dài thêm 6 lượt mỗi phút → thời gian chờ của request mới tăng đều</text>
+        <text class="lb" x="80" y="30" fill="var(--ink-dim)">THỜI GIAN CHỜ ƯỚC LƯỢNG CỦA MỘT REQUEST MỚI GỬI TỚI</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Ước lượng với giả định lượt bấm tới đều; thực tế còn tệ hơn vì lượt dồn về sát 24:00 và người bị cắt bấm lại</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — phép tính từng bước trong bài</div>
+      <pre><span class="cm">Giả định: lượt xuất gửi tới đều trong 20 phút, mỗi file render đúng 5 giây.</span>
+
+Tốc độ render:
+  2 instance × 4 worker       = 8 file render song song
+  8 file / 5 giây             = <span class="val">1,6 file/giây</span>
+Lượt xuất gửi tới, 23:40 → 24:00:
+  2.040 lượt / 1.200 giây     = <span class="val">1,7 lượt/giây</span>
+Chênh lệch:
+  1,7 − 1,6                   = 0,1 lượt/giây không có worker nhận ngay
+  0,1 × 60 giây               = <span class="bad">6 lượt xếp hàng thêm mỗi phút</span>
+Thời gian chờ của một request mới:
+  23:50  ~60 đang chờ:  60 / 1,6 ≈ 37,5 s + 5 s render ≈ <span class="val">42,5 s</span>
+  23:55  ~90 đang chờ:  90 / 1,6 ≈ 56 s   + 5 s render ≈ <span class="bad">61 s  > 60 s → LB cắt</span></pre>
+      <p class="hint">Phép tính ước lượng thời gian chờ của request mới tại từng thời điểm, không nhằm tính lại con số p99 = 40 s trên dashboard. Mỗi lần chủ cửa hàng bấm lại sau khi bị cắt là thêm một request vào hàng chờ.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Tám nhóm NFR</div>
+    <h2 class="c-nfr">Mỗi nhóm thật ra chỉ là một câu hỏi — và câu trả lời phải thành một dòng kiểm tra được</h2>
+    <p class="desc">Trước khi vẽ kiến trúc, hỏi đủ <b>tám nhóm</b>: latency, throughput, availability, durability, consistency, security/privacy, cost, khả năng vận hành. Ghi câu trả lời mỗi nhóm thành <b>một dòng kiểm tra được</b>, kèm số liệu khi nhóm đó đo được. Danh mục giúp không bỏ sót câu hỏi nhưng <b>không tự đưa ra câu trả lời đúng</b>: câu "30 phút là được" đúng vì <b>kế toán</b> — người thật sự dùng file — nói vậy. Product cũng không tự trả lời được, phải đi hỏi lại.</p>
+
+    <div class="nfr-grid">
+      <div class="nfr speed"><div class="hd"><span class="no">7</span><span class="nm">Latency</span></div><div class="q">Người dùng chờ được bao lâu?</div><div class="a">Báo "đã nhận" trong <b>2 giây</b>; file có sẵn để tải trong <b>30 phút</b> kể từ lúc bấm.</div></div>
+      <div class="nfr speed"><div class="hd"><span class="no">8</span><span class="nm">Throughput</span></div><div class="q">Lúc cao điểm có bao nhiêu yêu cầu?</div><div class="a"><b>2.040 lượt</b> trong 20 phút cuối tháng; vẫn chạy khi lượng này <b>tăng gấp đôi</b>.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">9</span><span class="nm">Availability</span></div><div class="q">Phải chạy lúc nào, ngừng bao lâu thì chấp nhận được?</div><div class="a">Không được ngừng <b>3 ngày cuối + 2 ngày đầu</b> mỗi tháng; giữa tháng gần như không ai dùng.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">10</span><span class="nm">Durability</span></div><div class="q">File đã tạo có được phép mất không?</div><div class="a">Không. Giữ <b>12 tháng</b> để kế toán đối chiếu, tải lại không cần render lại.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">11</span><span class="nm">Consistency</span></div><div class="q">Chấp nhận thấy dữ liệu cũ một lúc không?</div><div class="a">Với hóa đơn đã chốt thì không: file chứa <b>mọi hóa đơn đã chốt tính tới lúc bấm</b>.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">12</span><span class="nm">Security/privacy</span></div><div class="q">Ai được xem, dữ liệu nào nhạy cảm?</div><div class="a">Cửa hàng <b>chỉ tải được file của mình</b>; link tải <b>không đoán được</b>.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">13</span><span class="nm">Cost</span></div><div class="q">Mỗi tháng tốn bao nhiêu tiền?</div><div class="a"><b>Không thuê thêm máy chạy cố định</b> chỉ để phục vụ 20 phút mỗi tháng.</div></div>
+      <div class="nfr"><div class="hd"><span class="no">14</span><span class="nm">Vận hành</span></div><div class="q">Kỹ sư trực nhìn vào đâu, sửa thế nào?</div><div class="a">Xem được <b>số file đang chờ render</b>; chạy lại <b>một file lỗi</b> mà không chạy lại cả đợt.</div></div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — bản requirement sau khi bổ sung (sáu dòng đầu giữ nguyên từng chữ)</div>
+      <pre><span class="kw">Requirement: Xuất hóa đơn tháng</span>
+<span class="kw">Functional requirement</span>
+<span class="dim">1–6. (giữ nguyên — 12 test cũ vẫn dùng được nguyên vẹn)</span>
+<span class="kw">Non-functional requirement</span>
+<span class="val">7.</span>  Latency: API trả "đã nhận" trong <span class="nf">2 giây</span>; file có sẵn trong <span class="nf">30 phút</span> kể từ lúc bấm.
+<span class="val">8.</span>  Throughput: chịu được <span class="nf">2.040 lượt / 20 phút</span> cuối tháng; vẫn chạy khi tăng gấp đôi.
+9.  Availability: chạy ổn định trong 3 ngày cuối và 2 ngày đầu mỗi tháng.
+10. Durability: file tải lại được trong 12 tháng mà không cần render lại.
+11. Consistency: file chứa mọi hóa đơn đã chốt tính tới lúc bấm.
+12. Security/privacy: cửa hàng chỉ tải được file của mình; link tải không đoán được.
+13. Cost: không thuê thêm máy chạy cố định chỉ để phục vụ 20 phút mỗi tháng.
+14. Khả năng vận hành: xem được số file đang chờ render; chạy lại được một file lỗi.
+
+<span class="cm">Kiểm tra với cùng giả định (8 worker, 5 giây/file):</span>
+  2.040 lượt / 1,6 file/giây ≈ 1.275 giây ≈ <span class="good">21 phút &lt; 30 phút ✓</span></pre>
+      <p>Kể cả khi mọi lượt dồn vào cùng lúc, lượt cuối vẫn có file trước mốc 30 phút. <b>Không cần thêm máy nào</b> — thứ còn thiếu chỉ là câu "30 phút là được".</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Một danh sách tính năng, hai cách dựng</div>
+    <h2>Functional quyết định <span class="c-fn">cần thành phần nào</span> — NFR + constraint quyết định <span class="c-nfr">ghép chúng theo cách nào</span></h2>
+    <p class="desc">Hai cách dưới đây cùng làm đúng sáu dòng functional, cùng qua đủ 12 test. Nhìn danh sách tính năng thì không có lý do gì để chọn cách này bỏ cách kia. Thứ phân biệt chúng nằm ở ba dòng NFR: <b>latency</b> (30 phút cho phép không đứng chờ file), <b>throughput</b> (cách 1 phải theo kịp phút đông nhất, không thì chạm mốc 60 s) và <b>cost</b> (cách 1 cần thêm máy, mà máy cố định đã bị loại). <b>Constraint</b> — ngân sách, số người và kỹ năng team, công nghệ và hạ tầng sẵn có — cũng là đầu vào thiết kế, nhưng người thiết kế <b>không tự thương lượng được</b>.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 330" role="img" aria-label="So sánh cách 1 render PDF trong request với cách 2 nhận yêu cầu trả đã nhận trong 2 giây rồi render sau và người dùng tải file khi sẵn sàng">
+        <text class="lb" x="20" y="20" fill="var(--err)">CÁCH 1 — RENDER PDF NGAY TRONG REQUEST (đang chạy)</text>
+        <rect class="box" x="20" y="34" width="110" height="46" rx="8"/><text class="sm" x="75" y="61" text-anchor="middle" fill="var(--ink)">Bấm "Xuất"</text>
+        <path class="ln" d="M130,57 L166,57" marker-end="url(#a-dim)"/>
+        <rect class="box" x="170" y="34" width="110" height="46" rx="8" stroke="var(--err)"/><text class="sm" x="225" y="54" text-anchor="middle" fill="var(--err)">LB</text><text class="sm" x="225" y="70" text-anchor="middle">≤ 60 s</text>
+        <path class="ln" d="M280,57 L316,57" marker-end="url(#a-dim)"/>
+        <rect class="box" x="320" y="34" width="210" height="46" rx="8" stroke="var(--load)"/><text class="sm" x="425" y="54" text-anchor="middle" fill="var(--load)">chờ worker + render 5 s</text><text class="sm" x="425" y="70" text-anchor="middle">request vẫn mở</text>
+        <path class="ln" d="M530,57 L566,57" marker-end="url(#a-dim)"/>
+        <rect class="box" x="570" y="34" width="110" height="46" rx="8"/><text class="sm" x="625" y="61" text-anchor="middle" fill="var(--ink)">trả file PDF</text>
+        <path class="ln ln-d" stroke="var(--err)" d="M75,80 L75,104 L625,104 L625,80"/>
+        <text class="sm" x="350" y="122" text-anchor="middle" fill="var(--err)">người dùng đứng chờ suốt chặng này · hàng chờ dài → vượt 60 s → bị cắt</text>
+
+        <line class="grid" x1="20" y1="146" x2="680" y2="146"/>
+
+        <text class="lb" x="20" y="174" fill="var(--nfr)">CÁCH 2 — NHẬN YÊU CẦU RỒI RENDER SAU</text>
+        <rect class="box" x="20" y="188" width="110" height="46" rx="8"/><text class="sm" x="75" y="215" text-anchor="middle" fill="var(--ink)">Bấm "Xuất"</text>
+        <path class="ln" stroke="var(--nfr)" d="M130,211 L166,211" marker-end="url(#a-nfr)"/>
+        <rect class="box" x="170" y="188" width="150" height="46" rx="8" stroke="var(--nfr)"/><text class="sm" x="245" y="208" text-anchor="middle" fill="var(--nfr)">App ghi nhận</text><text class="sm" x="245" y="224" text-anchor="middle">trả "đã nhận" ≤ 2 s</text>
+        <path class="ln" stroke="var(--load)" d="M320,211 L356,211" marker-end="url(#a-load)"/>
+        <rect class="box" x="360" y="188" width="150" height="46" rx="8" stroke="var(--load)"/><text class="sm" x="435" y="208" text-anchor="middle" fill="var(--load)">8 worker hiện có</text><text class="sm" x="435" y="224" text-anchor="middle">render dần, ≤ 30 phút</text>
+        <path class="ln" stroke="var(--nfr)" d="M510,211 L546,211" marker-end="url(#a-nfr)"/>
+        <rect class="box" x="550" y="188" width="130" height="46" rx="8" stroke="var(--nfr)"/><text class="sm" x="615" y="208" text-anchor="middle" fill="var(--nfr)">file lưu lại</text><text class="sm" x="615" y="224" text-anchor="middle">giữ 12 tháng</text>
+        <path class="ln ln-d" stroke="var(--nfr)" d="M615,234 L615,270 L75,270 L75,238" marker-end="url(#a-nfr)"/>
+        <text class="sm" x="345" y="262" text-anchor="middle" fill="var(--nfr)">chủ cửa hàng tải file khi đã sẵn sàng (link không đoán được)</text>
+        <text class="sm" x="350" y="300" text-anchor="middle">request đóng sau ≤ 2 s → không còn chạm mốc 60 s của load balancer</text>
+        <text class="sm" x="350" y="318" text-anchor="middle" fill="var(--ink-dim)">(sơ đồ phác ý tưởng — cách đưa render ra khỏi request là một chủ đề có phần trình bày riêng)</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Cùng sáu dòng functional, cùng 12 test xanh — chỉ NFR mới loại được một trong hai cách</div>
+    </div>
+
+    <div class="tscroll"><table>
+      <tr><th>Dòng NFR</th><th>Cách 1 · render trong request</th><th>Cách 2 · nhận rồi render sau</th></tr>
+      <tr><td><span class="c-load">7 · Latency</span><br><span style="color:var(--ink-dim);font-size:12px">file trong 30 phút</span></td><td>Không tận dụng được: người dùng vẫn phải đứng chờ file trong request</td><td class="c-ok">Cho phép không đứng chờ file trên màn hình</td></tr>
+      <tr><td><span class="c-load">8 · Throughput</span><br><span style="color:var(--ink-dim);font-size:12px">1,7 lượt/s, có thể ×2</span></td><td class="c-err">Tốc độ render phải luôn theo kịp phút đông nhất</td><td class="c-ok">2.040 file xong ~21 phút với 8 worker</td></tr>
+      <tr><td><span class="c-nfr">13 · Cost</span><br><span style="color:var(--ink-dim);font-size:12px">không máy cố định</span></td><td class="c-err">Phải bật máy tạm đúng lúc cao điểm — chi phí &amp; vận hành tính riêng</td><td class="c-ok">Chạy được với 8 worker hiện có</td></tr>
+    </table></div>
+
+    <div class="note"><b>Tradeoff nằm ở thời gian của team, không ở code:</b> thêm một buổi để hỏi đủ tám câu trước khi code, có câu product phải đi hỏi lại kế toán. Mỗi dòng đã ghi cũng là một mốc team phải kiểm tra và giữ đúng khi chạy thật. Ba chỉ số nên ghi sẵn cho đêm cuối tháng tới: <b>p99 API xuất hóa đơn</b> (kèm số lượt vượt 2 s, vì p99 bỏ qua 1% chậm nhất) · <b>số request bị LB cắt</b> · <b>thời gian từ lúc bấm tới lúc có file</b> (so trực tiếp với mốc 30 phút).</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — dòng 8 cho biết 8 worker còn dư sức tới đâu</div>
+      <div class="fig" style="margin:6px 0 10px">
+        <svg viewBox="0 0 660 170" role="img" aria-label="Thời gian render hết: 2040 lượt 21 phút, 4080 lượt tới đều 22,5 phút, 4080 lượt dồn cùng lúc 42,5 phút so với mốc 30 phút">
+          <!-- scale: 0..45 min over x 190..640 → 10px/min -->
+          <line class="grid" x1="190" y1="20" x2="190" y2="140"/>
+          <line x1="490" y1="14" x2="490" y2="146" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text class="sm" x="494" y="160" fill="var(--err)">mốc 30 phút (dòng 7)</text>
+          <text class="sm" x="182" y="40" text-anchor="end" fill="var(--ink)">2.040 lượt, hiện tại</text>
+          <rect x="190" y="28" width="212.5" height="18" rx="3" fill="var(--ok)" fill-opacity=".55"/>
+          <text class="sm" x="396" y="41" text-anchor="end" style="fill:#0d0d0f;font-weight:600">~21 phút ✓</text>
+          <text class="sm" x="182" y="80" text-anchor="end" fill="var(--ink)">4.080 lượt, tới đều</text>
+          <rect x="190" y="68" width="225" height="18" rx="3" fill="var(--load)" fill-opacity=".55"/>
+          <text class="sm" x="409" y="81" text-anchor="end" style="fill:#0d0d0f;font-weight:600">22,5 phút ✓</text>
+          <text class="sm" x="182" y="120" text-anchor="end" fill="var(--ink)">4.080 lượt, dồn cùng lúc</text>
+          <rect x="190" y="108" width="425" height="18" rx="3" fill="var(--err)" fill-opacity=".55"/>
+          <text class="sm" x="606" y="121" text-anchor="end" style="fill:#0d0d0f;font-weight:600">42,5 phút ✗</text>
+          <text class="sm" x="190" y="160" text-anchor="middle">0</text>
+        </svg>
+      </div>
+      <pre>4.080 lượt / 1,6 file/giây ≈ <span class="val">2.550 giây</span>
+Tới đều trong 20 phút: lượt cuối (gửi gần 24:00) chờ ≈ 2.550 − 1.200 = 1.350 s ≈ <span class="good">22,5 phút</span>
+Dồn gần như cùng lúc:  lượt cuối chờ ≈ 2.550 s ≈ <span class="bad">42,5 phút  > 30 phút</span></pre>
+      <p>Dòng throughput cho team biết <b>trước</b> tám worker còn dư sức tới đâu, và tải dồn kiểu nào thì không còn đủ.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Lỗi hay gặp</div>
+    <h2 class="c-err">Năm thói quen rất bình thường dẫn tới đêm cuối tháng — vì lúc demo chỉ có một người bấm</h2>
+    <p class="desc">Tính năng nào cũng chạy tốt lúc demo. Các lỗi dưới đây không nằm ở kỹ thuật mà ở cách <b>hỏi và ghi</b> requirement. Đáng chú ý nhất: đổi từ cách 1 sang cách 2 <b>sau khi ra mắt</b> không phải tối ưu, mà là <b>làm lại phần lớn luồng xử lý</b>.</p>
+
+    <ul class="mistakes">
+      <li><span class="ico">✗</span><div><div class="t">Coi NFR là phần tối ưu sau khi tính năng đã chạy</div><div class="d">Khi danh sách tính năng đã cố định, NFR quyết định <b>ngay từ đầu</b> tính năng chạy theo cách nào.</div></div></li>
+      <li><span class="ico">✗</span><div><div class="t">Để dev tự đoán câu trả lời</div><div class="d">Dev cho rằng chủ cửa hàng cần file ngay → giữ request mở. Người dùng thật là <b>kế toán</b>, chỉ cần file trong 30 phút. Câu trả lời phải lấy từ người dùng tính năng (qua product nếu cần).</div></div></li>
+      <li><span class="ico">✗</span><div><div class="t">Ghi "nhanh", "chịu tải tốt" rồi coi như xong</div><div class="d">Không kiểm tra được thì <b>chưa phải requirement</b>. Nhóm đo được → số liệu + điều kiện. Nhóm như security, vận hành → điều kiện kiểm tra được, không ép số cho đủ hình thức.</div></div></li>
+      <li><span class="ico">✗</span><div><div class="t">Chỉ hỏi về tốc độ</div><div class="d">Chỉ dòng 7, 8 nói tốc độ. Durability quyết định file được <b>lưu</b> chứ không render lại; security quyết định link <b>khó đoán</b>; vận hành quyết định kỹ sư trực <b>thấy được hàng chờ</b>. Bỏ qua thì vẫn nhanh nhưng hỏng theo kiểu khác.</div></div></li>
+      <li><span class="ico">✗</span><div><div class="t">Bỏ qua tám câu vì công cụ chỉ có vài người dùng</div><div class="d">Vẫn hỏi đủ tám nhóm, chỉ ít chi tiết hơn. Nhóm không áp dụng → ghi <b>"không áp dụng" kèm lý do</b>. Công cụ nhỏ có thể giữ bản dữ liệu duy nhất của một bộ phận, hoặc phải chạy đúng kỳ chốt sổ.</div></div></li>
+    </ul>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — viết lại cho kiểm tra được</div>
+      <div class="before-after">
+        <div><b class="h" style="color:var(--err)">✗ CHƯA PHẢI REQUIREMENT</b>"API xuất hóa đơn phải nhanh."<br>"Hệ thống chịu tải tốt."<br>"File được lưu an toàn."<br>"Dễ vận hành."</div>
+        <div><b class="h" style="color:var(--ok)">✓ KIỂM TRA ĐƯỢC</b>"Trả 'đã nhận' trong 2 giây."<br>"2.040 lượt trong 20 phút cuối tháng."<br>"Giữ file 12 tháng."<br>"Chạy lại được một file lỗi mà không chạy lại cả đợt."</div>
+      </div>
+      <pre><span class="cm"># Ví dụ minh hoạ thêm — công cụ nội bộ ít người dùng, nhóm không áp dụng:</span>
+13. Cost: <span class="val">không áp dụng</span> — chạy trên server nội bộ sẵn có, không phát sinh chi phí hạ tầng.
+<span class="cm"># ghi lý do để người đọc sau biết là đã hỏi, không phải quên</span></pre>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="tag">06. Áp dụng</div>
+    <h2 class="c-nfr">Tám câu hỏi cho buổi họp requirement sắp tới</h2>
+    <p class="desc">Hỏi ngay khi danh sách tính năng vừa viết xong, <b>trước khi ai bàn tới worker hay queue</b>, và ghi câu trả lời ngay bên dưới danh sách đó. Câu nào product chưa trả lời được thì ghi <b>tên người sẽ trả lời và hạn trả lời</b>. Họp xong mà requirement vẫn còn dòng trống thì <b>chưa nên vẽ sơ đồ</b> — chính dòng trống đó có thể quyết định tính năng chạy theo cách nào.</p>
+
+    <ol class="check">
+      <li><span class="k sp">LATENCY</span><span>Người dùng chờ được bao lâu thì cần thấy phản hồi, và bao lâu thì cần có kết quả cuối cùng?</span></li>
+      <li><span class="k sp">THROUGHPUT</span><span>Lúc cao điểm có bao nhiêu yêu cầu mỗi phút, và số đó có thể tăng tới mức nào?</span></li>
+      <li><span class="k">AVAILABILITY</span><span>Tính năng phải chạy vào những lúc nào, và ngừng bao lâu thì vẫn chấp nhận được?</span></li>
+      <li><span class="k">DURABILITY</span><span>Dữ liệu hay file tính năng tạo ra có được phép mất không, và phải giữ trong bao lâu?</span></li>
+      <li><span class="k">CONSISTENCY</span><span>Người dùng có chấp nhận thấy dữ liệu cũ trong một lúc không, nếu có thì cũ bao lâu?</span></li>
+      <li><span class="k">SECURITY</span><span>Ai được xem kết quả, và dữ liệu nào trong đó là dữ liệu nhạy cảm?</span></li>
+      <li><span class="k">COST</span><span>Tính năng được phép tốn bao nhiêu chi phí hạ tầng mỗi tháng?</span></li>
+      <li><span class="k">VẬN HÀNH</span><span>Khi tính năng lỗi, kỹ sư trực nhìn vào đâu để biết, và sửa một lỗi thế nào mà không phải chạy lại mọi thứ?</span></li>
+    </ol>
+
+    <div class="example-box">
+      <div class="example-label">▸ Trường hợp thực tế — câu chưa có người trả lời</div>
+      <pre><span class="kw">7. Latency:</span> <span class="bad">[chưa trả lời]</span>
+   Người trả lời: product, hỏi lại kế toán các cửa hàng
+   Hạn: <span class="cm">&lt;ngày cụ thể&gt;</span>
+   <span class="cm"># → chưa vẽ sơ đồ. Câu trả lời sau đó: "đã nhận" ≤ 2 s, file ≤ 30 phút</span>
+   <span class="cm"># chính câu này mở ra cách 2 và giúp không phải thuê thêm máy.</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="ref-label">🔗 Tài liệu tham khảo (từ bài học)</div>
+    <ul class="ref-links">
+      <li><span class="d">ISO 25010 — danh sách đặc tính chất lượng theo chuẩn ISO, dùng làm danh mục để không bỏ sót nhóm NFR nào</span><a href="https://iso25000.com/index.php/en/iso-25000-standards/iso-25010" target="_blank" rel="noopener">iso25000.com/…/iso-25010</a></li>
+      <li><span class="d">arc42 — Section 10 Quality: viết quality requirement thành kịch bản có điều kiện và số liệu đo được</span><a href="https://docs.arc42.org/section-10/" target="_blank" rel="noopener">docs.arc42.org/section-10/</a></li>
+      <li><span class="d">SEI — Quality Attributes: quality attribute và cách bàn về chúng khi thiết kế kiến trúc</span><a href="https://www.sei.cmu.edu/library/quality-attributes/" target="_blank" rel="noopener">sei.cmu.edu/library/quality-attributes/</a></li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>Functional cho biết cần thành phần nào · Non-functional + constraint quyết định ghép chúng ra sao — hỏi đủ tám câu trước khi vẽ sơ đồ</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/non-functional-requirement.html"></nav>
+<script src="../../../lessons/lessons.js"></script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
