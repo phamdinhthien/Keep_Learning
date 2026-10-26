@@ -163,7 +163,7 @@ TEMPLATE = """<!DOCTYPE html>
       <footer class="lesson-nav" data-lesson-id="{path_e}"></footer>
     </article>
   </main>
-  <script src="{root}lessons/lessons.js"></script>
+  {manifest}
   <script src="{root}assets/app.js"></script>
 </body>
 </html>
@@ -176,6 +176,12 @@ def meta_tags(info):
             ("lesson:lop-order", info["lopOrder"]), ("lesson:read-time", info["readTime"]),
             ("lesson:source", info["source"])]
     return "\n".join(f'  <meta name="{n}" content="{html.escape(str(v), quote=True)}">' for n, v in rows)
+
+
+def manifest_script(root):
+    """Nạp lessons.js kèm ?t=<thời điểm> để trình duyệt không dùng bản cũ trong cache (thiếu bài mới)."""
+    return (f"<script>document.write('<script src=\"{root}lessons/lessons.js?t=' + Date.now() + "
+            f"'\"><\\/script>')</script>")
 
 
 def crumbs_html(info, root):
@@ -193,7 +199,7 @@ def render_article(info, body, root):
         root=root, title_e=e(info["title"]), desc_e=e(info["description"]), meta_tags=meta_tags(info), fonts=FONTS,
         crumbs=crumbs_html(info, root), title_h=html.escape(info["title"]), desc_h=html.escape(info["description"]),
         read_h=html.escape(info["readTime"]), source_link=source_link, path_e=e(info["path"]),
-        toc=build_toc(body), body=body,
+        toc=build_toc(body), body=body, manifest=manifest_script(root),
     )
 
 
@@ -212,7 +218,7 @@ def render_standalone(info, text, root):
            f'<span class="sdn-crumbs">{crumbs_html(info, root)}</span></nav>\n<!-- /sdn:bar -->\n')
     foot = (f'\n<!-- sdn:foot -->\n<nav class="sdn-nav" aria-label="Bài trước, bài sau" '
             f'data-root="{root}" data-lesson-id="{e(info["path"])}"></nav>\n'
-            f'<script src="{root}lessons/lessons.js"></script>\n<script src="{root}assets/app.js"></script>\n'
+            f'{manifest_script(root)}\n<script src="{root}assets/app.js"></script>\n'
             f'<!-- /sdn:foot -->\n')
     if not re.search(r"</head>", text, re.I) or not re.search(r"<body[^>]*>", text, re.I):
         sys.exit("Trang HTML cần có đủ <head> và <body>.")
