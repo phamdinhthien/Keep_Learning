@@ -83,7 +83,7 @@
   }
 
   function renderHome(q) {
-    view.appendChild(header("", "Category", "Ghi chép bài học từ 200Lab, xếp theo Category › Khóa › Bài học."));
+    view.appendChild(header("", "Category"));
     var input = el("input", "search");
     input.type = "search";
     input.placeholder = "Tìm bài học (gõ không dấu cũng được)…";
