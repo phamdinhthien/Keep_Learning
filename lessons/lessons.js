@@ -26,5 +26,18 @@ window.LESSONS = [
     "title": "Tính năng qua hết test vẫn không dùng được vì thiếu non-functional requirement",
     "description": "Tính năng \"Xuất hóa đơn tháng\" làm đúng cả sáu dòng requirement, code không đổi một ký tự — vậy mà vẫn hỏng đêm cuối tháng. Lý do: bản requirement chỉ nói tính năng làm gì, không nói nó phải làm tốt tới mức nào. Mọi con số trong trang là số minh hoạ của bài.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-03",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-03.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 4,
+    "title": "Ghi rõ constraint để loại bớt phương án trước khi so sánh",
+    "description": "Ngân sách, team, hạ tầng sẵn có — ba giới hạn mà người thiết kế không tự đổi được. Lọc theo chúng trước, rồi mới nhìn tới cột throughput.",
+    "readTime": "10 phút đọc"
   }
 ];

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghi rõ constraint để loại bớt phương án — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON (mặc định) */
+  :root{
+    --bg: #0c0d0f;
+    --panel: #15171a;
+    --line: #2a2d32;
+    --ink: #e8e9ec;
+    --ink-dim: #9a9ea6;
+
+    /* 5 accent — mỗi màu gắn với một khái niệm */
+    --bad:   #f87171;  /* 01 Sự cố / vi phạm */
+    --core:  #60a5fa;  /* 02 Constraint vs Requirement */
+    --wave:  #f5a524;  /* 03 Quy trình lọc */
+    --extra: #c084fc;  /* 04 Ai có quyền đổi / nhầm lẫn */
+    --good:  #5eead4;  /* 05 Tradeoff & dấu hiệu đúng / phương án còn lại */
+
+    --example: #fb923c;
+    --example-bg: #1a130c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ background: var(--bg); color: var(--ink); font-family:'Inter', sans-serif; line-height:1.6; padding:0 0 60px; }
+  .wrap{ max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+  header{ padding: 48px 20px 26px; text-align:center; max-width: 840px; margin: 0 auto; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:14px; }
+  h1{ font-size: clamp(26px, 5.4vw, 38px); font-weight:800; letter-spacing:-.01em; max-width:700px; margin:0 auto 14px; line-height:1.25; }
+  h1 .a{ color: var(--wave); } h1 .b{ color: var(--good); }
+  .sub{ color:var(--ink-dim); font-size:15px; max-width:600px; margin:0 auto; }
+
+  .toc{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px 4px; margin:26px auto 4px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-dim); max-width:660px; }
+  .toc span{ padding:5px 10px; border:1px solid var(--line); border-radius:20px; background:var(--panel); }
+  .toc span b{ color:var(--ink); }
+
+  .fig{ margin: 26px 0 22px; }
+  .fig svg{ width:100%; height:auto; display:block; }
+  .fig-cap{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-dim); letter-spacing:.06em; text-align:center; margin-top:8px; }
+  svg text{ font-family:'IBM Plex Mono', monospace; font-size:12px; fill:var(--ink); }
+  svg text.sm{ font-size:10.5px; fill:var(--ink-dim); }
+  svg text.md{ font-size:12px; }
+  svg text.big{ font-size:20px; font-weight:700; }
+  svg .box{ fill:var(--panel); stroke:var(--line); stroke-width:1.5; }
+  svg .ln{ stroke:var(--ink-dim); stroke-width:1.5; fill:none; }
+  svg .ln-d{ stroke-dasharray:4 4; }
+  svg .strike{ stroke-width:2; }
+
+  section{ padding: 40px 0; border-top: 1px solid var(--line); }
+  .tag{ font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:10px; }
+  h2{ font-size:22px; font-weight:700; margin-bottom:10px; line-height:1.35; }
+  h2.c-bad{color:var(--bad);} h2.c-core{color:var(--core);} h2.c-wave{color:var(--wave);} h2.c-extra{color:var(--extra);} h2.c-good{color:var(--good);}
+  p.desc{ color:var(--ink-dim); font-size:14.5px; margin-bottom:16px; max-width:680px; }
+  p.desc b{ color:var(--ink); }
+
+  /* Cards so sánh */
+  .cards{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:22px; }
+  .cards.two{ grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px){ .cards, .cards.two{ grid-template-columns:1fr; } }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 15px; font-size:13px; color:var(--ink-dim); }
+  .card .k{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:6px; }
+  .card h3{ font-size:15px; color:var(--ink); margin-bottom:6px; }
+  .card b{ color:var(--ink); }
+  .card.core{ border-top:3px solid var(--core); } .card.core .k{ color:var(--core); }
+  .card.extra{ border-top:3px solid var(--extra); } .card.extra .k{ color:var(--extra); }
+  .card.bad{ border-top:3px solid var(--bad); } .card.bad .k{ color:var(--bad); }
+  .card.good{ border-top:3px solid var(--good); } .card.good .k{ color:var(--good); }
+
+  /* Chain */
+  .chain{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .chain .n{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 11px; color:var(--ink); }
+  .chain .n.w{ border-color:var(--wave); color:var(--wave); }
+  .chain .n.g{ border-color:var(--good); color:var(--good); }
+  .chain .ar{ color:var(--ink-dim); }
+
+  /* Bar */
+  .bars{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+  .bar-row{ display:grid; grid-template-columns: 170px 1fr 90px; align-items:center; gap:12px; }
+  @media (max-width: 560px){ .bar-row{ grid-template-columns: 110px 1fr; } .bar-v{ grid-column:2; text-align:left !important; } }
+  .bar-l{ font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .bar-bg{ position:relative; height:12px; background:var(--panel); border:1px solid var(--line); border-radius:6px; overflow:visible; }
+  .bar-fill{ height:100%; border-radius:6px; }
+  .bar-limit{ position:absolute; top:-6px; bottom:-6px; width:2px; background:var(--ink); }
+  .bar-v{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; text-align:right; font-weight:600; }
+  .legend{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-dim); margin:-12px 0 22px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:22px; border:1px solid var(--line); }
+  th, td{ text-align:left; padding:10px 12px; border:1px solid var(--line); vertical-align:top; }
+  th{ font-family:'IBM Plex Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); background:var(--panel); }
+  tr:nth-child(even) td{ background: rgba(255,255,255,0.015); }
+  td.bad{ color:var(--bad); } td.good{ color:var(--good); font-weight:600; }
+  td.mono{ font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .tscroll{ overflow-x:auto; margin-bottom:22px; } .tscroll table{ margin-bottom:0; min-width:560px; }
+
+  .note{ display:flex; gap:10px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--extra); border-radius:8px; padding:12px 14px; margin-bottom:22px; font-size:13px; color:var(--ink-dim); }
+  .note b{ color:var(--extra); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .note.w{ border-left-color:var(--wave); } .note.w b{ color:var(--wave); }
+  .rule{ background:var(--panel); border:1px solid var(--wave); border-radius:10px; padding:14px 16px; margin-bottom:22px; font-size:14px; color:var(--ink); }
+  .rule .k{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.1em; color:var(--wave); text-transform:uppercase; margin-bottom:6px; }
+
+  .example-box{ border:1px dashed var(--example); background:var(--example-bg); border-radius:10px; padding:16px 18px; margin-top:4px; }
+  .example-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--example); margin-bottom:8px; }
+  .example-box p{ font-size:13.5px; color:var(--ink); }
+  .example-box p + p, .example-box pre + p, .example-box p + pre, .example-box .before-after + p{ margin-top:10px; }
+  .example-box .before-after{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px){ .example-box .before-after{ grid-template-columns:1fr; } }
+  .example-box .before-after > div{ font-size:13px; color:var(--ink); }
+  .example-box .before-after b.h{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-dim); display:block; margin-bottom:4px; }
+  .example-box pre{ background:#000; border-radius:8px; padding:12px 14px; overflow-x:auto; font-family:'IBM Plex Mono', monospace; font-size:12.3px; color:#dfe4ea; border:1px solid var(--line); line-height:1.6; }
+  .example-box pre .cm{ color:#7c7c88; } .example-box pre .r{ color:var(--bad); } .example-box pre .y{ color:#fbbf24; } .example-box pre .g{ color:var(--good); }
+  .example-box table{ margin-bottom:0; }
+
+  footer{ text-align:center; padding:40px 20px 0; color:var(--ink-dim); font-size:12.5px; font-family:'IBM Plex Mono', monospace; max-width:760px; margin:0 auto; }
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-03">
+  <meta name="lesson:title" content="Ghi rõ constraint để loại bớt phương án trước khi so sánh">
+  <meta name="lesson:description" content="Ngân sách, team, hạ tầng sẵn có — ba giới hạn mà người thiết kế không tự đổi được. Lọc theo chúng trước, rồi mới nhìn tới cột throughput.">
+  <meta name="lesson:order" content="4">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="10 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Khóa học</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9ea6"/></marker>
+  <marker id="a-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f87171"/></marker>
+  <marker id="a-wave" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5a524"/></marker>
+  <marker id="a-extra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c084fc"/></marker>
+  <marker id="a-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5eead4"/></marker>
+  <marker id="a-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/></marker>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">200Lab · Thiết kế hệ thống · SD1-03 · Bản chi tiết</div>
+  <h1>Ghi rõ <span class="a">constraint</span> để loại bớt phương án <span class="b">trước khi so sánh</span></h1>
+  <div class="sub">Ngân sách, team, hạ tầng sẵn có — ba giới hạn mà người thiết kế không tự đổi được. Lọc theo chúng trước, rồi mới nhìn tới cột throughput.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Phễu: 3 phương án A, B, C đi qua bộ lọc constraint, chỉ C còn lại, rồi mới đối chiếu requirement">
+      <!-- inputs -->
+      <rect class="box" x="10" y="30" width="150" height="44" rx="8"/>
+      <text class="md" x="22" y="50">A · Kafka+Cassandra</text>
+      <text class="sm" x="22" y="65">100.000 sự kiện/s</text>
+      <rect class="box" x="10" y="96" width="150" height="44" rx="8"/>
+      <text class="md" x="22" y="116">B · Managed cloud</text>
+      <text class="sm" x="22" y="131">nhà cung cấp mới</text>
+      <rect class="box" x="10" y="162" width="150" height="44" rx="8"/>
+      <text class="md" x="22" y="182">C · Bảng Postgres</text>
+      <text class="sm" x="22" y="197">trên DB đang chạy</text>
+
+      <path class="ln" d="M160,52 L218,100" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M160,118 L218,118" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M160,184 L218,136" marker-end="url(#a-dim)"/>
+
+      <!-- filter -->
+      <rect x="222" y="34" width="190" height="168" rx="10" fill="#15171a" stroke="#f5a524" stroke-width="1.5"/>
+      <text x="317" y="56" text-anchor="middle" fill="#f5a524" style="font-size:11px;letter-spacing:.1em">BƯỚC 1 · LỌC</text>
+      <text class="sm" x="236" y="84">① Ngân sách ≤ 15tr/th</text>
+      <text class="sm" x="236" y="102" style="fill:#6b6f77">   nguồn: Finance</text>
+      <text class="sm" x="236" y="126">② Team 3 người · Postgres</text>
+      <text class="sm" x="236" y="144" style="fill:#6b6f77">   nguồn: Trưởng nhóm</text>
+      <text class="sm" x="236" y="168">③ Hạ tầng đã ký hợp đồng</text>
+      <text class="sm" x="236" y="186" style="fill:#6b6f77">   nguồn: Hợp đồng hạ tầng</text>
+
+      <!-- rejected -->
+      <path class="ln" stroke="#f87171" d="M412,70 L452,48" marker-end="url(#a-bad)"/>
+      <text x="458" y="40" fill="#f87171" style="font-size:11.5px">✕ A  vi phạm ① ②</text>
+      <text x="458" y="58" fill="#f87171" style="font-size:11.5px">✕ B  vi phạm ① ③</text>
+
+      <!-- survivor -->
+      <path class="ln" stroke="#5eead4" d="M412,140 L452,140" marker-end="url(#a-good)"/>
+      <rect class="box" x="456" y="118" width="100" height="44" rx="8" stroke="#5eead4"/>
+      <text x="506" y="138" text-anchor="middle" fill="#5eead4">C còn lại</text>
+      <text class="sm" x="506" y="153" text-anchor="middle">~3tr/tháng</text>
+
+      <path class="ln" stroke="#60a5fa" d="M556,140 L586,140" marker-end="url(#a-core)"/>
+      <rect class="box" x="590" y="112" width="102" height="56" rx="8" stroke="#60a5fa"/>
+      <text x="641" y="132" text-anchor="middle" fill="#60a5fa" style="font-size:10.5px">BƯỚC 2</text>
+      <text class="sm" x="641" y="147" text-anchor="middle">đối chiếu</text>
+      <text class="sm" x="641" y="160" text-anchor="middle">requirement</text>
+
+      <text class="sm" x="350" y="236" text-anchor="middle">Constraint chỉ thu hẹp danh sách — nó không chọn hộ phương án tốt nhất</text>
+    </svg>
+    <div class="fig-cap">Hình 0 — Thứ tự đúng: lọc theo constraint → rồi mới so sánh kỹ thuật & kiểm tra requirement</div>
+  </div>
+
+  <div class="toc">
+    <span><b>01</b> Sự cố 03:07</span>
+    <span><b>02</b> Constraint ≠ Requirement</span>
+    <span><b>03</b> Bảng lọc 3 cột</span>
+    <span><b>04</b> Ai đổi được?</span>
+    <span><b>05</b> Tradeoff & nới constraint</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Hậu quả</div>
+    <h2 class="c-bad">Một bảng so sánh đúng về throughput vẫn dẫn tới sự cố và hóa đơn gấp ~2,7 lần</h2>
+    <p class="desc">Ba tháng trước, team 3 người chọn phương án A (Kafka + Cassandra tự vận hành) vì cột <b>throughput 100.000 sự kiện/giây</b> — gấp hơn 300 lần tải cao điểm ~300 sự kiện/giây. Con số đó có thể hoàn toàn đúng. Vấn đề là bảng so sánh <b>thiếu ba điều ai cũng biết nhưng không ai ghi vào</b>: ngân sách 15 triệu/tháng, team chỉ từng vận hành Postgres, và hạ tầng phải nằm trong hợp đồng sẵn có. Kèm theo là một câu không có ai đứng sau: “phải dùng Kafka vì hệ thống lớn đều dùng”.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Dòng thời gian sự cố từ 03:07 đến 07:27">
+        <path class="ln" d="M40,80 L660,80" stroke="#2a2d32"/>
+        <rect x="70" y="74" width="560" height="12" fill="#f87171" opacity=".18"/>
+        <circle cx="70" cy="80" r="6" fill="#f87171"/>
+        <text x="70" y="40" text-anchor="middle" fill="#f87171">03:07</text>
+        <text class="sm" x="70" y="56" text-anchor="middle">node-2 chết</text>
+        <text class="sm" x="70" y="108" text-anchor="middle">node-3 đĩa 94%</text>
+        <text class="sm" x="70" y="124" text-anchor="middle">API trả 503</text>
+
+        <circle cx="117" cy="80" r="5" fill="#f5a524"/>
+        <text x="150" y="40" text-anchor="middle" fill="#f5a524">03:25</text>
+        <text class="sm" x="150" y="56" text-anchor="middle">người đầu tiên đọc</text>
+
+        <text class="sm" x="380" y="108" text-anchor="middle">3 người cùng mở tài liệu · chưa ai từng sửa</text>
+        <text class="sm" x="380" y="124" text-anchor="middle">Cassandra đầy ổ đĩa · thử từng hướng dẫn trên mạng</text>
+
+        <circle cx="630" cy="80" r="6" fill="#5eead4"/>
+        <text x="630" y="40" text-anchor="middle" fill="#5eead4">07:27</text>
+        <text class="sm" x="630" y="56" text-anchor="middle">RESOLVED</text>
+        <text x="350" y="146" text-anchor="middle" fill="#f87171" style="font-size:12px">⏱ 4 giờ 20 phút = 15.600 giây ngừng ghi</text>
+      </svg>
+      <div class="fig-cap">Hình 1 — Build được trong 2 tuần ≠ vận hành được lúc 3 giờ sáng</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Tính thiệt hại (số minh hoạ trong bài)</div>
+      <pre><span class="cm">// Request bị từ chối đêm đó</span>
+Thời gian sự cố   = 4×3.600 + 20×60      = <span class="y">15.600 giây</span>
+Tải ban đêm       = 40 request/giây
+Request trả 503   = 15.600 × 40          = <span class="r">624.000 request</span>
+
+<span class="cm">// Hóa đơn tháng đầu (finance gửi 2 ngày sau)</span>
+Hóa đơn thực tế   = <span class="r">41 triệu đồng</span>
+Ngân sách duyệt   = <span class="g">15 triệu đồng</span>/tháng</pre>
+      <p>Cả sự cố lẫn tờ hóa đơn đều bắt nguồn từ <b>cùng một buổi họp</b> — nơi constraint không được ghi ra, nên giới hạn ngân sách chỉ “lộ ra” muộn đúng ba tháng.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Định nghĩa</div>
+    <h2 class="c-core">Constraint là giới hạn về <i>cách xây dựng</i> mà người thiết kế không tự đổi được</h2>
+    <p class="desc"><b>Functional requirement</b> nói hệ thống phải làm gì; <b>non-functional requirement</b> nói phải làm tốt tới mức nào. <b>Constraint</b> cũng là đầu vào của thiết kế nhưng không thuộc hai loại đó — tài liệu kiến trúc <b>arc42</b> dành hẳn một mục riêng (Section 2) cho nó, tách khỏi requirement. Muốn nới một constraint, bạn phải đi hỏi <b>bên có quyền quyết định</b> về nó. Ba loại hay gặp dưới đây là chỗ bắt đầu tìm, không phải danh sách đầy đủ.</p>
+
+    <div class="cards">
+      <div class="card core">
+        <div class="k">Loại 1 · Ngân sách</div>
+        <h3>Tiền hạ tầng mỗi tháng</h3>
+        Trần chi phí đã được duyệt. Chủ sở hữu: <b>Finance</b>.
+      </div>
+      <div class="card core">
+        <div class="k">Loại 2 · Team</div>
+        <h3>Kỹ năng, số người, trực, thời hạn</h3>
+        Ai build, ai trực ngoài giờ, hạn chót. Chủ sở hữu: <b>Trưởng nhóm</b>.
+      </div>
+      <div class="card core">
+        <div class="k">Loại 3 · Hạ tầng sẵn có</div>
+        <h3>DB đang chạy, nhà cung cấp, hợp đồng</h3>
+        Công nghệ đã cam kết. Chủ sở hữu: <b>Người phụ trách hạ tầng</b>.
+      </div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ba constraint của module lịch sử hoạt động</div>
+      <table>
+        <tr><th>Loại</th><th>Constraint thật trong bài</th><th>Đã có từ khi nào</th></tr>
+        <tr><td>Ngân sách</td><td>Chi phí hạ tầng module ≤ <b>15 triệu đồng/tháng</b></td><td>Finance duyệt từ đầu quý</td></tr>
+        <tr><td>Team</td><td><b>3 người</b>, cả ba chỉ từng vận hành Postgres; hạn <b>6 tuần</b>; cũng chính 3 người này trực ngoài giờ</td><td>Trưởng nhóm biết trước buổi họp</td></tr>
+        <tr><td>Hạ tầng</td><td>Chạy trên hạ tầng của nhà cung cấp <b>đã ký hợp đồng</b>, nơi Postgres đang chạy</td><td>Người phụ trách hạ tầng nắm hợp đồng</td></tr>
+      </table>
+      <p>Không có điều nào là bí mật — chúng chỉ <b>không được ghi vào bản đề xuất</b>, nên không ai dùng chúng để loại phương án.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Cơ chế lọc</div>
+    <h2 class="c-wave">Bảng constraint 3 cột: Constraint · Nguồn · Phương án bị loại</h2>
+    <p class="desc">Cột <b>Nguồn</b> ghi người hoặc văn bản đã đặt ra constraint, để ai đọc cũng biết phải hỏi ai khi muốn nới. Cột <b>Phương án bị loại</b> cần số liệu thật — nên phải tính, không đoán. Và khi một phương án vi phạm nhiều constraint, <b>ghi đủ tất cả</b> chứ không dừng ở cái đầu tiên: khi một constraint thay đổi, bảng ghi đủ cho biết ngay phương án nào cần xét lại, phương án nào vẫn nằm ngoài.</p>
+
+    <div class="rule">
+      <div class="k">Quy tắc của bài</div>
+      Trước khi so sánh, ghi đủ constraint kèm nguồn → gạch mọi phương án vi phạm <b>dù chỉ một</b> constraint → chỉ phương án còn lại mới được đưa vào bảng so sánh.
+    </div>
+
+    <div class="bars">
+      <div class="bar-row"><span class="bar-l">A · Kafka+Cassandra</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:#f87171"></div><span class="bar-limit" style="left:36.6%"></span></div><span class="bar-v" style="color:#f87171">41 triệu</span></div>
+      <div class="bar-row"><span class="bar-l">B · Managed cloud</span><div class="bar-bg"><div class="bar-fill" style="width:53.7%;background:#f87171"></div><span class="bar-limit" style="left:36.6%"></span></div><span class="bar-v" style="color:#f87171">~22 triệu</span></div>
+      <div class="bar-row"><span class="bar-l">C · Bảng Postgres</span><div class="bar-bg"><div class="bar-fill" style="width:7.3%;background:#5eead4"></div><span class="bar-limit" style="left:36.6%"></span></div><span class="bar-v" style="color:#5eead4">~3 triệu</span></div>
+    </div>
+    <div class="legend">│ vạch trắng = trần ngân sách 15 triệu/tháng</div>
+
+    <div class="tscroll">
+      <table>
+        <tr><th>Constraint</th><th>Nguồn</th><th>Phương án bị loại</th></tr>
+        <tr><td>Chi phí hạ tầng ≤ 15 triệu/tháng</td><td>Finance</td><td class="bad">A (41tr), B (~22tr)</td></tr>
+        <tr><td>3 người, chỉ vận hành được Postgres, hạn 6 tuần; trực ngoài giờ cũng là 3 người này</td><td>Trưởng nhóm</td><td class="bad">A</td></tr>
+        <tr><td>Chạy trên hạ tầng nhà cung cấp đã ký hợp đồng</td><td>Hợp đồng hạ tầng, người phụ trách xác nhận</td><td class="bad">B</td></tr>
+      </table>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Tính hóa đơn của A từ cấu hình đã duyệt</div>
+      <pre>Số máy:            3 broker Kafka + 3 node Cassandra = 6 máy
+Chi phí máy:       6 × 6 triệu/tháng            = 36 triệu/tháng
+Ổ đĩa + backup:                                 = 5 triệu/tháng
+Tổng:              36 + 5                       = <span class="r">41 triệu/tháng</span>
+So với ngân sách:  41 / 15                      ≈ <span class="r">2,7 lần</span>
+
+<span class="cm">// C: thêm ~250 GB ổ đĩa + backup cho Postgres đang chạy</span>
+C:                                              ≈ <span class="g">3 triệu/tháng</span></pre>
+      <p>Một phép nhân và một phép cộng — <b>trước</b> buổi họp — cho ra đúng con số mà finance gửi về ba tháng sau.</p>
+      <div class="before-after" style="margin-top:12px">
+        <div><b class="h">VÌ SAO GHI ĐỦ VI PHẠM CỦA A?</b>Quý sau team tuyển thêm 2 người từng vận hành Kafka/Cassandra → constraint team được nới.</div>
+        <div><b class="h">KẾT QUẢ</b>A <b>vẫn bị loại</b> vì còn vượt ngân sách. Nếu chỉ ghi “team”, bạn sẽ tưởng A được quay lại danh sách.</div>
+      </div>
+    </div>
+
+    <div class="note w"><span><b>Lưu ý:</b> Kafka và Cassandra bị loại vì ngân sách và kỹ năng của <i>chính team này</i>, không phải vì chúng là lựa chọn tồi. Team khác, bảng constraint khác → kết quả lọc khác. Còn C “còn lại” <b>không có nghĩa là C được chọn</b> — C vẫn phải chịu được ~300 sự kiện/giây lúc cao điểm và đạt các requirement bắt buộc khác.</span></div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Phân biệt</div>
+    <h2 class="c-extra">p99 200 ms còn bàn được, 15 triệu thì không — khác nhau ở <i>ai có quyền đổi</i></h2>
+    <p class="desc">Rất dễ nghĩ constraint chỉ là “requirement khắt khe hơn”. Cả hai đều là số liệu, cả hai đều loại được phương án. Điểm khác là <b>người sở hữu</b>: mốc requirement có thể đem ra bàn ngay trong buổi họp thiết kế với người đặt ra nó; còn constraint phải mang <b>ra khỏi phòng họp</b>, tới bên đã đặt ra nó.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Requirement đổi được trong phòng họp, constraint phải mang ra ngoài cho finance">
+        <rect x="14" y="20" width="420" height="130" rx="12" fill="none" stroke="#2a2d32" stroke-dasharray="6 5"/>
+        <text class="sm" x="28" y="40">PHÒNG HỌP THIẾT KẾ</text>
+
+        <rect class="box" x="34" y="56" width="180" height="70" rx="8" stroke="#60a5fa"/>
+        <text x="124" y="78" text-anchor="middle" fill="#60a5fa" style="font-size:11px">REQUIREMENT</text>
+        <text x="124" y="97" text-anchor="middle">p99 &lt; 200 ms</text>
+        <text class="sm" x="124" y="114" text-anchor="middle">chủ: team sản phẩm</text>
+
+        <rect class="box" x="234" y="56" width="180" height="70" rx="8" stroke="#c084fc"/>
+        <text x="324" y="78" text-anchor="middle" fill="#c084fc" style="font-size:11px">CONSTRAINT</text>
+        <text x="324" y="97" text-anchor="middle">≤ 15 triệu/tháng</text>
+        <text class="sm" x="324" y="114" text-anchor="middle">chủ: finance</text>
+
+        <path class="ln" stroke="#60a5fa" d="M90,126 C90,146 158,146 158,128" marker-end="url(#a-core)"/>
+        <text class="sm" x="124" y="164" text-anchor="middle" fill="#60a5fa" style="fill:#60a5fa">nới ngay tại chỗ</text>
+
+        <path class="ln" stroke="#c084fc" d="M414,91 L540,91" marker-end="url(#a-extra)"/>
+        <text class="sm" x="477" y="82" text-anchor="middle">mang số liệu ra</text>
+        <rect class="box" x="544" y="64" width="140" height="54" rx="8" stroke="#c084fc"/>
+        <text x="614" y="88" text-anchor="middle" fill="#c084fc">Finance</text>
+        <text class="sm" x="614" y="104" text-anchor="middle">quyết định nới?</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Câu hỏi phân loại: “ai được phép đổi con số này?”</div>
+    </div>
+
+    <div class="cards two">
+      <div class="card bad">
+        <div class="k">Nhầm lẫn 1 · Không có nguồn</div>
+        <h3>Không ai đứng sau = giả định / sở thích</h3>
+        Test nhanh: hỏi <b>“ai đặt ra điều này?”</b>. Không trả lời được bằng tên một người hay một văn bản → dòng đó <b>không thuộc</b> bảng constraint, không dùng để loại hay chọn phương án.
+      </div>
+      <div class="card bad">
+        <div class="k">Nhầm lẫn 2 · Chỉ tính lúc build</div>
+        <h3>Team phải tính cả lúc vận hành</h3>
+        Build nằm ngay trong 6 tuần trước mặt nên ai cũng hình dung được; những đêm trực thì chưa tới nên dễ bị bỏ qua. Ghi cả hai: <b>ai build</b> và <b>ai trực, ai sửa khi hỏng</b>.
+      </div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Áp test “ai đặt ra?” vào bản đề xuất cũ</div>
+      <div class="before-after">
+        <div><b class="h">✕ KHÔNG PHẢI CONSTRAINT</b>“Phải dùng Kafka vì hệ thống lớn đều dùng.”<br><span style="color:var(--ink-dim)">Không phải finance, không phải trưởng nhóm, không phải hợp đồng nào → loại khỏi bảng.</span></div>
+        <div><b class="h">✓ CONSTRAINT THẬT</b>“Cả ba người chỉ vận hành Postgres, 6 tuần không đủ để học thêm.”<br><span style="color:var(--ink-dim)">Trưởng nhóm xác nhận → constraint về team.</span></div>
+      </div>
+      <p><b>Câu hỏi về team, hai phiên bản:</b> “Team có build được không?” → <i>Có</i> (dựng Cassandra xong trong 2 tuần), A qua được. “Cảnh báo lúc 3 giờ sáng, trong team có ai tự xử lý được không?” → <i>Không</i>, A bị loại. Câu thứ hai mới là câu tin nhắn 03:07 đặt ra.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Tradeoff & giới hạn</div>
+    <h2 class="c-good">Lọc theo constraint tốn thêm một buổi — và khi không còn phương án nào, đừng tự sửa con số</h2>
+    <p class="desc">Cái giá: phải hỏi người nắm ngân sách, người phụ trách hạ tầng và trưởng nhóm <b>trước khi vẽ sơ đồ nào</b> — thường mất thêm một buổi; và phương án mạnh nhất, hấp dẫn nhất về kỹ thuật có thể bị gạch ngay bước đầu. Bảng cũng có giới hạn: nó <b>chỉ thu hẹp danh sách</b> (không chọn hộ, không thay bước kiểm tra requirement) và <b>chỉ đúng tại thời điểm ghi</b> — tuyển thêm người, ngân sách tăng, hợp đồng ký lại đều là lúc xem lại bảng, bắt đầu từ cột phương án bị loại.</p>
+
+    <div class="cards two">
+      <div class="card good">
+        <div class="k">Được</div>
+        <h3>Danh sách thu hẹp trước khi so sánh</h3>
+        Không tốn công so sánh kỹ những phương án vốn không thể chọn; lý do loại được ghi lại kèm nguồn.
+      </div>
+      <div class="card bad">
+        <div class="k">Mất</div>
+        <h3>Thêm một buổi hỏi + có thể mất phương án “đẹp”</h3>
+        Phương án throughput cao nhất có thể bị gạch trước khi ai kịp nhìn tới nó.
+      </div>
+    </div>
+
+    <div class="chain">
+      <span class="n">Lọc xong: không còn phương án nào đạt requirement</span><span class="ar">→</span>
+      <span class="n w">KHÔNG tự sửa 15tr → 22tr</span><span class="ar">→</span>
+      <span class="n">Mang số liệu tới người đặt constraint</span><span class="ar">→</span>
+      <span class="n g">Họ quyết định nới hay không</span>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống giả định trong bài: C không đạt requirement</div>
+      <p>Giả sử khi kiểm tra, C không đạt một requirement bắt buộc, còn phương án duy nhất đạt lại cần <b>22 triệu/tháng</b>. Thay vì sửa con số trong bản đề xuất, bạn mang tới finance:</p>
+      <pre><span class="cm">// Gói số liệu mang tới Finance</span>
+Requirement không đạt:   <span class="r">[requirement bắt buộc mà C trượt]</span>
+Phương án đạt được:      <span class="y">[phương án X]</span>
+Chi phí mỗi tháng:       <span class="y">22 triệu</span>  (ngân sách hiện tại: 15 triệu)
+Câu hỏi:                 Nới ngân sách, hay nới requirement?</pre>
+      <p>Nếu constraint gây vướng là về <b>team</b>, làm tương tự với trưởng nhóm: cần thêm bao nhiêu người hoặc bao nhiêu tuần. Việc của người thiết kế là <b>đưa đủ số liệu</b>; người đặt constraint là người <b>quyết định</b>.</p>
+    </div>
+
+    <div class="note" style="margin-top:22px"><span><b>Dấu hiệu bảng đã làm đúng việc:</b> lúc lập — mọi dòng đều có một cái tên ở cột nguồn. Sau khi chạy — hóa đơn mỗi tháng nằm trong ngân sách, và mọi cảnh báo ngoài giờ đều có người trong team tự xử lý được.</span></div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Checklist áp dụng ngay cho dự án của bạn (~1 buổi chiều)</div>
+      <table>
+        <tr><th>Hỏi ai</th><th>Hỏi gì</th><th>Ghi thành</th></tr>
+        <tr><td>Người nắm ngân sách</td><td>Hạ tầng được chi tối đa bao nhiêu/tháng?</td><td class="mono">1 dòng + tên</td></tr>
+        <tr><td>Trưởng nhóm</td><td>Mấy người? Mỗi người vận hành được gì? Ai trực ngoài giờ? Hạn chót?</td><td class="mono">1 dòng + tên</td></tr>
+        <tr><td>Người phụ trách hạ tầng</td><td>Đang chạy DB nào, trên nhà cung cấp nào, theo hợp đồng nào?</td><td class="mono">1 dòng + văn bản</td></tr>
+        <tr><td colspan="3" style="color:var(--wave)">→ Đối chiếu từng phương án với từng dòng, ghi tên phương án vào cột 3 của <b>mọi</b> dòng nó vi phạm.</td></tr>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<footer>01 Sự cố → 02 Constraint ≠ Requirement → 03 Lọc 3 cột → 04 Ai đổi được → 05 Tradeoff — lọc theo constraint trước, so sánh kỹ thuật sau.<br><span style="opacity:.7">Nguồn: 200Lab SD1-03 · arc42 Section 2 (Constraints) · AWS Well-Architected Cost Optimization · số liệu là số minh hoạ trong bài</span></footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-03.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
