@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Thêm một bài giảng vào site, xếp theo Khóa => Lớp => Bài giảng:
+"""Thêm một bài học vào site, xếp theo Category => Khóa => Bài học:
 
-    lessons/<khóa>/<lớp>/<mã-bài>.html
+    lessons/<category>/<khóa>/<mã-bài>.html
 
 rồi cập nhật danh sách bài ở lessons/lessons.js. Nhận hai loại file:
 
@@ -9,10 +9,10 @@ rồi cập nhật danh sách bài ở lessons/lessons.js. Nhận hai loại fil
   * Trang bài học 200Lab đã lưu (Ctrl+S): trích nội dung và dựng lại theo giao diện site.
 
 Cách dùng:
-    python3 tools/import_lesson.py bai.html --lop "Tên lớp" --id sd1-23 --title "Tên bài" --order 2
+    python3 tools/import_lesson.py bai.html --lop "Tên khóa" --id sd1-23 --title "Tên bài" --order 2
     python3 tools/import_lesson.py --rebuild      # chỉ dựng lại lessons/lessons.js
 
-Với trang 200Lab, Lớp và mã bài tự lấy từ trang. Cần: pip install beautifulsoup4
+Với trang 200Lab, Khóa và mã bài tự lấy từ trang. Cần: pip install beautifulsoup4
 """
 import argparse
 import html
@@ -186,7 +186,7 @@ def manifest_script(root):
 
 def crumbs_html(info, root):
     e = lambda s: html.escape(s, quote=True)
-    return (f'<a href="{root}index.html">Khóa học</a><span>›</span>'
+    return (f'<a href="{root}index.html">Category</a><span>›</span>'
             f'<a href="{root}index.html#/{info["khoaSlug"]}">{e(info["khoa"])}</a><span>›</span>'
             f'<a href="{root}index.html#/{info["khoaSlug"]}/{info["lopSlug"]}">{e(info["lop"])}</a>')
 
@@ -250,7 +250,7 @@ def rebuild_manifest():
         meta = lambda n: (soup.find("meta", attrs={"name": n}) or {}).get("content", "")
         rel = f.relative_to(LESSONS)
         if len(rel.parts) != 3:
-            print(f"Bỏ qua {rel}: bài phải nằm ở lessons/<khóa>/<lớp>/<bài>.html")
+            print(f"Bỏ qua {rel}: bài phải nằm ở lessons/<category>/<khóa>/<bài>.html")
             continue
         lessons.append({
             "id": meta("lesson:id") or f.stem,
@@ -270,7 +270,7 @@ def rebuild_manifest():
         for k in ("order", "lopOrder"):
             l[k] = int(l[k]) if l[k].is_integer() else l[k]
     js = ("// File này được sinh tự động bởi tools/import_lesson.py — đừng sửa tay.\n"
-          "// Mỗi phần tử là một bài giảng; trang chủ nhóm lại theo khoa (Khóa) => lop (Lớp).\n"
+          "// Mỗi phần tử là một bài học; trang chủ nhóm lại theo khoa (Category) => lop (Khóa).\n"
           "window.LESSONS = " + json.dumps(lessons, ensure_ascii=False, indent=2) + ";\n")
     (LESSONS / "lessons.js").write_text(js, encoding="utf-8")
     return lessons
@@ -291,12 +291,12 @@ def num(x):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("source", nargs="?", help="file .html: trang 200Lab đã lưu, hoặc một trang HTML tự chứa")
-    ap.add_argument("--khoa", default=DEFAULT_KHOA, help=f'tên Khóa (mặc định "{DEFAULT_KHOA}")')
-    ap.add_argument("--lop", help="tên Lớp (trang 200Lab: mặc định lấy từ breadcrumb)")
-    ap.add_argument("--lop-order", type=float, help="thứ tự của Lớp trong Khóa")
+    ap.add_argument("--khoa", default=DEFAULT_KHOA, help=f'tên Category (mặc định "{DEFAULT_KHOA}")')
+    ap.add_argument("--lop", help="tên Khóa (trang 200Lab: mặc định lấy từ breadcrumb)")
+    ap.add_argument("--lop-order", type=float, help="thứ tự của Khóa trong Category")
     ap.add_argument("--id", help="mã bài, cũng là tên file (trang 200Lab: mặc định lấy từ URL gốc, ví dụ sd1-23)")
-    ap.add_argument("--order", type=float, help="thứ tự của bài trong Lớp (mặc định: cuối danh sách)")
-    ap.add_argument("--title", help="tên bài giảng hiển thị trong danh sách")
+    ap.add_argument("--order", type=float, help="thứ tự của bài trong Khóa (mặc định: cuối danh sách)")
+    ap.add_argument("--title", help="tên bài học hiển thị trong danh sách")
     ap.add_argument("--description", help="mô tả ngắn của bài")
     ap.add_argument("--read-time", help='thời gian đọc, ví dụ "16 phút đọc"')
     ap.add_argument("--rebuild", action="store_true", help="chỉ dựng lại lessons/lessons.js")
@@ -323,7 +323,7 @@ def main():
         if val:
             meta[key] = val
 
-    lop = args.lop or meta["lop"] or "Chưa phân lớp"
+    lop = args.lop or meta["lop"] or "Chưa phân khóa"
     lesson_id = args.id or (meta["source"].rstrip("/").rsplit("/", 1)[-1] if meta["source"] else "") or src.stem
     lesson_id = slugify(lesson_id)
     khoa_slug = slugify(args.khoa)
@@ -355,7 +355,7 @@ def main():
     out.write_text(page, encoding="utf-8")
     total = len(rebuild_manifest())
     print(f"Đã tạo {out.relative_to(ROOT)} ({'trang 200Lab' if is_200lab else 'trang HTML tự chứa'})\n"
-          f"  Khóa: {args.khoa}\n  Lớp:  {lop} (thứ tự {info['lopOrder']})\n"
+          f"  Category: {args.khoa}\n  Khóa:     {lop} (thứ tự {info['lopOrder']})\n"
           f"  Bài:  {info['title']} (thứ tự {info['order']})\nTổng cộng {total} bài.")
 
 

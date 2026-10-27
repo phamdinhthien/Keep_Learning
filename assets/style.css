@@ -1,4 +1,4 @@
-/* Bộ nền CARBON — lấy theo trang bài giảng (p99-throughput-error-saturation.html).
+/* Bộ nền CARBON — lấy theo trang bài học (p99-throughput-error-saturation.html).
    Accent theo vai trò, dùng cố định trên toàn site:
    --pct  #5eead4  accent chính (link, số thứ tự, viền khi hover)
    --thr  #60a5fa  link phụ
@@ -48,7 +48,7 @@ a { color: var(--pct); }
   margin-right: 42px;
 }
 
-/* ---------- Trang chủ: Khóa › Lớp › Bài ---------- */
+/* ---------- Trang chủ: Category › Khóa › Bài học ---------- */
 .home { max-width: 840px; margin: 0 auto; padding: 44px 20px 72px; }
 .page-head { margin-bottom: 28px; }
 .page-head .kicker { margin: 0 0 12px; font: 500 12px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-dim); }

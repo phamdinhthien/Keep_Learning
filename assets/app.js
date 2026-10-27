@@ -10,7 +10,7 @@
   function minutes(list) {
     return list.reduce(function (s, l) { return s + (parseInt(l.readTime, 10) || 0); }, 0);
   }
-  // Gom bài theo một khóa (giữ thứ tự xuất hiện trong lessons.js).
+  // Gom bài theo một category (giữ thứ tự xuất hiện trong lessons.js).
   function groupBy(list, key, nameKey) {
     var groups = [];
     list.forEach(function (l) {
@@ -21,7 +21,7 @@
     return groups;
   }
 
-  // ---------- Trang bài học: bài trước / bài sau trong cùng Lớp ----------
+  // ---------- Trang bài học: bài trước / bài sau trong cùng Khóa ----------
   var nav = document.querySelector(".lesson-nav, .sdn-nav");
   if (nav) {
     var base = nav.dataset.root || document.body.dataset.root || "";
@@ -40,7 +40,7 @@
     return;
   }
 
-  // ---------- Trang chủ: #/ → Khóa, #/<khóa> → Lớp, #/<khóa>/<lớp> → Bài ----------
+  // ---------- Trang chủ: #/ → Category, #/<category> → Khóa, #/<category>/<khóa> → Bài học ----------
   var view = document.getElementById("view");
   if (!view) return;
   var fold = function (s) { return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase(); };
@@ -83,11 +83,11 @@
   }
 
   function renderHome(q) {
-    view.appendChild(header("", "Khóa học", "Ghi chép bài học từ 200Lab, xếp theo Khóa › Lớp › Bài giảng."));
+    view.appendChild(header("", "Category", "Ghi chép bài học từ 200Lab, xếp theo Category › Khóa › Bài học."));
     var input = el("input", "search");
     input.type = "search";
-    input.placeholder = "Tìm bài giảng (gõ không dấu cũng được)…";
-    input.setAttribute("aria-label", "Tìm bài giảng");
+    input.placeholder = "Tìm bài học (gõ không dấu cũng được)…";
+    input.setAttribute("aria-label", "Tìm bài học");
     input.value = q || "";
     view.appendChild(input);
     var results = el("div");
@@ -97,7 +97,7 @@
       var query = fold(input.value.trim());
       if (query) {
         var hits = lessons.filter(function (l) { return fold([l.title, l.description, l.lop, l.khoa, l.id].join(" ")).indexOf(query) >= 0; });
-        results.appendChild(el("h2", "section-title", hits.length + " bài giảng khớp"));
+        results.appendChild(el("h2", "section-title", hits.length + " bài học khớp"));
         if (hits.length) results.appendChild(lessonList(hits, true));
         return;
       }
@@ -107,7 +107,7 @@
       khoas.forEach(function (k, i) {
         var lops = groupBy(k.lessons, "lopSlug", "lop");
         ul.appendChild(card("#/" + k.slug, String(i + 1), k.name, "",
-          lops.length + " lớp · " + k.lessons.length + " bài giảng · " + minutes(k.lessons) + " phút đọc", "khoa"));
+          lops.length + " khóa · " + k.lessons.length + " bài học · " + minutes(k.lessons) + " phút đọc", "khoa"));
       });
       results.appendChild(ul);
     }
@@ -120,19 +120,19 @@
 
   function renderKhoa(k) {
     var lops = groupBy(k.lessons, "lopSlug", "lop");
-    view.appendChild(crumbs([{ name: "Khóa học", href: "#/" }, { name: k.name }]));
-    view.appendChild(header("Khóa", k.name, lops.length + " lớp · " + k.lessons.length + " bài giảng"));
+    view.appendChild(crumbs([{ name: "Category", href: "#/" }, { name: k.name }]));
+    view.appendChild(header("Category", k.name, lops.length + " khóa · " + k.lessons.length + " bài học"));
     var ul = el("ul", "list");
     lops.forEach(function (m, i) {
       ul.appendChild(card("#/" + k.slug + "/" + m.slug, String(i + 1), m.name, "",
-        m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc", "lop"));
+        m.lessons.length + " bài học · " + minutes(m.lessons) + " phút đọc", "lop"));
     });
     view.appendChild(ul);
   }
 
   function renderLop(k, m) {
-    view.appendChild(crumbs([{ name: "Khóa học", href: "#/" }, { name: k.name, href: "#/" + k.slug }, { name: m.name }]));
-    view.appendChild(header("Lớp · " + k.name, m.name, m.lessons.length + " bài giảng · " + minutes(m.lessons) + " phút đọc"));
+    view.appendChild(crumbs([{ name: "Category", href: "#/" }, { name: k.name, href: "#/" + k.slug }, { name: m.name }]));
+    view.appendChild(header("Khóa · " + k.name, m.name, m.lessons.length + " bài học · " + minutes(m.lessons) + " phút đọc"));
     view.appendChild(lessonList(m.lessons, false));
   }
 
@@ -146,7 +146,7 @@
     if (m) renderLop(k, m);
     else if (k) renderKhoa(k);
     else renderHome("");
-    document.title = (m ? m.name : k ? k.name : "Khóa học") + " · System Design Notes";
+    document.title = (m ? m.name : k ? k.name : "Category") + " · System Design Notes";
   }
   window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
   route();
