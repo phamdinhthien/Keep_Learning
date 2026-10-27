@@ -2,7 +2,7 @@
 
 Trang web tĩnh lưu lại các bài học từ 200Lab, xếp theo **Category › Khóa › Bài học** — mỗi bài học là một file HTML.
 
-- Xem online: https://phamdinhthien.github.io/SystemDesign_200Lab/ (GitHub Pages, tự deploy khi push lên `main`).
+- Xem online: https://phamdinhthien.github.io/Keep_Learning/ (GitHub Pages, tự deploy khi push lên `main`).
 - Xem trên máy: mở `index.html` bằng trình duyệt.
 
 ## Cấu trúc
