@@ -1,6 +1,19 @@
 // File này được sinh tự động bởi tools/import_lesson.py — đừng sửa tay.
-// Mỗi phần tử là một bài giảng; trang chủ nhóm lại theo khoa (Khóa) => lop (Lớp).
+// Mỗi phần tử là một bài học; trang chủ nhóm lại theo khoa (Category) => lop (Khóa).
 window.LESSONS = [
+  {
+    "id": "harness-engineering",
+    "path": "ai/tong-hop/harness-engineering.html",
+    "khoa": "AI",
+    "khoaSlug": "ai",
+    "lop": "Tổng hợp",
+    "lopSlug": "tong-hop",
+    "lopOrder": 1,
+    "order": 1,
+    "title": "Harness Engineering",
+    "description": "Agent = Model + Harness: từ Prompt → Context → Harness Engineering và 9 thành phần bên trong một harness.",
+    "readTime": "12 phút đọc"
+  },
   {
     "id": "sd1-23",
     "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-23.html",

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Engineering — Bản chi tiết có ví dụ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON — chủ đề AI agent / lập trình */
+  :root{
+    --bg: #0d0d0f;
+    --panel: #17171a;
+    --line: #2a2a30;
+    --ink: #ededf0;
+    --ink-dim: #9a9aa5;
+
+    /* 5 accent — mỗi màu gắn với một nhóm khái niệm */
+    --evo:   #60a5fa;  /* 01 Công thức & tiến hoá */
+    --loop:  #5eead4;  /* 02 Vòng lặp & ngữ cảnh */
+    --tool:  #c084fc;  /* 03 Công cụ, skill, agent con */
+    --guard: #f5a524;  /* 04 Bộ nhớ, hook, phân quyền */
+    --act:   #a3e635;  /* 05 Áp dụng */
+
+    --example: #fb923c;
+    --example-bg: #1a130c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ background: var(--bg); color: var(--ink); font-family:'Inter', sans-serif; line-height:1.6; padding: 0 0 60px 0; }
+  .wrap{ max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+  header{ padding: 48px 20px 26px; text-align:center; max-width: 840px; margin: 0 auto; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:14px; }
+  h1{ font-size: clamp(26px, 5.4vw, 38px); font-weight:800; letter-spacing:-.01em; max-width: 700px; margin: 0 auto 14px; }
+  h1 .a{ color: var(--evo); } h1 .b{ color: var(--guard); }
+  .sub{ color: var(--ink-dim); font-size:15px; max-width: 600px; margin: 0 auto; }
+
+  .toc{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px 4px; margin: 26px auto 4px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-dim); max-width: 660px; }
+  .toc span{ padding:5px 10px; border:1px solid var(--line); border-radius:20px; background:var(--panel); }
+  .toc span b{ color: var(--ink); }
+
+  .fig{ margin: 26px 0 22px; }
+  .fig svg{ width:100%; height:auto; display:block; }
+  .fig-cap{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-dim); letter-spacing:.06em; text-align:center; margin-top:8px; }
+  svg text{ font-family:'IBM Plex Mono', monospace; font-size:12px; fill:var(--ink); }
+  svg text.sm{ font-size:10.5px; fill:var(--ink-dim); }
+  svg text.b{ font-size:11px; font-weight:600; }
+  svg .box{ fill:var(--panel); stroke:var(--line); stroke-width:1.5; }
+  svg .band{ fill:none; stroke:var(--line); stroke-dasharray:5 4; stroke-width:1.5; }
+  svg .ln{ stroke:var(--ink-dim); stroke-width:1.5; fill:none; }
+  svg .ln-d{ stroke-dasharray:4 4; }
+
+  section{ padding: 40px 0; border-top:1px solid var(--line); }
+  .tag{ font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:10px; }
+  h2{ font-size:22px; font-weight:700; margin-bottom:10px; }
+  h2.c-evo{color:var(--evo)} h2.c-loop{color:var(--loop)} h2.c-tool{color:var(--tool)} h2.c-guard{color:var(--guard)} h2.c-act{color:var(--act)}
+  p.desc{ color:var(--ink-dim); font-size:14.5px; margin-bottom:16px; max-width: 680px; }
+  p.desc b{ color: var(--ink); }
+  code{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; background:rgba(255,255,255,.05); padding:1px 5px; border-radius:4px; }
+  .lbl{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); margin: 6px 0 8px; }
+
+  /* compare cards */
+  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:22px; }
+  @media (max-width:520px){ .compare{ grid-template-columns:1fr; } }
+  .card{ background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--ink-dim); border-radius:10px; padding:14px 16px; font-size:13px; color:var(--ink-dim); }
+  .card h3{ font-size:14.5px; color:var(--ink); margin-bottom:6px; }
+  .card .formula{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; margin-bottom:8px; display:block; }
+  .card.k1{ border-top-color: var(--evo); } .card.k1 .formula{ color: var(--evo); }
+  .card.k2{ border-top-color: var(--tool); } .card.k2 .formula{ color: var(--tool); }
+  .card.k3{ border-top-color: var(--loop); } .card.k3 .formula{ color: var(--loop); }
+  .card b{ color: var(--ink); }
+
+  /* chain */
+  .chain{ display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin-bottom:22px; }
+  .step{ flex:1 1 120px; background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--loop); border-radius:8px; padding:10px 12px; font-size:12.5px; color:var(--ink-dim); }
+  .step b{ display:block; color:var(--loop); font-family:'IBM Plex Mono', monospace; font-size:11px; margin-bottom:3px; }
+  .arrow{ align-self:center; color:var(--ink-dim); font-family:'IBM Plex Mono', monospace; }
+  @media (max-width:520px){ .chain{ flex-direction:column; } .arrow{ transform:rotate(90deg); } }
+
+  /* bars */
+  .bar{ display:flex; height:28px; border:1px solid var(--line); border-radius:6px; overflow:hidden; font-family:'IBM Plex Mono', monospace; font-size:10.5px; margin-bottom:8px; }
+  .bar > div{ display:flex; align-items:center; justify-content:center; white-space:nowrap; overflow:hidden; color:#0d0d0f; font-weight:600; }
+  .bar .keep{ background:var(--loop); } .bar .zip{ background:#6b6b75; color:#fff; } .bar .trash{ background:#2f2f36; color:var(--ink-dim); } .bar .free{ background:transparent; color:var(--ink-dim); font-weight:400; }
+  .bar .stat{ background:var(--guard); } .bar .dyn{ background:var(--ink-dim); } .bar .redo{ background:#2f2f36; color:var(--ink-dim); border-left:1px dashed var(--ink-dim); }
+
+  /* tiers */
+  .tiers{ display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom:22px; }
+  @media (max-width:520px){ .tiers{ grid-template-columns:1fr; } }
+  .tier{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; font-size:12.5px; color:var(--ink-dim); border-left:4px solid var(--guard); }
+  .tier.t1{ border-left-color: rgba(245,165,36,.4); } .tier.t2{ border-left-color: rgba(245,165,36,.7); }
+  .tier b{ display:block; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--guard); margin-bottom:3px; }
+  .tier span{ color: var(--ink); }
+
+  /* table */
+  table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:22px; border:1px solid var(--line); }
+  th, td{ text-align:left; padding:10px 12px; border:1px solid var(--line); vertical-align:top; }
+  th{ font-family:'IBM Plex Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); background:var(--panel); }
+  tr:nth-child(even) td{ background:rgba(255,255,255,.015); }
+
+  /* do list */
+  .dolist{ display:flex; flex-direction:column; gap:8px; margin-bottom:22px; }
+  .do{ display:grid; grid-template-columns: 30px 1fr; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--ink-dim); }
+  .do i{ font-style:normal; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--act); font-size:13px; }
+  .do b{ color:var(--ink); }
+
+  .note{ display:flex; gap:10px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--guard); border-radius:8px; padding:12px 14px; margin-bottom:22px; font-size:13px; color:var(--ink-dim); }
+  .note b{ color: var(--guard); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+
+  /* example */
+  .example-box{ border:1px dashed var(--example); background:var(--example-bg); border-radius:10px; padding:16px 18px; margin-top:4px; }
+  .example-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--example); margin-bottom:8px; }
+  .example-box p{ font-size:13.5px; color:var(--ink); }
+  .example-box p.dim{ color: var(--ink-dim); font-size:12.5px; }
+  .example-box .before-after{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px){ .example-box .before-after{ grid-template-columns:1fr; } }
+  .example-box .before-after > div{ font-size:13px; }
+  .example-box .before-after b.h{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-dim); display:block; margin-bottom:4px; }
+  .example-box pre{ background:#000; border-radius:8px; padding:12px 14px; overflow-x:auto; font-family:'IBM Plex Mono', monospace; font-size:12.3px; color:#dfe4ea; border:1px solid var(--line); line-height:1.55; }
+  .example-box pre + p, .example-box p + pre, .example-box pre + pre, .example-box .bar + p, .example-box p + .bar, .example-box .lbl + pre{ margin-top:10px; }
+  .example-box pre .cm{ color:#7c7c88; } .example-box pre .kw{ color:#8ab4f8; } .example-box pre .val{ color:#fbbf24; }
+  .example-box table{ margin-bottom:0; }
+
+  footer{ text-align:center; padding:40px 20px 0; color:var(--ink-dim); font-size:12.5px; font-family:'IBM Plex Mono', monospace; max-width:700px; margin:0 auto; }
+  footer b{ color: var(--ink); }
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="harness-engineering">
+  <meta name="lesson:title" content="Harness Engineering">
+  <meta name="lesson:description" content="Agent = Model + Harness: từ Prompt → Context → Harness Engineering và 9 thành phần bên trong một harness.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="AI">
+  <meta name="lesson:lop" content="Tổng hợp">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="12 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/ai">AI</a><span>›</span><a href="../../../index.html#/ai/tong-hop">Tổng hợp</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-evo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--evo)"/></marker>
+  <marker id="a-loop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--loop)"/></marker>
+  <marker id="a-tool" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--tool)"/></marker>
+  <marker id="a-guard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--guard)"/></marker>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">Việt Nguyễn AI · 38:57 · Bản chi tiết có ví dụ</div>
+  <h1>Agent = <span class="a">Model</span> + <span class="b">Harness</span>: tất cả những gì bao quanh bộ não</h1>
+  <div class="sub">Từ Prompt Engineering → Context Engineering → Harness Engineering, 9 thành phần bên trong một harness, và cách áp dụng — xuyên suốt bằng ví dụ quán phở.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 230" role="img" aria-label="Agent bằng model cộng harness gồm 9 thành phần">
+      <rect class="box" x="10" y="64" width="140" height="110" rx="8" stroke="var(--evo)"/>
+      <text class="b" x="80" y="96" text-anchor="middle" fill="var(--evo)">MODEL</text>
+      <text class="sm" x="80" y="116" text-anchor="middle">bộ não · anh đầu bếp</text>
+      <text class="sm" x="80" y="134" text-anchor="middle">GPT · Gemini</text>
+      <text class="sm" x="80" y="148" text-anchor="middle">Haiku · Sonnet · Opus</text>
+      <text class="b" x="170" y="125" text-anchor="middle" fill="var(--ink-dim)">+</text>
+
+      <rect class="band" x="190" y="24" width="500" height="190" rx="10" stroke="var(--ink-dim)"/>
+      <text class="b" x="204" y="42" fill="var(--evo)">HARNESS · 9 THÀNH PHẦN · căn bếp trọn gói</text>
+
+      <rect class="box" x="205" y="52" width="150" height="44" rx="6" stroke="var(--loop)"/>
+      <text class="sm" x="215" y="68" fill="var(--loop)">01</text><text x="215" y="86" style="font-size:11px">Vòng lặp chính</text>
+      <rect class="box" x="365" y="52" width="150" height="44" rx="6" stroke="var(--loop)"/>
+      <text class="sm" x="375" y="68" fill="var(--loop)">02</text><text x="375" y="86" style="font-size:11px">Quản lý ngữ cảnh</text>
+      <rect class="box" x="525" y="52" width="150" height="44" rx="6" stroke="var(--tool)"/>
+      <text class="sm" x="535" y="68" fill="var(--tool)">03</text><text x="535" y="86" style="font-size:11px">Công cụ &amp; kỹ năng</text>
+
+      <rect class="box" x="205" y="104" width="150" height="44" rx="6" stroke="var(--tool)"/>
+      <text class="sm" x="215" y="120" fill="var(--tool)">04</text><text x="215" y="138" style="font-size:11px">Agent con</text>
+      <rect class="box" x="365" y="104" width="150" height="44" rx="6" stroke="var(--tool)"/>
+      <text class="sm" x="375" y="120" fill="var(--tool)">05</text><text x="375" y="138" style="font-size:11px">Kỹ năng có sẵn</text>
+      <rect class="box" x="525" y="104" width="150" height="44" rx="6" stroke="var(--guard)"/>
+      <text class="sm" x="535" y="120" fill="var(--guard)">06</text><text x="535" y="138" style="font-size:11px">Bộ nhớ phiên</text>
+
+      <rect class="box" x="205" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
+      <text class="sm" x="215" y="172" fill="var(--guard)">07</text><text x="215" y="190" style="font-size:11px">Lắp ráp system prompt</text>
+      <rect class="box" x="365" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
+      <text class="sm" x="375" y="172" fill="var(--guard)">08</text><text x="375" y="190" style="font-size:11px">Điểm móc (hook)</text>
+      <rect class="box" x="525" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
+      <text class="sm" x="535" y="172" fill="var(--guard)">09</text><text x="535" y="190" style="font-size:11px">Phân quyền &amp; an toàn</text>
+    </svg>
+    <div class="fig-cap">Hình 0 — Model chỉ là bộ não; harness là toàn bộ căn bếp quanh nó (màu = nhóm section 02 · 03 · 04)</div>
+  </div>
+
+  <div class="toc">
+    <span><b>01</b> Tiến hoá</span>
+    <span><b>02</b> Vòng lặp &amp; ngữ cảnh</span>
+    <span><b>03</b> Công cụ · Skill · Agent con</span>
+    <span><b>04</b> Nhớ · Hook · Phân quyền</span>
+    <span><b>05</b> Áp dụng</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Tiến hoá</div>
+    <h2 class="c-evo">Prompt → Context → Harness: ba vòng tròn lồng nhau</h2>
+    <p class="desc">Công thức cốt lõi: <b>agent = model + harness</b>. Model (GPT, Gemini, Haiku, Opus, Sonnet, Fable) chỉ là bộ não — nhận prompt, trả lời một phát rồi dừng, không trí nhớ ngoài những gì đang nằm trong <b>context window</b>. Ngành AI đi qua ba giai đoạn vì mỗi giai đoạn chạm một giới hạn: bàn bếp bé (2022, ~4.000 token) chỉ đủ để viết phiếu gọi món khéo; bàn lớn dần (tới hàng trăm nghìn rồi hàng triệu token) cho phép bày đúng nguyên liệu; nhưng việc <b>quá dài</b> (nấu cỗ 500 khách, clone cả một trang web) vẫn vỡ vì agent phải tự tóm tắt ngữ cảnh — tóm tắt sai là báo "xong" khi việc còn dở. Harness ra đời để tổ chức cả quá trình. "Harness" nghĩa gốc là <b>bộ yên cương</b> dẫn sức ngựa vào đúng việc; thuật ngữ phổ biến từ đầu 2026. Harness <b>không thay thế</b> prompt/context — nó bao ngoài cả hai.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 260" role="img" aria-label="Ba vòng tròn lồng nhau: prompt nằm trong context nằm trong harness">
+        <circle cx="140" cy="130" r="118" fill="none" stroke="var(--evo)" stroke-width="2"/>
+        <circle cx="140" cy="140" r="78" fill="var(--panel)" stroke="var(--evo)" stroke-width="1.5" stroke-opacity=".7"/>
+        <circle cx="140" cy="158" r="40" fill="#0d0d0f" stroke="var(--evo)" stroke-width="1.5" stroke-opacity=".45"/>
+        <text class="b" x="140" y="34" text-anchor="middle" fill="var(--evo)">3 · HARNESS</text>
+        <text class="b" x="140" y="85" text-anchor="middle" fill="var(--evo)">2 · CONTEXT</text>
+        <text class="b" x="140" y="162" text-anchor="middle" fill="var(--evo)">1 · PROMPT</text>
+
+        <rect class="box" x="290" y="14" width="400" height="68" rx="8" stroke="var(--evo)"/>
+        <text class="b" x="304" y="34" fill="var(--evo)">3 · Harness Engineering · 2026</text>
+        <text class="sm" x="304" y="52">"Cả quán ăn nên vận hành ra sao?"</text>
+        <text class="sm" x="304" y="68">Điều phối + môi trường + quản lý ngữ cảnh</text>
+
+        <rect class="box" x="290" y="96" width="400" height="68" rx="8" stroke="var(--evo)" stroke-opacity=".7"/>
+        <text class="b" x="304" y="116" fill="var(--evo)">2 · Context Engineering</text>
+        <text class="sm" x="304" y="134">"Nên bày gì lên bàn bếp?" · tool calling · MCP · RAG</text>
+        <text class="sm" x="304" y="150">Context window: vài nghìn → hàng trăm nghìn → hàng triệu</text>
+
+        <rect class="box" x="290" y="178" width="400" height="68" rx="8" stroke="var(--evo)" stroke-opacity=".45"/>
+        <text class="b" x="304" y="198" fill="var(--evo)">1 · Prompt Engineering · 2022</text>
+        <text class="sm" x="304" y="216">"Nên viết phiếu gọi món thế nào?" · ~4.000 token</text>
+        <text class="sm" x="304" y="232">Giới hạn: model chỉ trả lời một phát (one-shot)</text>
+      </svg>
+      <div class="fig-cap">Hình 1 — Prompt vẫn còn đó, chỉ là một nhánh nhỏ bên trong hệ thống lớn hơn</div>
+    </div>
+
+    <div class="lbl">Framework hay Harness? — hai thứ hay bị nhầm</div>
+    <div class="compare">
+      <div class="card k2">
+        <span class="formula">FRAMEWORK</span>
+        <h3>Bộ đồ tự lắp sắt căn bếp</h3>
+        LangChain, LangGraph, CrewAI, AutoGen đưa từng món rời: chỗ này là bếp, chỗ kia là tủ lạnh, kệ công thức. <b>Kiến trúc sư phải tự lắp ráp</b> thành một AI agent.
+      </div>
+      <div class="card k1">
+        <span class="formula">HARNESS</span>
+        <h3>Nhà hàng trao chìa khoá</h3>
+        Bếp, dụng cụ, quy trình, nội quy đã dựng sẵn: về kỹ thuật là <b>vòng lặp + danh mục công cụ + lớp phân quyền</b>, nối sẵn. Làm ra để <b>chính agent</b> làm việc: bạn đưa mục tiêu, harness lo phần còn lại.
+      </div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — vì sao Prompt Engineering từng là tất cả (ví dụ trong video)</div>
+      <div class="before-after">
+        <div>
+          <b class="h">PHIẾU MƠ HỒ</b>
+          <pre><span class="val">"Một bát phở"</span></pre>
+          <p class="dim" style="margin-top:8px">Anh đầu bếp nấu một bát phở chung chung, có thể không hợp ý khách.</p>
+        </div>
+        <div>
+          <b class="h">PHIẾU RÕ RÀNG</b>
+          <pre><span class="val">"Phở bò tái, nhiều hành,
+ít bánh, nước dùng trong,
+khách không ăn cay"</span></pre>
+          <p class="dim" style="margin-top:8px">Cùng đầu bếp, cùng nguyên liệu — bát phở đúng ý hơn rất nhiều.</p>
+        </div>
+      </div>
+      <p style="margin-top:10px"><b>Nhưng:</b> đầu bếp chỉ nấu một lần rồi bưng ra — không tự lấy thêm nguyên liệu, không nếm thử, không sửa. Bàn bé + kiểu làm một phát ⇒ chỉ viết prompt hay là không đủ cho việc lớn.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Vòng lặp &amp; ngữ cảnh</div>
+    <h2 class="c-loop">Thành phần 01–02: động cơ chính và cách dọn bàn bếp</h2>
+    <p class="desc"><b>Vòng lặp</b> là nền móng mọi harness — bản chất chỉ là một vòng <code>while</code>: model đọc system prompt, quyết định gọi công cụ nào; harness chạy công cụ, đưa kết quả ngược vào context; lặp lại. Vòng dừng ở một trong hai trường hợp: model trả lời bằng chữ mà <b>không gọi thêm công cụ</b> (đầu bếp hô "món xong"), hoặc chạm <b>giới hạn số vòng</b> để agent không chạy mãi. Mỗi vòng bàn bếp lại đầy thêm; khi gần chạm giới hạn context, harness phải quyết định <b>cái gì giữ nguyên, cái gì tóm tắt, cái gì vứt</b> — bước <b>compaction</b> làm không tốt sẽ gây hậu quả khó lường.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 190" role="img" aria-label="Vòng lặp agent: đọc, chọn công cụ, chạy, nhận kết quả, lặp hoặc dừng">
+        <rect class="box" x="185" y="6" width="150" height="38" rx="6"/>
+        <text class="b" x="260" y="22" text-anchor="middle" fill="var(--ink)">DỪNG 1 ✓</text>
+        <text class="sm" x="260" y="36" text-anchor="middle">model trả lời bằng chữ</text>
+        <rect class="box" x="360" y="6" width="150" height="38" rx="6"/>
+        <text class="b" x="435" y="22" text-anchor="middle" fill="var(--ink)">DỪNG 2 ⚠</text>
+        <text class="sm" x="435" y="36" text-anchor="middle">chạm giới hạn số vòng</text>
+        <path class="ln ln-d" d="M260,70 L260,48" marker-end="url(#a-dim)"/>
+        <path class="ln ln-d" d="M435,70 L435,48" marker-end="url(#a-dim)"/>
+
+        <rect class="box" x="10" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
+        <text class="b" x="85" y="94" text-anchor="middle" fill="var(--loop)">Đọc system prompt</text>
+        <text class="sm" x="85" y="112" text-anchor="middle">&amp; phiếu gọi món</text>
+        <path class="ln" stroke="var(--loop)" d="M160,98 L183,98" marker-end="url(#a-loop)"/>
+
+        <rect class="box" x="185" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
+        <text class="b" x="260" y="94" text-anchor="middle" fill="var(--loop)">Model chọn</text>
+        <text class="sm" x="260" y="112" text-anchor="middle">công cụ cần gọi</text>
+        <path class="ln" stroke="var(--loop)" d="M335,98 L358,98" marker-end="url(#a-loop)"/>
+
+        <rect class="box" x="360" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
+        <text class="b" x="435" y="94" text-anchor="middle" fill="var(--loop)">Harness chạy</text>
+        <text class="sm" x="435" y="112" text-anchor="middle">công cụ</text>
+        <path class="ln" stroke="var(--loop)" d="M510,98 L533,98" marker-end="url(#a-loop)"/>
+
+        <rect class="box" x="535" y="70" width="155" height="56" rx="8" stroke="var(--loop)"/>
+        <text class="b" x="612" y="94" text-anchor="middle" fill="var(--loop)">Kết quả quay lại</text>
+        <text class="sm" x="612" y="112" text-anchor="middle">bàn bếp (context)</text>
+
+        <path class="ln" stroke="var(--loop)" d="M612,126 L612,160 L85,160 L85,130" marker-end="url(#a-loop)"/>
+        <text class="sm" x="348" y="153" text-anchor="middle" fill="var(--loop)">lặp lại cho đến khi dừng</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Tám thành phần còn lại đều xoay quanh và phục vụ vòng lặp này</div>
+    </div>
+
+    <div class="lbl">Vòng lặp theo ca — cách harness chia việc dài (kiểu kỹ thuật Ralph)</div>
+    <div class="chain">
+      <div class="step"><b>1 · PRD</b>Bản yêu cầu đầy đủ — như đơn chi tiết cả tiệc cưới</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2 · CHECKLIST</b>Chia thành danh sách việc trong file JSON, dán lên tường bếp</div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3 · MỘT CA</b>Bàn sạch → đọc checklist → chọn 1 món chưa làm → nấu → nếm thử (chạy test) → ghi sổ → đánh dấu xong</div>
+      <div class="arrow">↻</div>
+      <div class="step"><b>4 · LẶP</b>Ca sau lặp y hệt cho đến khi mọi món được đánh dấu</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — compaction khi bàn bếp đầy (tỉ lệ minh hoạ)</div>
+      <p>Claude Code: bàn bếp từng rộng khoảng <b>200.000 token</b>, với model Opus nâng lên <b>1 triệu</b>. Khi bàn đầy tới khoảng <b>80–90%</b>, harness kích hoạt compaction:</p>
+      <div class="lbl">Trước khi nén — bàn gần đầy</div>
+      <div class="bar"><div class="zip" style="width:48%">10 phiếu cũ đã xong</div><div class="keep" style="width:17%">3 phiếu mới</div><div class="trash" style="width:25%">vỏ hành, giấy nháp</div><div class="free" style="width:10%">trống</div></div>
+      <div class="lbl">Sau khi nén — dọn bàn giữa giờ cao điểm</div>
+      <div class="bar"><div class="zip" style="width:12%">1 ghi chú</div><div class="keep" style="width:17%">3 phiếu mới</div><div class="free" style="width:71%">bàn trống để làm tiếp</div></div>
+      <p class="dim">10 phiếu cũ gộp thành một dòng: "đã phục vụ 10 bát, bàn số 5 dặn không hành"; vỏ hành và giấy nháp bỏ thùng rác.</p>
+      <p style="margin-top:10px"><b>Rủi ro:</b> nếu lúc gộp mà quên dòng "bàn 5 dặn không hành" thì khách nhận bát phở đầy hành. Vì vậy quản lý ngữ cảnh phải thiết kế cực kỳ cẩn thận.</p>
+      <div class="lbl">Checklist ca làm việc (ví dụ minh hoạ — không phải file gốc của video)</div>
+      <pre>[
+  { <span class="kw">"id"</span>: 1, <span class="kw">"feature"</span>: <span class="val">"Nút đăng nhập bấm được"</span>,  <span class="kw">"passes"</span>: <span class="val">true</span>  },
+  { <span class="kw">"id"</span>: 2, <span class="kw">"feature"</span>: <span class="val">"Hiển thị lỗi sai mật khẩu"</span>, <span class="kw">"passes"</span>: <span class="val">false</span> },
+  { <span class="kw">"id"</span>: 3, <span class="kw">"feature"</span>: <span class="val">"Ghi nhớ đăng nhập"</span>,        <span class="kw">"passes"</span>: <span class="val">false</span> }
+]
+<span class="cm">// Mỗi ca: bàn sạch → chọn 1 mục passes=false → làm → test → đánh dấu true</span></pre>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Công cụ · Skill · Agent con</div>
+    <h2 class="c-tool">Thành phần 03–05: dụng cụ, công thức gia truyền và phụ bếp</h2>
+    <p class="desc"><b>Tool</b> là thao tác cơ bản quán nào cũng có (đọc file, ghi file, chạy lệnh, tìm kiếm code — con dao, cái thớt, cái nồi). <b>Skill</b> nằm trên tool: kiến thức riêng của tổ chức, thường đóng gói thành file markdown — ngăn kéo công thức gia truyền. Một <b>registry</b> (bảng danh mục treo tường bếp) ghi mỗi công cụ có tên, quyền cần có, hàm xử lý và một dòng mô tả; bản rút gọn (tên, quyền, mô tả) được gửi cho model để nó biết trong bếp có gì. Điểm hay: skill đăng ký giống tool — chỉ là một công cụ mà khi gọi sẽ <b>mở một file .md</b>, nên bàn bếp không bị chiếm chỗ bởi mọi công thức ngay từ đầu. Khi việc quá phức tạp hoặc cần chạy song song, harness sinh <b>agent con</b> (phụ bếp), mỗi người có bàn riêng.</p>
+
+    <div class="compare">
+      <div class="card k2">
+        <span class="formula">TOOL · công cụ</span>
+        <h3>Quán nào cũng giống nhau</h3>
+        Đọc/ghi file, chạy lệnh, tìm kiếm. Mang tính <b>phổ quát</b>: quán phở, quán cơm, quán bún đều cần dao và nồi. Harness nào cũng có sẵn một bộ bắt buộc — agent không đọc/sửa được file thì không gọi là coding agent.
+      </div>
+      <div class="card k2">
+        <span class="formula">SKILL · kỹ năng</span>
+        <h3>Mỗi quán một bí quyết</h3>
+        Cách ninh nước dùng 12 tiếng, tỉ lệ quế hồi riêng, cách bày bát. Người dùng thêm skill (thiết kế front end, back end…); harness cũng có skill cấp cao sẵn như tạo git commit, mở pull request, chạy test và đọc kết quả.
+      </div>
+    </div>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 230" role="img" aria-label="Agent chính giao việc cho ba kiểu agent con">
+        <rect class="box" x="250" y="8" width="200" height="44" rx="8" stroke="var(--tool)"/>
+        <text class="b" x="350" y="26" text-anchor="middle" fill="var(--tool)">AGENT CHÍNH · bếp chính</text>
+        <text class="sm" x="350" y="42" text-anchor="middle">giao việc · giới hạn · thu kết quả</text>
+        <path class="ln" stroke="var(--tool)" d="M350,52 L350,80 L120,80 L120,108" marker-end="url(#a-tool)"/>
+        <path class="ln" stroke="var(--tool)" d="M350,52 L350,108" marker-end="url(#a-tool)"/>
+        <path class="ln" stroke="var(--tool)" d="M350,80 L580,80 L580,108" marker-end="url(#a-tool)"/>
+
+        <rect class="box" x="20" y="110" width="200" height="86" rx="8"/>
+        <text class="b" x="120" y="130" text-anchor="middle" fill="var(--tool)">KHÁM PHÁ</text>
+        <text class="sm" x="120" y="150" text-anchor="middle">đi kiểm kho, tìm hiểu</text>
+        <text class="sm" x="120" y="166" text-anchor="middle">chỉ được XEM, không sửa</text>
+        <text class="sm" x="120" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
+
+        <rect class="box" x="250" y="110" width="200" height="86" rx="8"/>
+        <text class="b" x="350" y="130" text-anchor="middle" fill="var(--tool)">LÀM CHUNG</text>
+        <text class="sm" x="350" y="150" text-anchor="middle">việc thông thường</text>
+        <text class="sm" x="350" y="166" text-anchor="middle">bộ dụng cụ giới hạn</text>
+        <text class="sm" x="350" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
+
+        <rect class="box" x="480" y="110" width="200" height="86" rx="8"/>
+        <text class="b" x="580" y="130" text-anchor="middle" fill="var(--tool)">KIỂM TRA</text>
+        <text class="sm" x="580" y="150" text-anchor="middle">nếm thử: món đã</text>
+        <text class="sm" x="580" y="166" text-anchor="middle">đạt yêu cầu chưa</text>
+        <text class="sm" x="580" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
+
+        <text class="sm" x="350" y="218" text-anchor="middle">Phụ bếp bày bừa thế nào cũng được — bàn của bếp chính vẫn gọn, chỉ nhận lại kết quả cuối</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Mỗi agent con có phiên riêng, bộ dụng cụ giới hạn và một lời dặn tập trung</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — một mục trong registry (cấu trúc minh hoạ, không phải mã của harness cụ thể)</div>
+      <pre>{
+  <span class="kw">"name"</span>:        <span class="val">"read_file"</span>,
+  <span class="kw">"permission"</span>:  <span class="val">"read-only"</span>,          <span class="cm">// quyền tối thiểu cần có</span>
+  <span class="kw">"handler"</span>:     readFile,              <span class="cm">// hàm xử lý (không gửi cho model)</span>
+  <span class="kw">"description"</span>: <span class="val">"Đọc nội dung một file trong dự án"</span>
+}
+<span class="cm">// Model chỉ thấy: name + permission + description → biết "trong bếp có gì"
+// Skill = một tool khi được gọi sẽ mở file .md (công thức) ra đọc</span></pre>
+      <p style="margin-top:10px"><b>Ba bước giao việc:</b> (1) giao việc cho phụ bếp, (2) giới hạn phạm vi và dụng cụ, (3) chỉ nhận lại kết quả cuối. Nhờ đó bếp chính làm được nhiều việc cùng lúc mà bàn vẫn gọn.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Nhớ · Hook · Phân quyền</div>
+    <h2 class="c-guard">Thành phần 06–09: sổ nhật ký, tờ nội quy, người kiểm hàng và thẻ ra vào</h2>
+    <p class="desc"><b>Bộ nhớ phiên:</b> harness ghi mọi tin nhắn, kết quả công cụ, lần nén ngữ cảnh vào một file <b>chỉ ghi thêm, không xoá/sửa</b> (JSON hoặc markdown) — cuốn sổ nhật ký bếp. Sập nguồn thì dòng đã ghi vẫn an toàn; người mới vào ca chỉ cần <b>replay</b> từ đầu là nắm tình hình; nhiều worker cùng ghi một sổ không giẫm chân nhau. <b>Lắp ráp system prompt:</b> harness đi ngược lên các thư mục cha để tìm file như <code>agent.md</code>/<code>claude.md</code> rồi chèn vào — nội quy chung của chuỗi + ghi chú riêng từng chi nhánh. <b>Hook</b> chèn logic riêng trước/sau khi công cụ chạy mà không đụng lõi harness. <b>Phân quyền</b> quyết định agent là công cụ hữu ích hay mối nguy.</p>
+
+    <div class="lbl">Prompt caching — thứ tự trong tờ hướng dẫn quyết định chi phí</div>
+    <div class="bar"><div class="stat" style="width:55%">TĨNH: nội quy chung · cache được</div><div class="dyn" style="width:45%">ĐỘNG: ghi chú dự án / phiên</div></div>
+    <div class="bar"><div class="redo" style="width:12%">dòng chèn</div><div class="redo" style="width:88%">toàn bộ phần sau lệch → phải đọc lại từ đầu</div></div>
+    <p class="desc" style="margin-top:6px">Nếu phần đầu prompt giống hệt lần trước, model không cần xử lý lại phần đó — nhanh hơn và rẻ hơn. Vì vậy <b>phần tĩnh đặt trước, phần động đặt sau</b>; đảo ngược sẽ phá prefix caching. Đây là một lý do agent chạy hàng trăm vòng mà chi phí vẫn chấp nhận được.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 140" role="img" aria-label="Pre-tool hook chạy trước công cụ, post-tool hook chạy sau">
+        <rect class="box" x="10" y="42" width="120" height="50" rx="8"/>
+        <text class="b" x="70" y="64" text-anchor="middle">Model</text>
+        <text class="sm" x="70" y="80" text-anchor="middle">xin gọi công cụ</text>
+        <path class="ln" stroke="var(--guard)" d="M130,67 L162,67" marker-end="url(#a-guard)"/>
+
+        <rect class="box" x="166" y="42" width="140" height="50" rx="8" stroke="var(--guard)"/>
+        <text class="b" x="236" y="62" text-anchor="middle" fill="var(--guard)">PRE-TOOL HOOK</text>
+        <text class="sm" x="236" y="78" text-anchor="middle">cho phép·chặn·sửa</text>
+        <path class="ln" stroke="var(--guard)" d="M306,67 L338,67" marker-end="url(#a-guard)"/>
+
+        <rect class="box" x="342" y="42" width="120" height="50" rx="8"/>
+        <text class="b" x="402" y="64" text-anchor="middle">Công cụ chạy</text>
+        <text class="sm" x="402" y="80" text-anchor="middle">đã qua kiểm quyền</text>
+        <path class="ln" stroke="var(--guard)" d="M462,67 L494,67" marker-end="url(#a-guard)"/>
+
+        <rect class="box" x="498" y="42" width="192" height="50" rx="8" stroke="var(--guard)"/>
+        <text class="b" x="594" y="62" text-anchor="middle" fill="var(--guard)">POST-TOOL HOOK</text>
+        <text class="sm" x="594" y="78" text-anchor="middle">ghi log · kiểm toán · không chặn</text>
+
+        <path class="ln ln-d" d="M236,42 L236,18 L70,18 L70,38" marker-end="url(#a-dim)"/>
+        <text class="sm" x="150" y="12" text-anchor="middle">bị chặn → báo lại model</text>
+        <text class="sm" x="350" y="124" text-anchor="middle">Giao tiếp: harness gửi JSON vào hook, hook trả exit code để cho phép hoặc từ chối</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Hook là cách doanh nghiệp gắn quy định bảo mật, kiểm toán, tuân thủ vào harness</div>
+    </div>
+
+    <div class="lbl">Ba bậc phân quyền — mỗi công cụ khai báo quyền tối thiểu, kiểm tra ngay lúc phân phát</div>
+    <div class="tiers">
+      <div class="tier t1"><b>BẬC 1 · THẺ XANH</b><span>Chỉ được xem</span><br>Vào kho, kiểm đếm, không động gì. Vd: liệt kê file, xem nội dung, tìm kiếm.</div>
+      <div class="tier t2"><b>BẬC 2 · THẺ VÀNG</b><span>Ghi trong không gian của mình</span><br>Nấu nướng trong khu bếp của mình. Phần lớn lệnh còn lại ở mức giữa.</div>
+      <div class="tier"><b>BẬC 3 · THẺ ĐỎ</b><span>Toàn quyền</span><br>Khoá van gas tổng, đổ nồi nước dùng. Vd: xoá file, chạy quyền quản trị, tắt máy.</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — cùng một công cụ, rủi ro khác nhau và nhật ký replay</div>
+      <p>Cùng một vòi nước: rửa rau thì vô hại, xối vào ổ điện thì nguy hiểm. Nên harness xét <b>thao tác cụ thể</b> — agent định làm gì, tác động đến đâu, có nằm trong phạm vi cho phép không. Vượt phạm vi → chặn hoặc hỏi bạn xác nhận (như đổ bỏ nồi nước dùng ninh 12 tiếng thì phải báo chủ quán).</p>
+      <div class="lbl">Sổ nhật ký chỉ-ghi-thêm (ví dụ minh hoạ theo ẩn dụ của video)</div>
+      <pre><span class="cm">10:05</span>  bàn 3 lên 2 bát tái
+<span class="cm">10:12</span>  bàn 5 dặn không hành
+<span class="cm">10:20</span>  <span class="kw">[compaction]</span> gộp 10 phiếu cũ thành 1 ghi chú
+<span class="cm">// Mất điện? Người thay ca chỉ cần replay từ dòng đầu → biết chính xác đang ở đâu</span></pre>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Áp dụng</div>
+    <h2 class="c-act">Năm điều cần nhớ khi dùng hoặc tự xây agent</h2>
+    <p class="desc">Bạn không cần tự xây đủ chín thành phần ngay từ đầu. Với một AI coding agent có sẵn (Claude Code, Codex…), phần lõi — cách gọi model, chạy công cụ, quản lý ngữ cảnh, vòng lặp — đã được dựng sẵn; việc của bạn là bổ sung phần riêng của quán: công thức, cách sắp xếp nguyên liệu, hướng dẫn giao ca, quy trình kiểm tra món.</p>
+
+    <div class="lbl">Năm nguyên tắc rút ra từ video</div>
+    <div class="dolist">
+      <div class="do"><i>1</i><div><b>Cùng model, khác harness → khác kết quả.</b> Hai căn bếp, một đầu bếp: một nơi dụng cụ thiếu, phiếu mơ hồ; nơi kia sắp xếp tốt, yêu cầu rõ, có bước nếm thử. Agent làm chưa tốt đừng vội đổi model mạnh hơn — hỏi xem đã đủ thông tin, đủ công cụ, và có cách tự nhận ra lỗi chưa.</div></div>
+      <div class="do"><i>2</i><div><b>Cải thiện harness mà không xây lại từ đầu.</b> Bổ sung <code>agent.md</code>/<code>claude.md</code>, skill, quy trình lặp lại, hook kiểm tra tự động, kết nối công cụ cần thiết.</div></div>
+      <div class="do"><i>3</i><div><b>Lỗi lặp lại cần cơ chế, không chỉ lời nhắc.</b> Dán thêm giấy "nhớ tắt bếp" chưa chắc đủ — cần bộ hẹn giờ tự tắt. Hướng dẫn giúp agent biết nên làm gì; kiểm thử và phân quyền giúp phát hiện hoặc ngăn việc không được phép.</div></div>
+      <div class="do"><i>4</i><div><b>Cho agent biết kết quả đúng hay sai.</b> Code: kết quả test, thông báo lỗi. Giao diện: ảnh chụp màn hình đối chiếu yêu cầu. Phép tính: kiểm tra lại bằng công cụ. Đầu bếp không được nếm thì khó biết món đã vừa.</div></div>
+      <div class="do"><i>5</i><div><b>Muốn agent tự chủ → cho nó sandbox.</b> Một container hoặc máy ảo có giới hạn rõ — như căn bếp riêng để thử món mới, hỏng thì làm lại trong khi bếp chính vẫn phục vụ. Phạm vi ảnh hưởng càng kiểm soát tốt, càng có cơ sở để agent chủ động.</div></div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ — một yêu cầu đi qua cả harness: "Sửa giúp tôi lỗi nút đăng nhập không bấm được"</div>
+      <table>
+        <tr><th>#</th><th>Harness làm gì</th><th>Quán phở</th></tr>
+        <tr><td>1</td><td>Gom hướng dẫn: quy tắc chung, hướng dẫn riêng của dự án, thông tin môi trường</td><td>Nhận tờ hướng dẫn đầu ca, đọc phiếu</td></tr>
+        <tr><td>2</td><td>Vòng lặp: tìm code nút đăng nhập, đọc file cần thiết, tìm nguyên nhân; có thể giao agent con tìm hiểu một phần</td><td>Chuẩn bị nguyên liệu, nhờ phụ bếp kiểm kho</td></tr>
+        <tr><td>3</td><td>Trước khi công cụ chạy: kiểm tra quyền, hook cấu hình tham gia</td><td>Đúng dụng cụ, đúng khu vực theo quy định bếp</td></tr>
+        <tr><td>4</td><td>Sửa code, chạy kiểm thử; test lỗi thì đưa kết quả về để sửa tiếp</td><td>Nếm thử, chưa vừa thì nêm lại</td></tr>
+        <tr><td>5</td><td>Ghi lại diễn biến; ngữ cảnh quá dài thì giữ lại thông tin cần thiết</td><td>Ghi sổ nhật ký, dọn bàn để làm tiếp</td></tr>
+        <tr><td>6</td><td>Báo kết quả cho bạn</td><td>Bưng ra đúng bát phở bò tái không hành</td></tr>
+      </table>
+      <p><b>Bắt đầu từ đâu:</b> viết rõ hướng dẫn cho dự án → bổ sung quy trình cho việc lặp lại → chuẩn bị cách kiểm tra kết quả → quan sát agent vấp ở đâu rồi cải thiện ở đó.</p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <b>Prompt</b> = viết yêu cầu rõ ràng · <b>Context</b> = đúng thông tin, đúng thời điểm · <b>Harness</b> = tổ chức cả quá trình để model dùng thông tin, hành động, kiểm tra và tiếp tục.<br><br>
+  Agent = Model + Harness. Nguồn: "Tất cả những gì bạn cần biết về Harness Engineering" — Việt Nguyễn AI (youtu.be/e-bwG7iz6Rs)
+</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="ai/tong-hop/harness-engineering.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
