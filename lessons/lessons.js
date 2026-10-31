@@ -78,5 +78,18 @@ window.LESSONS = [
     "title": "Mô tả workload bằng tải cao điểm theo từng phút, không chỉ bằng số trung bình",
     "description": "Dashboard báo 40 req/s nhưng nginx trả 502: trung bình theo ngày che mất burst 900 req/s kéo dài 3 phút. Đếm peak theo phút bằng awk, viết mục workload sáu dòng và dự báo peak theo nguyên nhân.",
     "readTime": "10 phút đọc"
+  },
+  {
+    "id": "sd1-06",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-06.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 7,
+    "title": "Ước lượng số máy, dung lượng và băng thông trước khi làm tính năng",
+    "description": "Bảng giả định, dung lượng mỗi năm, băng thông, Little's Law và headroom để ước lượng số instance.",
+    "readTime": "12 phút đọc"
   }
 ];
