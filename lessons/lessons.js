@@ -65,5 +65,18 @@ window.LESSONS = [
     "title": "Thay yêu cầu “nhanh và luôn chạy” bằng SLO và error budget",
     "description": "Tối qua app checkout crash từ 20:00 tới 20:45. Sáng nay dev nói \"log app không có lỗi 5xx\", product dán ticket \"bấm thanh toán là lỗi\". Cả hai đều đúng — nhưng không ai có số liệu để trả lời. Mọi con số trong trang là số minh hoạ của bài.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "sd1-05",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-05.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 6,
+    "title": "Mô tả workload bằng tải cao điểm theo từng phút, không chỉ bằng số trung bình",
+    "description": "Dashboard báo 40 req/s nhưng nginx trả 502: trung bình theo ngày che mất burst 900 req/s kéo dài 3 phút. Đếm peak theo phút bằng awk, viết mục workload sáu dòng và dự báo peak theo nguyên nhân.",
+    "readTime": "10 phút đọc"
   }
 ];

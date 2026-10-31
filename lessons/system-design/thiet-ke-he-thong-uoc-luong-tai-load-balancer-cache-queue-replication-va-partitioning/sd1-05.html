@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workload theo phút — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;fill:var(--ink);}
+  svg text.sm{font-size:10.5px;fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke:var(--line);stroke-width:1.5;}
+  svg .ln{stroke:var(--ink-dim);stroke-width:1.5;fill:none;}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-05">
+  <meta name="lesson:title" content="Mô tả workload bằng tải cao điểm theo từng phút, không chỉ bằng số trung bình">
+  <meta name="lesson:description" content="Dashboard báo 40 req/s nhưng nginx trả 502: trung bình theo ngày che mất burst 900 req/s kéo dài 3 phút. Đếm peak theo phút bằng awk, viết mục workload sáu dòng và dự báo peak theo nguyên nhân.">
+  <meta name="lesson:order" content="6">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="10 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">System Design · Workload · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Dashboard báo <span class="a">40 req/s</span>, nhưng nginx trả 502 vì <span class="b">900 req/s</span> trong 3 phút</h1>
+  <div class="sub">Số trung bình không sai — nó chỉ không nói được gì về đợt tải cao điểm. Mỗi phần gồm sơ đồ → cơ chế → ví dụ số liệu thật của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 215" role="img" aria-label="Request đi từ job push qua nginx, app, Postgres; nginx ghi access log">
+      <rect class="box" x="14" y="30" width="120" height="52" rx="8" stroke="var(--grow)"/>
+      <text class="sm" x="74" y="52" text-anchor="middle" fill="var(--grow)">JOB PUSH 20:00</text>
+      <text class="sm" x="74" y="70" text-anchor="middle">1.200.000 người</text>
+      <path class="ln" d="M134,56 L170,56" marker-end="url(#a-dim)"/>
+
+      <rect class="box" x="174" y="30" width="110" height="52" rx="8"/>
+      <text class="sm" x="229" y="52" text-anchor="middle">NGƯỜI DÙNG</text>
+      <text class="sm" x="229" y="70" text-anchor="middle">bấm vào push</text>
+      <path class="ln" d="M284,56 L320,56" marker-end="url(#a-dim)"/>
+
+      <rect class="box" x="324" y="30" width="110" height="52" rx="8" stroke="var(--cmd)"/>
+      <text class="sm" x="379" y="52" text-anchor="middle" fill="var(--cmd)">NGINX</text>
+      <text class="sm" x="379" y="70" text-anchor="middle">ghi access log</text>
+      <path class="ln" d="M434,56 L470,56" marker-end="url(#a-dim)"/>
+
+      <rect class="box" x="474" y="30" width="90" height="52" rx="8" stroke="var(--peak)"/>
+      <text class="sm" x="519" y="52" text-anchor="middle" fill="var(--peak)">APP</text>
+      <text class="sm" x="519" y="70" text-anchor="middle">chịu ~300/s</text>
+      <path class="ln" d="M564,56 L590,56" marker-end="url(#a-dim)"/>
+
+      <rect class="box" x="594" y="30" width="92" height="52" rx="8" stroke="var(--spec)"/>
+      <text class="sm" x="640" y="52" text-anchor="middle" fill="var(--spec)">POSTGRES</text>
+      <text class="sm" x="640" y="70" text-anchor="middle">giữ state</text>
+
+      <path class="ln ln-d" stroke="var(--peak)" d="M379,82 L379,128 L519,128 L519,86" marker-end="url(#a-peak)"/>
+      <text class="sm" x="450" y="148" text-anchor="middle" fill="var(--peak)">900 req/s &gt; 300 → nginx trả 502</text>
+
+      <rect class="box" x="150" y="168" width="400" height="34" rx="8"/>
+      <text class="sm" x="350" y="190" text-anchor="middle">Dashboard theo ngày: 40 req/s ≈ 13% mức chịu được → "dư sức"</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Request đi qua ba chặng; nginx ghi lại từng request, và access log là nguồn số liệu cho cả bài</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Peak bị che</b></span>
+    <span>02 <b>Khoảng gộp</b></span>
+    <span>03 <b>Đếm bằng awk</b></span>
+    <span>04 <b>Workload 6 dòng</b></span>
+    <span>05 <b>Dự báo peak</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Trung bình theo ngày che mất đợt burst 3 phút</h2>
+    <p class="desc">Cả ngày 02/10 có <b>3.456.000 request</b> (40 × 86.400 giây). Burst lúc 20:00 là <b>900 × 180 = 162.000 request</b> — chỉ khoảng <b>4,7%</b> số request của ngày, dồn vào <b>0,21%</b> thời gian. Khi chia đều cho 86.400 giây, phần 4,7% ấy bị trải mỏng và gần như không làm số trung bình nhích lên. Vì vậy dashboard vẫn phẳng ở 40 trong khi ba phút đó nginx trả 502.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 240" role="img" aria-label="Biểu đồ request/giây theo từng phút quanh 20:00 ngày 02/10">
+        <line x1="60" y1="200" x2="660" y2="200" stroke="var(--line)" stroke-width="1.5"/>
+        <!-- 900 -> 150px ; 60 -> 10px ; 300 -> 50px -->
+        <rect x="90"  y="190" width="70" height="10"  fill="var(--avg)"  opacity=".8"/>
+        <rect x="190" y="50"  width="70" height="150" fill="var(--peak)"/>
+        <rect x="290" y="50"  width="70" height="150" fill="var(--peak)"/>
+        <rect x="390" y="50"  width="70" height="150" fill="var(--peak)"/>
+        <rect x="490" y="190" width="70" height="10"  fill="var(--avg)"  opacity=".8"/>
+        <line x1="60" y1="150" x2="660" y2="150" stroke="var(--cmd)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text class="sm" x="662" y="146" text-anchor="end" fill="var(--cmd)">mức chịu được: 300</text>
+        <line x1="60" y1="194" x2="660" y2="194" stroke="var(--avg)" stroke-width="1" stroke-dasharray="2 4"/>
+        <text class="sm" x="658" y="186" text-anchor="end" fill="var(--avg)">TB theo ngày: 40</text>
+        <text class="sm" x="125" y="182" text-anchor="middle">60</text>
+        <text class="sm" x="225" y="42" text-anchor="middle" fill="var(--peak)">900</text>
+        <text class="sm" x="325" y="42" text-anchor="middle" fill="var(--peak)">900</text>
+        <text class="sm" x="425" y="42" text-anchor="middle" fill="var(--peak)">900</text>
+        <text class="sm" x="525" y="182" text-anchor="middle">60</text>
+        <text class="sm" x="125" y="218" text-anchor="middle">19:59</text>
+        <text class="sm" x="225" y="218" text-anchor="middle">20:00</text>
+        <text class="sm" x="325" y="218" text-anchor="middle">20:01</text>
+        <text class="sm" x="425" y="218" text-anchor="middle">20:02</text>
+        <text class="sm" x="525" y="218" text-anchor="middle">20:03</text>
+        <text class="sm" x="225" y="20" fill="var(--peak)">502 từ 20:00:02 → 20:02:58</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Ba cột 900 req/s vượt xa vạch 300 và trùng khít khung giờ nginx trả 502</div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card avg">
+        <h3>BẢN DASHBOARD THEO NGÀY</h3>
+        <div class="formula">26/09…02/10: 39–42 req/s</div>
+        <ul><li>Cả tuần phẳng quanh 40</li><li>40 ÷ 300 ≈ 13% → "dư sức gấp 7,5 lần"</li></ul>
+      </div>
+      <div class="card peak">
+        <h3>BẢN THEO TỪNG PHÚT</h3>
+        <div class="formula">60 → 900 → 900 → 900 → 60</div>
+        <ul><li>Cao 900, giữ đúng 3 phút</li><li>900 ÷ 300 = 300% → vượt gấp 3</li></ul>
+      </div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế</div>
+      <p>20:10, product nhắn: "khách bấm push thì gặp trang lỗi". Dev mở dashboard thấy 40 req/s, load test tháng trước đo được 300 — không có lý do gì để lo. Nhưng access log cho thấy các dòng <code>"GET /products/1234 HTTP/1.1" 502</code> liên tục trong 3 phút, tối nào cũng vậy. Hai nguồn số liệu từ cùng một luồng request, kết luận lại ngược nhau.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Cơ chế</div>
+    <h2 class="c-avg">Khoảng gộp phải ngắn hơn burst thì burst mới hiện ra</h2>
+    <p class="desc">Cùng một luồng request, gộp theo ba khoảng khác nhau cho ba con số đều đúng. Gộp theo giờ cũng che peak, chỉ che ít hơn gộp theo ngày. Nguyên tắc: <b>khoảng gộp phải ngắn hơn thời gian kéo dài của burst</b>. Với app web, gộp theo phút là mặc định hợp lý khi burst kéo dài vài phút; vài giây đầu sau push có thể còn cao hơn nữa, nhưng muốn mô tả burst 3 phút thì số liệu theo phút đã đủ thấy.</p>
+
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Gộp theo ngày</span><div class="bar-bg"><div class="bar-fill" style="width:4.4%;background:var(--avg)"></div><div class="bar-mark" style="left:33.3%"></div></div><span class="bar-val">40 req/s</span></div>
+      <div class="bar-row"><span class="bar-label">Gộp theo giờ 20:00</span><div class="bar-bg"><div class="bar-fill" style="width:11.3%;background:var(--avg)"></div><div class="bar-mark" style="left:33.3%"></div></div><span class="bar-val">102 req/s</span></div>
+      <div class="bar-row"><span class="bar-label">Gộp theo phút 20:01</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div><div class="bar-mark" style="left:33.3%"></div></div><span class="bar-val">900 req/s</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = 300 req/s, mức load test đã đo được</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — vì sao giờ 20:00 chỉ ra 102</div>
+      <pre>Tải nền   : 57 phút × 60 giây × 60 req/s = <span class="val">205.200</span> request
+Burst     :  3 phút × 60 giây × 900 req/s = <span class="val">162.000</span> request
+Cả giờ    : (205.200 + 162.000) / 3.600 giây = <span class="val">102 req/s</span>   <span class="cm"># vẫn dưới 300!</span>
+Phút 20:01: 54.000 / 60 giây                 = <span class="bad">900 req/s</span></pre>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Cách đo</div>
+    <h2 class="c-cmd">Tìm phút đông nhất bằng một lệnh awk trên access log</h2>
+    <p class="desc">Với log combined của nginx, thời điểm nằm ở trường thứ 4, dạng <code>[02/Oct/2026:20:01:13 +0700]</code>. Bỏ ký tự <code>[</code> rồi lấy 17 ký tự — <code>substr($4, 2, 17)</code> — được chuỗi chỉ còn tới phút. <code>sort | uniq -c</code> gom và đếm các dòng giống nhau, <code>sort -rn</code> xếp từ lớn xuống nhỏ. Log dạng JSON hay log của app chỉ cần đổi cách lấy chuỗi thời điểm, phần đếm giữ nguyên.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Pipeline đếm request theo phút từ access log">
+        <rect class="box" x="10" y="40" width="130" height="62" rx="8"/>
+        <text class="sm" x="75" y="64" text-anchor="middle">DÒNG LOG</text>
+        <text class="sm" x="75" y="82" text-anchor="middle">[02/Oct:20:01:13]</text>
+        <path class="ln" stroke="var(--cmd)" d="M140,71 L172,71" marker-end="url(#a-cmd)"/>
+        <rect class="box" x="176" y="40" width="130" height="62" rx="8" stroke="var(--cmd)"/>
+        <text class="sm" x="241" y="64" text-anchor="middle" fill="var(--cmd)">substr($4,2,17)</text>
+        <text class="sm" x="241" y="82" text-anchor="middle">02/Oct/2026:20:01</text>
+        <path class="ln" stroke="var(--cmd)" d="M306,71 L338,71" marker-end="url(#a-cmd)"/>
+        <rect class="box" x="342" y="40" width="130" height="62" rx="8" stroke="var(--cmd)"/>
+        <text class="sm" x="407" y="64" text-anchor="middle" fill="var(--cmd)">sort | uniq -c</text>
+        <text class="sm" x="407" y="82" text-anchor="middle">54000 …20:01</text>
+        <path class="ln" stroke="var(--cmd)" d="M472,71 L504,71" marker-end="url(#a-cmd)"/>
+        <rect class="box" x="508" y="40" width="180" height="62" rx="8" stroke="var(--peak)"/>
+        <text class="sm" x="598" y="64" text-anchor="middle" fill="var(--peak)">54.000 ÷ 60 giây</text>
+        <text class="sm" x="598" y="82" text-anchor="middle">= 900 request/giây</text>
+        <text class="sm" x="350" y="132" text-anchor="middle">cắt tới phút → đếm mỗi phút → chia 60 giây</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Từ một dòng log tới con số request/giây của từng phút</div>
+    </div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Lệnh &amp; kết quả trên log ngày 02/10</div>
+      <pre><span class="cm"># ba phút đông nhất</span>
+awk <span class="val">'{ print substr($4, 2, 17) }'</span> /var/log/nginx/access.log \
+  | sort | uniq -c | sort -rn | head -3
+
+<span class="cm"># một phút tối bình thường để đối chứng</span>
+awk <span class="val">'{ print substr($4, 2, 17) }'</span> /var/log/nginx/access.log \
+  | grep -c <span class="val">'^02/Oct/2026:20:03$'</span></pre>
+      <pre>  54000 02/Oct/2026:20:02
+  54000 02/Oct/2026:20:01
+  54000 02/Oct/2026:20:00
+3600
+
+20:01 : 54.000 / 60 = <span class="bad">900 req/s</span>   <span class="cm"># gấp 15× phút thường, 22,5× số TB 40</span>
+20:03 :  3.600 / 60 =  <span class="val">60 req/s</span>   <span class="cm"># phút tối bình thường</span></pre>
+      <p>Lọc thêm theo method trong ba phút này là có luôn tỉ lệ đọc/ghi của riêng các phút peak.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Kết quả</div>
+    <h2 class="c-spec">Mục workload sáu dòng thay cho một dòng "trung bình"</h2>
+    <p class="desc">Bản cũ chỉ ghi "trung bình 40 request/giây". Bản mới trả lời sáu câu hỏi mà hệ thống nào cũng tự đặt ra được: <b>volume</b> (một ngày bao nhiêu request), <b>peak</b> (phút đông nhất bao nhiêu req/s), <b>burst</b> (cao bao nhiêu, kéo dài bao lâu, lặp lại khi nào), <b>đọc/ghi</b> ngay trong các phút peak, <b>payload</b> (quyết định băng thông), <b>growth</b> (cái gì làm tải tăng). Sách DDIA gọi những thông số này là <i>load parameters</i>.</p>
+
+    <div class="tbl-scroll"><table>
+      <tr><th>Dòng</th><th>Trước khi sửa</th><th>Sau khi sửa</th></tr>
+      <tr><td class="k">volume</td><td>trung bình 40 req/s</td><td>3.456.000 req/ngày, TB 40 req/s</td></tr>
+      <tr><td class="k">peak</td><td><span class="miss">(không ghi)</span></td><td>900 req/s (phút 20:01, đếm từ access log)</td></tr>
+      <tr><td class="k">burst</td><td><span class="miss">(không ghi)</span></td><td>cao 900 req/s, kéo dài 3 phút (20:00–20:03), lặp mỗi tối sau push</td></tr>
+      <tr><td class="k">đọc/ghi</td><td><span class="miss">(không ghi)</span></td><td>phút peak: 95% đọc, 5% ghi (≈ 45 ghi/giây); cả ngày: 88% / 12%</td></tr>
+      <tr><td class="k">payload</td><td><span class="miss">(không ghi)</span></td><td>request ≈ 1 KB, response trang sản phẩm ≈ 45 KB</td></tr>
+      <tr><td class="k">growth</td><td><span class="miss">(không ghi)</span></td><td>peak tăng theo số người nhận push (1,2 triệu → sắp 1,8 triệu)</td></tr>
+    </table></div>
+
+    <div class="note"><b>Vì sao tỉ lệ đọc/ghi phải lấy ở phút peak:</b> cả ngày 88% là đọc, nhưng sau push người dùng chủ yếu mở trang sản phẩm nên lên 95%. Hệ thống dễ sập nhất ở đúng lúc này nên phải thiết kế theo tỉ lệ của peak.</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Đối chiếu hai bản mô tả với mức 300 req/s</div>
+      <div class="ba">
+        <div><b>Bản một dòng</b>40 req/s ≈ <span style="color:var(--avg)">13%</span> mức chịu được → kết luận "dư sức", không giải thích được 502.</div>
+        <div><b>Bản sáu dòng</b>900 req/s = <span style="color:var(--peak)">300%</span> mức chịu được, kéo dài 3 phút → khớp với 502 trong log.</div>
+      </div>
+      <p style="margin-top:10px;font-size:12.5px;color:var(--ink-dim)">Lưu ý: 502 nghĩa là nginx không nhận được response hợp lệ từ app đang quá tải. Bản mô tả giải thích vì sao có 502 đúng lúc đó, chưa nói chặng nào bên trong app hay Postgres lỗi trước.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Dự báo</div>
+    <h2 class="c-grow">Peak tăng theo nguyên nhân sinh ra nó, không theo số trung bình</h2>
+    <p class="desc">Trung bình theo ngày tăng 5%/tháng: sau 6 tháng chỉ <b>40 × 1,05⁶ ≈ 54 req/s</b>, còn xa mức 300 nên không ai lo. Nhưng peak không sinh ra từ số trung bình — nó sinh ra từ push. Phần tải do push tạo ra là <b>(900 − 60) × 180 = 151.200 lượt</b> mở trang, tức <b>12,6%</b> trong 1.200.000 người nhận. Marketing dự kiến danh sách tăng 50% lên 1.800.000; giữ nguyên 12,6% thì có 226.800 lượt, vẫn dồn vào 3 phút.</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 700 215" role="img" aria-label="So sánh dự báo theo trung bình và dự báo theo số người nhận push">
+        <rect class="box" x="20" y="20" width="310" height="160" rx="10"/>
+        <text class="lb" x="175" y="42" text-anchor="middle" fill="var(--avg)">DỰ BÁO SAI — THEO TRUNG BÌNH</text>
+        <rect class="box" x="40" y="62" width="120" height="48" rx="8" stroke="var(--avg)"/>
+        <text class="sm" x="100" y="83" text-anchor="middle">TB hôm nay</text><text x="100" y="101" text-anchor="middle" fill="var(--avg)">40</text>
+        <path class="ln" stroke="var(--avg)" d="M160,86 L190,86" marker-end="url(#a-dim)"/>
+        <rect class="box" x="194" y="62" width="120" height="48" rx="8" stroke="var(--avg)"/>
+        <text class="sm" x="254" y="83" text-anchor="middle">sau 6 tháng</text><text x="254" y="101" text-anchor="middle" fill="var(--avg)">54</text>
+        <text class="sm" x="175" y="140" text-anchor="middle">"vẫn xa 300, yên tâm"</text>
+        <text class="sm" x="175" y="160" text-anchor="middle" fill="var(--peak)">✗ không liên quan tới peak</text>
+
+        <rect class="box" x="370" y="20" width="310" height="160" rx="10" stroke="var(--grow)"/>
+        <text class="lb" x="525" y="42" text-anchor="middle" fill="var(--grow)">DỰ BÁO ĐÚNG — THEO NGUYÊN NHÂN</text>
+        <rect class="box" x="390" y="62" width="120" height="48" rx="8" stroke="var(--grow)"/>
+        <text class="sm" x="450" y="83" text-anchor="middle">người nhận push</text><text x="450" y="101" text-anchor="middle" fill="var(--grow)">1,2 → 1,8 tr</text>
+        <path class="ln" stroke="var(--grow)" d="M510,86 L540,86" marker-end="url(#a-grow)"/>
+        <rect class="box" x="544" y="62" width="120" height="48" rx="8" stroke="var(--peak)"/>
+        <text class="sm" x="604" y="83" text-anchor="middle">peak sau 6 tháng</text><text x="604" y="101" text-anchor="middle" fill="var(--peak)">1.320</text>
+        <text class="sm" x="525" y="140" text-anchor="middle">226.800 / 180 + 60 = 1.320 req/s</text>
+        <text class="sm" x="525" y="160" text-anchor="middle" fill="var(--cmd)">✓ 440% mức chịu được</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Cùng một app, hai cách dự báo cho hai kết luận cách nhau 24 lần</div>
+    </div>
+
+    <div class="tbl-scroll"><table>
+      <tr><th>Số liệu</th><th>Req/giây</th><th>So với mức 300</th></tr>
+      <tr><td>Trung bình theo ngày (bản cũ)</td><td>40</td><td>≈ 13%</td></tr>
+      <tr><td>Peak theo phút hiện tại</td><td>900</td><td><span class="miss">300%</span></td></tr>
+      <tr><td>Peak sau 6 tháng (1,8 triệu người)</td><td>1.320</td><td><span class="miss">440%</span></td></tr>
+      <tr><td>Chia push thành nhiều đợt trong 15 phút</td><td>228</td><td><span class="hit">76%</span></td></tr>
+      <tr><td>Chia đợt, sau 6 tháng</td><td>312</td><td><span class="miss">104%</span></td></tr>
+    </table></div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Hai hướng xử lý &amp; số liệu theo dõi</div>
+      <pre><span class="cm"># Hướng 1 (kỹ thuật): nâng khả năng chịu tải >= 900 req/s trong 3 phút
+#   và nhớ rằng mức đó sẽ thành 1.320 sau 6 tháng
+
+# Hướng 2 (product): chia push thành nhiều đợt trong 15 phút = 900 giây
+</span>peak = 151.200 / 900 + 60     = <span class="val">228 req/s</span>   <span class="cm"># dưới 300</span>
+sau 6 tháng = 226.800 / 900 + 60 = <span class="bad">312 req/s</span>   <span class="cm"># đã vượt 300</span></pre>
+      <p>Chia đợt chỉ mua thêm được vài tháng — và giả định "người dùng mở trang dàn đều" phải kiểm tra lại bằng peak theo phút sau lần gửi đầu tiên. Mỗi tối nên ghi <b>peak theo phút</b> và <b>số 502 theo từng phút</b> trong khung giờ push để biết thay đổi có tác dụng không.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Bốn câu hỏi mỗi khi ai đó nói "trung bình X req/s"</h2>
+    <div class="card-grid">
+      <div class="card avg"><h3>1 · KHOẢNG GỘP</h3><ul><li>Số đó gộp theo ngày, giờ hay phút?</li></ul></div>
+      <div class="card peak"><h3>2 · PEAK</h3><ul><li>Peak theo phút là bao nhiêu req/s?</li></ul></div>
+      <div class="card ok"><h3>3 · BURST</h3><ul><li>Kéo dài bao lâu, lặp lại vào lúc nào?</li></ul></div>
+      <div class="card grow"><h3>4 · NGUYÊN NHÂN</h3><ul><li>Cái gì sinh ra peak, và nó sắp tăng thêm bao nhiêu?</li></ul></div>
+    </div>
+    <div class="note"><b>Giới hạn của bản mô tả:</b> nó cho biết tải tăng tới mức nào và vào lúc nào, chưa cho biết bottleneck ở chặng nào hay cần bao nhiêu instance. Access log phải ghi thời điểm từng request và được giữ đủ lâu; mỗi chiến dịch mới (push, email, livestream) là một lần cập nhật dòng burst và growth.</div>
+    <p class="desc" style="margin-bottom:0">Số liệu trong bài là số minh hoạ của khóa học. Tối nay, thử chạy lệnh awk với access log của app bạn và xem phút đông nhất cao gấp bao nhiêu lần số trung bình trên dashboard.</p>
+  </section>
+
+</div>
+
+<footer>Trung bình cho biết bạn bận thế nào cả ngày — peak theo phút cho biết khi nào hệ thống sập</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-05.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
