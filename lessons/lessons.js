@@ -15,6 +15,32 @@ window.LESSONS = [
     "readTime": "12 phút đọc"
   },
   {
+    "id": "sd1-00",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-00.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 0,
+    "title": "Thiết kế hệ thống bắt đầu từ requirement, tải cao điểm và constraint",
+    "description": "Hai bản thiết kế thừa 13 lần và thiếu 5 lần, ba nhóm câu hỏi trước khi vẽ sơ đồ, và lộ trình bảy chặng của khóa.",
+    "readTime": "9 phút đọc"
+  },
+  {
+    "id": "sd1-01",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-01.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 1,
+    "title": "Request đi qua những chặng nào và state đang nằm ở đâu",
+    "description": "Session trong RAM khiến 2/3 request trả 401 khi chạy 3 instance; session store dùng chung, state bắt buộc và tradeoff.",
+    "readTime": "11 phút đọc"
+  },
+  {
     "id": "sd1-23",
     "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-23.html",
     "khoa": "System Design",
@@ -91,5 +117,18 @@ window.LESSONS = [
     "title": "Ước lượng số máy, dung lượng và băng thông trước khi làm tính năng",
     "description": "Bảng giả định, dung lượng mỗi năm, băng thông, Little's Law và headroom để ước lượng số instance.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "sd1-07",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-07.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 8,
+    "title": "Source of truth: dữ liệu nào là gốc, dữ liệu nào dựng lại được",
+    "description": "Bốn nơi trả bốn kết quả: source of truth theo từng loại dữ liệu, bản dẫn xuất dựng lại được, đo độ lệch.",
+    "readTime": "11 phút đọc"
   }
 ];

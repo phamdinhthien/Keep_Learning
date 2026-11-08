@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request path và state — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-01">
+  <meta name="lesson:title" content="Request đi qua những chặng nào và state đang nằm ở đâu">
+  <meta name="lesson:description" content="Session trong RAM khiến 2/3 request trả 401 khi chạy 3 instance; session store dùng chung, state bắt buộc và tradeoff.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="11 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Request path &amp; state · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Ba instance đều khỏe, CPU dưới 40%, vậy mà <span class="b">2/3 request</span> trả 401</h1>
+  <div class="sub">Lỗi không nằm ở phần cứng mà ở chỗ session đang được giữ: trong RAM của từng instance. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Request path với session nằm trong RAM của từng instance">
+      <rect class="box" x="10" y="98" width="96" height="46" rx="8"/>
+      <text class="sm" x="58" y="118" text-anchor="middle">TRÌNH DUYỆT</text><text class="sm" x="58" y="134" text-anchor="middle">cookie: sid</text>
+      <rect class="box" x="10" y="20" width="96" height="34" rx="8" stroke-dasharray="4 4"/>
+      <text class="sm" x="58" y="41" text-anchor="middle">DNS (bên cạnh)</text>
+      <path class="ln ln-d" d="M58,54 L58,94"/>
+      <path class="ln" d="M106,121 L146,121" marker-end="url(#a-dim)"/>
+      <rect class="box" x="150" y="98" width="110" height="46" rx="8" stroke="var(--avg)"/>
+      <text class="sm" x="205" y="118" text-anchor="middle" fill="var(--avg)">LOAD BALANCER</text><text class="sm" x="205" y="134" text-anchor="middle">round-robin</text>
+      <path class="ln" d="M260,112 L318,52" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M260,121 L318,121" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M260,130 L318,190" marker-end="url(#a-dim)"/>
+      <rect class="box" x="322" y="28" width="170" height="48" rx="8" stroke="var(--peak)"/>
+      <text class="sm" x="407" y="48" text-anchor="middle">App A</text><text class="sm" x="407" y="64" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
+      <rect class="box" x="322" y="97" width="170" height="48" rx="8" stroke="var(--peak)"/>
+      <text class="sm" x="407" y="117" text-anchor="middle">App B</text><text class="sm" x="407" y="133" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
+      <rect class="box" x="322" y="166" width="170" height="48" rx="8" stroke="var(--peak)"/>
+      <text class="sm" x="407" y="186" text-anchor="middle">App C</text><text class="sm" x="407" y="202" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
+      <path class="ln" d="M492,52 L556,112" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M492,121 L556,121" marker-end="url(#a-dim)"/>
+      <path class="ln" d="M492,190 L556,130" marker-end="url(#a-dim)"/>
+      <rect class="box" x="560" y="98" width="128" height="46" rx="8" stroke="var(--spec)"/>
+      <text class="sm" x="624" y="118" text-anchor="middle" fill="var(--spec)">POSTGRES</text><text class="sm" x="624" y="134" text-anchor="middle">giữ state</text>
+      <text class="sm" x="350" y="240" text-anchor="middle">Login vào A, request kế tiếp sang B → B không có session → 401</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Request đi từ trái sang phải; khung đỏ là nơi giữ state. DNS chỉ được hỏi khi chưa có IP trong cache nên nằm bên cạnh</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Triệu chứng</b></span>
+    <span>02 <b>Request path</b></span>
+    <span>03 <b>Xác suất 401</b></span>
+    <span>04 <b>Session store</b></span>
+    <span>05 <b>State bắt buộc</b></span>
+    <span>06 <b>Tradeoff</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Scale từ 1 lên 3 instance, CPU giảm, khách liên tục bị đăng xuất</h2>
+    <p class="desc">14:00, CPU chạm <b>85%</b> giờ cao điểm, bạn bật thêm 2 instance sau load balancer. CPU mỗi máy xuống dưới <b>40%</b>, không có lỗi 5xx. Mười phút sau, kênh hỗ trợ tràn lời phàn nàn: "cứ vài phút lại bị đăng xuất, bấm thanh toán là mất giỏ hàng".</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Giờ</th><th>Instance</th><th>Ticket/giờ</th><th>Lỗi 401</th><th>Login/giờ</th><th>CPU TB</th></tr>
+      <tr><td class="k">11–12h</td><td>1</td><td>0</td><td>0,3%</td><td>1.180</td><td>58%</td></tr>
+      <tr><td class="k">12–13h</td><td>1</td><td>1</td><td>0,4%</td><td>1.250</td><td>72%</td></tr>
+      <tr><td class="k">13–14h</td><td>1</td><td>1</td><td>0,3%</td><td>1.210</td><td><span class="miss">85%</span></td></tr>
+      <tr><td class="k">14–15h</td><td>3</td><td><span class="miss">41</span></td><td><span class="miss">63,1%</span></td><td><span class="miss">9.120</span></td><td><span class="hit">38%</span></td></tr>
+      <tr><td class="k">15–16h</td><td>3</td><td><span class="miss">57</span></td><td><span class="miss">65,2%</span></td><td><span class="miss">9.450</span></td><td><span class="hit">36%</span></td></tr>
+      <tr><td class="k">16–17h</td><td>3</td><td><span class="miss">52</span></td><td><span class="miss">64,0%</span></td><td><span class="miss">9.080</span></td><td><span class="hit">37%</span></td></tr>
+    </table></div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế (số minh hoạ của bài)</div>
+      <p>Khách phải điền lại form đăng nhập liên tục, nên lượt login thành công vọt từ khoảng 1.200 lên hơn 9.000 mỗi giờ. Giỏ hàng lưu kèm phiên đăng nhập, bị văng ra là mất giỏ, nên số đơn hoàn tất từ 14:00 đến 17:00 giảm khoảng <b>30%</b> so với hôm trước. Network thông suốt, database phản hồi nhanh: không có gì "hỏng" theo nghĩa thông thường.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Bản đồ</div>
+    <h2 class="c-avg">Mỗi chặng trên request path đều có cách hỏng riêng</h2>
+    <p class="desc">Request path là chuỗi chặng một request đi qua, từ trình duyệt tới nơi lưu dữ liệu rồi quay lại. Quy ước vẽ cho cả khóa: <b>request đi từ trái sang phải</b>, thành phần nào <b>giữ state</b> (dữ liệu mà request sau bắt buộc phải đọc lại) thì đánh nhãn hoặc đóng khung nổi bật. Lúc cao điểm có khoảng <b>300 req/s</b> vào các endpoint cần đăng nhập, khoảng <b>1.500 người dùng</b> đồng thời.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Chặng</th><th>Cách có thể hỏng</th></tr>
+      <tr><td class="k">DNS</td><td>Trả IP cũ sau khi chuyển hạ tầng, client kết nối vào server đã tắt</td></tr>
+      <tr><td class="k">Load balancer</td><td>Hết instance healthy, hoặc chính proxy chạm trần → 502 Bad Gateway</td></tr>
+      <tr><td class="k">App instance</td><td>Rò rỉ bộ nhớ hết RAM, CPU chạm trần, process bị hệ điều hành tắt</td></tr>
+      <tr><td class="k">Database</td><td>Cạn connection pool, truy vấn giữ khóa lâu khiến request phía trước xếp hàng tới timeout</td></tr>
+    </table></div>
+    <div class="note"><b>Điểm mấu chốt:</b> khi gom session vào biến <code>Map</code> trong RAM của process, bạn đã biến tầng app thành nơi giữ state cục bộ, dù sơ đồ vẫn vẽ nó như tầng "chỉ xử lý".</div>
+  </section>
+
+  <section>
+    <div class="tag">03. Cơ chế</div>
+    <h2 class="c-peak">Xác suất rơi vào instance không có session là (N − 1) / N</h2>
+    <p class="desc">Round-robin chia request lần lượt A → B → C → A… Bạn <code>POST /login</code> vào A, A tạo session ID, lưu vào <code>Map</code> trong RAM của nó và trả cookie. Bạn bấm <code>GET /orders/history</code>, request sang B; B tra <code>Map</code> của nó không thấy → <b>401 Unauthorized</b>. Với N instance và tải chia gần đều, mỗi request cần đăng nhập chỉ có <b>1/N</b> cơ hội rơi đúng máy.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">N = 1</span><div class="bar-bg"><div class="bar-fill" style="width:0%;background:var(--peak)"></div></div><span class="bar-val">miss 0%</span></div>
+      <div class="bar-row"><span class="bar-label">N = 2</span><div class="bar-bg"><div class="bar-fill" style="width:50%;background:var(--peak)"></div></div><span class="bar-val">miss 50%</span></div>
+      <div class="bar-row"><span class="bar-label">N = 3 (bài)</span><div class="bar-bg"><div class="bar-fill" style="width:66.7%;background:var(--peak)"></div></div><span class="bar-val">miss 66,7%</span></div>
+      <div class="bar-row"><span class="bar-label">N = 4</span><div class="bar-bg"><div class="bar-fill" style="width:75%;background:var(--peak)"></div></div><span class="bar-val">miss 75%</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">N = 2 và N = 4 là mình tự tính từ cùng công thức để thấy xu hướng; bài chỉ dùng N = 3</div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — khớp với số đo trên dashboard</div>
+      <pre>N = 3
+P(hit)  = 1/3           ≈ 33,3%
+P(miss) = 1 − 1/3 = 2/3 ≈ <span class="bad">66,7%</span>
+
+Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
+Đo thực tế: 63%–65%          ≈ 189–195 req/s   <span class="cm"># lệch vài % do keep-alive, phân bố người dùng</span></pre>
+      <p>Lỗi này có từ lúc chỉ chạy 1 instance: mỗi lần deploy ban đêm, process khởi động lại xoá trắng <code>Map</code>, cả ~1.500 người online bị đăng xuất. Chỉ lác đác 1–2 ticket nên không ai để ý. Lên 3 instance không tạo ra lỗi mới, mà biến lỗi tiềm ẩn mỗi tuần thành lỗi mỗi phút.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Cách sửa</div>
+    <h2 class="c-cmd">Đưa session ra session store dùng chung để instance không còn giữ state</h2>
+    <p class="desc"><b>Session store</b> là kho đặt ngoài process app (thường là Redis hoặc một bảng trong database) mà instance nào cũng đọc được. Request rơi vào instance nào thì instance đó cũng nhận ra người dùng; thêm hay bớt instance không còn làm ai bị đăng xuất.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 200" role="img" aria-label="Ba instance stateless cùng đọc session từ Redis">
+        <rect class="box" x="10" y="76" width="110" height="46" rx="8" stroke="var(--avg)"/>
+        <text class="sm" x="65" y="104" text-anchor="middle" fill="var(--avg)">LOAD BALANCER</text>
+        <path class="ln" d="M120,90 L178,40" marker-end="url(#a-dim)"/><path class="ln" d="M120,99 L178,99" marker-end="url(#a-dim)"/><path class="ln" d="M120,108 L178,158" marker-end="url(#a-dim)"/>
+        <rect class="box" x="182" y="18" width="140" height="42" rx="8"/><text class="sm" x="252" y="44" text-anchor="middle">App A (stateless)</text>
+        <rect class="box" x="182" y="78" width="140" height="42" rx="8"/><text class="sm" x="252" y="104" text-anchor="middle">App B (stateless)</text>
+        <rect class="box" x="182" y="138" width="140" height="42" rx="8"/><text class="sm" x="252" y="164" text-anchor="middle">App C (stateless)</text>
+        <path class="ln" stroke="var(--cmd)" d="M322,39 L440,58" marker-end="url(#a-cmd)"/><path class="ln" stroke="var(--cmd)" d="M322,99 L440,66" marker-end="url(#a-cmd)"/><path class="ln" stroke="var(--cmd)" d="M322,159 L440,74" marker-end="url(#a-cmd)"/>
+        <rect class="box" x="444" y="40" width="180" height="46" rx="8" stroke="var(--cmd)"/>
+        <text class="sm" x="534" y="60" text-anchor="middle" fill="var(--cmd)">REDIS · session store</text><text class="sm" x="534" y="76" text-anchor="middle">giữ state</text>
+        <path class="ln" d="M322,105 L440,140" marker-end="url(#a-dim)"/>
+        <rect class="box" x="444" y="120" width="180" height="46" rx="8" stroke="var(--spec)"/>
+        <text class="sm" x="534" y="140" text-anchor="middle" fill="var(--spec)">POSTGRES</text><text class="sm" x="534" y="156" text-anchor="middle">giữ state</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Ba instance bình đẳng; state chỉ còn ở Redis và Postgres</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code — middleware xác thực đổi từ RAM sang Redis</div>
+      <pre><span class="cm">// Trước: đọc từ RAM của chính instance</span>
+<span class="cm">// const session = inMemorySessionMap.get(sessionId);</span>
+
+<span class="cm">// Sau: đọc từ session store mà mọi instance cùng trỏ tới</span>
+<span class="kw">const</span> sessionData = <span class="kw">await</span> redisClient.get(`session:${sessionId}`);
+<span class="kw">if</span> (!sessionData) {
+  <span class="kw">return</span> response.status(<span class="val">401</span>).json({ error: <span class="val">"Unauthorized"</span> });
+}
+<span class="kw">const</span> session = JSON.parse(sessionData);</pre>
+      <p>Phạm vi bảo đảm: session không mất khi đổi số instance. Một instance tắt đột ngột đúng lúc đang xử lý dở thì request dở dang đó vẫn có thể lỗi.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Phân loại</div>
+    <h2 class="c-spec">Mất dữ liệu này thì kết quả sai, hay chỉ chậm hơn?</h2>
+    <p class="desc">Stateless không có nghĩa là xoá mọi dữ liệu tạm khỏi code. Hệ thống luôn cần state; việc cần làm là dời state từ nơi không được giữ (RAM của process có thể bị tắt, nhân bản tuỳ ý) sang backing service chuyên dụng. The Twelve-Factor App (phần "Processes") gọi đây là process stateless, share-nothing.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Dữ liệu trong instance</th><th>Request sau không thấy nó thì</th><th>Xử lý</th></tr>
+      <tr><td class="k">Session người dùng</td><td><span class="miss">401 Unauthorized</span> — kết quả sai</td><td>Dời ra session store</td></tr>
+      <tr><td class="k">File upload trên đĩa local</td><td><span class="miss">404 Not Found</span> — <code>POST /avatar</code> ghi vào A, <code>GET /avatar/user1.jpg</code> rơi vào B</td><td>Dời ra nơi lưu tập trung</td></tr>
+      <tr><td class="k">In-process cache</td><td><span class="hit">chậm thêm vài ms</span> — đọc lại từ Postgres, kết quả vẫn đúng</td><td>Giữ lại trong RAM được</td></tr>
+    </table></div>
+    <div class="card-grid">
+      <div class="card avg"><h3>STICKY SESSION</h3><ul><li>Gắn người dùng với một instance cố định qua cookie hoặc IP</li><li>Triệu chứng biến mất, nhưng state vẫn nằm trong instance</li></ul></div>
+      <div class="card grow"><h3>COOKIE ĐÃ KÝ</h3><ul><li>Dời toàn bộ dữ liệu phiên ra trình duyệt, ký số trong cookie</li><li>Instance không cần tra kho nào</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Tradeoff</div>
+    <h2 class="c-grow">Tách session có giá: thêm một round trip, thêm một điểm lỗi</h2>
+    <div class="card-grid">
+      <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Mỗi request cần đăng nhập thêm ≥ 1 round trip, khoảng <b>0,5 ms</b> trong cùng datacenter</li><li>Redis sập thì mọi thao tác cần đăng nhập đều lỗi, dù app vẫn khỏe</li><li>Thêm một thành phần phải theo dõi RAM, cấu hình, dự phòng</li></ul></div>
+      <div class="card ok"><h3>CHỌN KHO NÀO</h3><ul><li><b>Redis</b>: rất nhanh, có sẵn TTL để session tự hết hạn, nhưng là service riêng phải chăm</li><li><b>Bảng sessions trong Postgres</b>: không thêm service, nhưng Postgres gánh thêm ~300 query/s lúc cao điểm</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Số đo trước / sau khi dời sang Redis</div>
+      <pre>Dung lượng : 1.500 phiên × ~1 KB = <span class="val">~1,5 MB</span> RAM trên Redis
+
+Chỉ số             3 instance, session RAM   Sau khi dời sang Redis
+Lỗi 401            <span class="bad">63% – 65%</span>                 <span class="val">0,3%</span>
+Login / giờ        <span class="bad">9.080 – 9.450</span>             <span class="val">1.210</span>
+Ticket / giờ       <span class="bad">52 – 57</span>                   <span class="val">0 – 1</span>
+CPU TB             36% – 38%                 37% – 39%
+Latency thêm       0 ms                      ~0,5 ms
+
+Restart thử 1 instance lúc thấp điểm: <span class="val">0</span> người bị đăng xuất, tỉ lệ 401 không đổi</pre>
+    </div>
+    <div class="note"><b>Khi nào chưa cần dời?</b> Chỉ chạy 1 instance, tài nguyên còn dư, và việc mọi người bị đăng xuất mỗi lần deploy ban đêm không ảnh hưởng cam kết kinh doanh: session trong RAM vẫn là cách đơn giản và rẻ nhất.</div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Ba câu hỏi trước khi scale ngang một service</h2>
+    <div class="card-grid">
+      <div class="card avg"><h3>1 · ĐƯỜNG ĐI</h3><ul><li>Vẽ request path từ trình duyệt tới database: dữ liệu dừng ở những chặng nào?</li></ul></div>
+      <div class="card peak"><h3>2 · STATE BẮT BUỘC</h3><ul><li>Bộ nhớ hay ổ đĩa của instance có đang giữ state bắt buộc của người dùng không?</li></ul></div>
+      <div class="card ok"><h3>3 · INSTANCE MỚI</h3><ul><li>Thêm một instance ngay lúc này, request rơi vào nó có nhận kết quả sai không?</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Scale out chỉ tăng sức chịu tải khi tầng đó thật sự stateless. Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Thêm instance không tạo ra lỗi mới, nó làm lộ state đang nằm sai chỗ</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-01.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

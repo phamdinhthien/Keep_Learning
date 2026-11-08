@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source of truth — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-07">
+  <meta name="lesson:title" content="Source of truth: dữ liệu nào là gốc, dữ liệu nào dựng lại được">
+  <meta name="lesson:description" content="Bốn nơi trả bốn kết quả: source of truth theo từng loại dữ liệu, bản dẫn xuất dựng lại được, đo độ lệch.">
+  <meta name="lesson:order" content="8">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="11 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Source of truth · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Bốn nơi, bốn kết quả: bản nào <span class="a">là gốc</span>, bản nào <span class="b">dựng lại được</span>?</h1>
+  <div class="sub">Mỗi loại dữ liệu có đúng một source of truth; cache, search index, bảng báo cáo chỉ là bản dẫn xuất và phải dựng lại được từ đó. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 -22 700 262" role="img" aria-label="Luồng ghi dữ liệu trước khi sửa">
+      <rect class="box" x="10" y="96" width="80" height="46" rx="8" stroke="var(--cmd)"/>
+      <text class="sm" x="50" y="124" text-anchor="middle" fill="var(--cmd)">APP</text>
+      <path class="ln" d="M90,108 L176,40" marker-end="url(#a-dim)"/><text class="sm" x="70" y="40">giá, tồn kho</text>
+      <path class="ln" d="M90,132 L176,198" marker-end="url(#a-dim)"/><text class="sm" x="104" y="184">đơn hàng</text>
+      <rect class="box" x="180" y="18" width="130" height="44" rx="8" stroke="var(--spec)"/>
+      <text class="sm" x="245" y="45" text-anchor="middle" fill="var(--spec)">products</text>
+      <rect class="box" x="180" y="176" width="130" height="44" rx="8" stroke="var(--spec)"/>
+      <text class="sm" x="245" y="203" text-anchor="middle" fill="var(--spec)">orders</text>
+      <path class="ln" d="M310,40 L366,104" marker-end="url(#a-dim)"/><path class="ln" d="M310,198 L366,136" marker-end="url(#a-dim)"/>
+      <rect class="box" x="370" y="98" width="120" height="42" rx="8"/>
+      <text class="sm" x="430" y="124" text-anchor="middle">worker đồng bộ</text>
+      <path class="ln" d="M490,110 L556,44" marker-end="url(#a-dim)"/>
+      <path class="ln" stroke="var(--peak)" d="M490,128 L556,194" marker-end="url(#a-peak)"/><text class="sm" x="534" y="148" fill="var(--peak)">total + amount</text>
+      <rect class="box" x="560" y="18" width="130" height="44" rx="8" stroke="var(--avg)"/>
+      <text class="sm" x="625" y="45" text-anchor="middle" fill="var(--avg)">search index</text>
+      <rect class="box" x="560" y="176" width="130" height="44" rx="8" stroke="var(--avg)"/>
+      <text class="sm" x="625" y="203" text-anchor="middle" fill="var(--avg)">daily_revenue</text>
+      <path class="ln" stroke="var(--peak)" d="M50,96 L50,6 L625,6 L625,14" marker-end="url(#a-peak)"/>
+      <text class="sm" x="340" y="-6" text-anchor="middle" fill="var(--peak)">app ghi thẳng 1.200 nhãn khuyến mãi vào index</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Hai mũi tên đỏ là chỗ gây chuyện: index nhận dữ liệu không đi qua Postgres, daily_revenue chỉ biết cộng dồn</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Bốn kết quả</b></span>
+    <span>02 <b>Vì sao không dám sửa</b></span>
+    <span>03 <b>Một nguồn gốc</b></span>
+    <span>04 <b>Phép thử dựng lại</b></span>
+    <span>05 <b>Đo độ lệch</b></span>
+    <span>06 <b>Bảng ghi chú</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Worker ngừng từ 14:10, lúc 16:40 không ai biết giá thật</h2>
+    <p class="desc">Cửa hàng có <b>200.000 sản phẩm</b>, khoảng <b>3.000 đơn</b> mỗi ngày. App ghi giá, tồn kho vào <code>products</code> và đơn vào <code>orders</code> (cùng một Postgres). Worker đẩy thay đổi của <code>products</code> sang search index và cộng tiền mỗi đơn mới vào <code>daily_revenue</code>. Tra sản phẩm #48213 ở bốn nơi:</p>
+    <div class="card-grid">
+      <div class="card avg">
+        <h3>CÙNG MỘT SẢN PHẨM</h3>
+        <div class="formula">products: 450.000 đ · tồn 0</div><br>
+        <div class="formula">index&nbsp;&nbsp;&nbsp;: 520.000 đ · tồn 5</div>
+      </div>
+      <div class="card peak">
+        <h3>CÙNG MỘT NGÀY BÁN</h3>
+        <div class="formula">orders&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 47 đơn · 23.250.000 đ</div><br>
+        <div class="formula">daily_revenue: 25 đơn · 13.000.000 đ</div>
+      </div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế (số minh hoạ của bài)</div>
+      <p>Product hỏi khách đang thấy giá 450.000 đ hay 520.000 đ. Kế toán hỏi báo cáo cuối ngày lấy số từ đâu. Không tài liệu nào ghi giá "thật" nằm ở đâu, và nơi nào trong bốn nơi cũng có lý do để được tin. Trong 2,5 giờ worker ngừng, checkout đọc tồn kho từ index nên nhận <b>9 đơn</b> cho sản phẩm đã hết hàng — cả 9 phải huỷ kèm khiếu nại.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Nguyên nhân</div>
+    <h2 class="c-avg">Dựng lại index từ Postgres? Sẽ mất sạch 1.200 nhãn khuyến mãi</h2>
+    <p class="desc">Cách nghĩ đầu tiên: Postgres là database chính, xoá index rồi dựng lại. Nhưng trang admin ghi nhãn "Giảm 20%", "Freeship" thẳng vào index, Postgres không có bản nào. Index không còn là bản chép, nó đã thành <b>nguồn thứ hai không ai đặt tên</b>.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lý do không ai trả lời được "bản nào đúng"</th><th>Biểu hiện</th></tr>
+      <tr><td class="k">Index giữ dữ liệu riêng</td><td>1.200 nhãn chỉ có trong index → dựng lại là mất</td></tr>
+      <tr><td class="k">Bảng chỉ cộng dồn</td><td><code>total = total + amount</code> không nhớ đã cộng đơn nào → tổng lệch thì không biết bù đơn nào</td></tr>
+      <tr><td class="k">Không có ghi chú</td><td>Không chỗ nào ghi bản gốc nằm đâu → mỗi người tin một nơi</td></tr>
+    </table></div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — 22 đơn thiếu nằm ở hai khoảng giờ</div>
+      <pre>Worker ngừng 14:10 · 14:30 app đổi giá 3.140 sản phẩm từ 520.000 → 450.000 đ
+
+orders, trước 14:30 : 30 đơn × 520.000 = 15.600.000 đ
+orders, sau 14:30   : 17 đơn × 450.000 =  7.650.000 đ
+orders, cả ngày     : 47 đơn           = <span class="val">23.250.000 đ</span>
+
+daily_revenue (tới 14:10) : 25 đơn × 520.000 = 13.000.000 đ
+Thiếu 14:10 → 14:30       :  5 đơn × 520.000 =  2.600.000 đ
+Thiếu sau 14:30           : 17 đơn × 450.000 =  7.650.000 đ
+Tổng thiếu                : 22 đơn           = <span class="bad">10.250.000 đ</span>
+
+Index còn giá cũ : 3.140 / 200.000 = <span class="bad">1,57%</span> document</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Nguyên tắc</div>
+    <h2 class="c-spec">Mỗi loại dữ liệu chỉ có một nơi giữ bản gốc</h2>
+    <p class="desc"><b>Source of truth</b> (DDIA gọi là <b>system of record</b>) là nơi giữ bản được coi là đúng; khi hai nơi lệch, bản ở đây thắng. <b>Dữ liệu dẫn xuất</b> (cache, search index, bảng báo cáo, view tổng hợp) là phần trùng lặp có chủ đích để đọc nhanh hơn hoặc đọc theo kiểu khác, và vì sinh ra từ bản gốc nên mất đi vẫn dựng lại được. Source of truth chọn <b>theo từng loại dữ liệu</b>: <code>daily_revenue</code> nằm ngay trong Postgres nhưng vẫn là bản dẫn xuất, vì gốc của doanh thu là từng đơn trong <code>orders</code>.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 200" role="img" aria-label="Luồng ghi sau khi sửa">
+        <rect class="box" x="10" y="78" width="80" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="50" y="105" text-anchor="middle" fill="var(--cmd)">APP</text>
+        <path class="ln" d="M90,90 L176,40" marker-end="url(#a-dim)"/><text class="sm" x="12" y="66">giá, tồn, nhãn</text>
+        <path class="ln" d="M90,110 L176,160" marker-end="url(#a-dim)"/>
+        <rect class="box" x="180" y="18" width="150" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="255" y="38" text-anchor="middle" fill="var(--spec)">products</text><text class="sm" x="255" y="54" text-anchor="middle">+ cột promo_label</text>
+        <rect class="box" x="180" y="138" width="150" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="255" y="165" text-anchor="middle" fill="var(--spec)">orders</text>
+        <path class="ln" d="M330,40 L376,88" marker-end="url(#a-dim)"/><path class="ln" d="M330,160 L376,112" marker-end="url(#a-dim)"/>
+        <rect class="box" x="380" y="80" width="120" height="40" rx="8"/><text class="sm" x="440" y="105" text-anchor="middle">worker</text>
+        <path class="ln" stroke="var(--cmd)" d="M500,92 L556,44" marker-end="url(#a-cmd)"/><text class="sm" x="440" y="70" text-anchor="middle" fill="var(--cmd)">đẩy + dựng lại ↗</text>
+        <path class="ln" stroke="var(--cmd)" d="M500,108 L556,156" marker-end="url(#a-cmd)"/><text class="sm" x="440" y="140" text-anchor="middle" fill="var(--cmd)">tính lại GROUP BY ↘</text>
+        <rect class="box" x="560" y="18" width="130" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="625" y="45" text-anchor="middle" fill="var(--avg)">search index</text>
+        <rect class="box" x="560" y="138" width="130" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="625" y="165" text-anchor="middle" fill="var(--avg)">daily_revenue</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Mũi tên app → index biến mất; daily_revenue được tính lại thay vì cộng dồn</div>
+    </div>
+    <div class="card-grid">
+      <div class="card ok"><h3>BA THAY ĐỔI</h3><ul><li>Chuyển 1.200 nhãn về cột <code>products.promo_label</code>, admin ghi vào đó</li><li>Worker vẫn đẩy từng thay đổi, thêm lệnh dựng lại toàn bộ index từ <code>products</code></li><li><code>daily_revenue</code> thôi cộng dồn, tính lại từ <code>orders</code></li></ul></div>
+      <div class="card peak"><h3>VÌ SAO KHÔNG GHI SONG SONG</h3><ul><li>Admin ghi cùng lúc vào <code>products</code> và index = <b>dual write</b></li><li>Sẽ có lúc một bên thành công, bên kia lỗi → lại lệch (Martin Kleppmann)</li><li>Chỉ ghi vào source of truth, để worker đẩy đi: mỗi loại dữ liệu một đường ghi</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code — câu lệnh của worker</div>
+      <pre><span class="bad">- UPDATE daily_revenue
+-    SET order_count = order_count + 1, total = total + :amount
+-  WHERE day = :day AND product_id = :product_id;</span>
+<span class="val">+ BEGIN;
++ DELETE FROM daily_revenue WHERE day = :day;
++ INSERT INTO daily_revenue (day, product_id, order_count, total)
++ SELECT :day, product_id, COUNT(*), SUM(amount)
++   FROM orders
++  WHERE created_at &gt;= :day AND created_at &lt; :day + INTERVAL '1 day'
++  GROUP BY product_id;
++ COMMIT;</span></pre>
+      <p>Câu cũ đã sai thì không câu nào sau đó biết đường sửa. Câu mới xoá số của ngày rồi tính lại từ <code>orders</code>: chạy một lần hay mười lần với cùng dữ liệu đều ra cùng kết quả.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Phép thử</div>
+    <h2 class="c-cmd">Xoá trắng bản dẫn xuất ngay bây giờ, có dựng lại được bằng một lệnh có sẵn không?</h2>
+    <p class="desc">Chạy phép thử với thiết kế mới trên chính dữ liệu của sự cố. Lệnh dựng lại đọc toàn bộ <code>products</code> với tốc độ khoảng 2.000 document/giây.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th></th><th>Search index</th><th>daily_revenue</th></tr>
+      <tr><td class="k">Trước khi sửa</td><td><span class="miss">Không đạt</span> vì Postgres thiếu dữ liệu: 1.200 nhãn chỉ có trong index</td><td><span class="miss">Không đạt</span> vì thiếu lệnh: <code>orders</code> còn đủ 47 đơn nhưng không câu nào tính lại</td></tr>
+      <tr><td class="k">Sau khi sửa</td><td><span class="hit">Đạt</span>: ~100 giây, 0/200.000 document lệch, 1.200 nhãn còn nguyên</td><td><span class="hit">Đạt</span>: 47 đơn, 23.250.000 đ, khớp từng đồng</td></tr>
+    </table></div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính &amp; hai cách xử lý khác nhau</div>
+      <pre>200.000 document / 2.000 document/giây = <span class="val">100 giây</span></pre>
+      <p>Bản dẫn xuất giữ dữ liệu mà gốc không có → <b>chuyển dữ liệu về gốc trước</b>, rồi mới dựng lại. Bản dẫn xuất chỉ thiếu lệnh → dữ liệu gốc còn nguyên, <b>chỉ cần thêm câu tính lại</b>. Câu hỏi lúc 16:40 giờ có đáp án: giá 450.000 đ, tồn 0, hôm nay bán 47 đơn.</p>
+    </div>
+    <div class="note"><b>Quyết định nghiệp vụ phải đọc từ source of truth.</b> Tìm kiếm hiển thị tồn kho trễ vài giây là chấp nhận được, nhưng checkout nhận đơn phải đọc tồn kho thẳng từ <code>products</code>. "Tồn kho không âm" là một <b>invariant</b> (điều kiện luôn phải đúng); chặn hai đơn ghi cùng lúc vi phạm nó thì nằm ngoài phạm vi bài.</div>
+  </section>
+
+  <section>
+    <div class="tag">05. Tradeoff &amp; đo lường</div>
+    <h2 class="c-grow">Đo độ lệch của bản dẫn xuất thay vì hy vọng nó nhỏ</h2>
+    <div class="card-grid">
+      <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Chuyển dữ liệu đang chỉ nằm ở bản dẫn xuất về gốc (cột <code>promo_label</code>, sửa trang admin)</li><li>Lệnh dựng lại phải chạy thử định kỳ, mỗi lần đọc 200.000 dòng bằng CPU và đĩa của Postgres đang phục vụ app</li><li>Checkout hỏi <code>products</code> thay vì index → Postgres nhận thêm truy vấn</li></ul></div>
+      <div class="card ok"><h3>HAI CHỈ SỐ ĐỘ LỆCH</h3><ul><li><b>Index vs products:</b> mỗi 5 phút lấy ngẫu nhiên 1.000 sản phẩm, bỏ qua sản phẩm vừa đổi trong 1 phút; cảnh báo khi 2 lần liên tiếp vượt 0,1%</li><li><b>daily_revenue vs orders của hôm qua:</b> ngày đã khép, sau lần tính cuối phải bằng 0</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — sự cố chiều nay sẽ bị bắt lúc nào</div>
+      <pre>Index lệch 1,57% → mỗi mẫu 1.000 có trung bình ≈ <span class="bad">16</span> sản phẩm lệch
+Ngưỡng 0,1%      → 1 trên 1.000
+2 lần đo liên tiếp vượt ngưỡng = 10 phút → cảnh báo ≈ <span class="val">14:40</span>, không phải 16:40</pre>
+      <p>Thiết kế mới không bảo đảm mọi nơi luôn khớp; index vẫn trễ vài giây, lâu hơn khi đồng bộ hỏng. Nó bảo đảm biết bản nào đúng, dựng lại được, và biết khi nào lệch quá mức. Khi hệ thống chỉ có một database và chưa có bản dẫn xuất nào thì chưa cần những việc này.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Mẫu áp dụng</div>
+    <h2>Một dòng ghi chú cho mỗi loại dữ liệu</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Loại dữ liệu</th><th>Source of truth</th><th>Bản dẫn xuất</th><th>Dựng lại từ đâu</th><th>Mất bao lâu</th></tr>
+      <tr><td class="k">Giá</td><td><code>products</code></td><td>search index</td><td>lệnh dựng lại toàn bộ index</td><td>~100 giây</td></tr>
+      <tr><td class="k">Tồn kho</td><td><code>products</code></td><td>search index</td><td>cùng lần dựng lại index</td><td>~100 giây</td></tr>
+      <tr><td class="k">Nhãn khuyến mãi</td><td><code>products.promo_label</code></td><td>search index</td><td>cùng lần dựng lại index</td><td>~100 giây</td></tr>
+      <tr><td class="k">Doanh thu</td><td><code>orders</code></td><td><code>daily_revenue</code></td><td>câu tính lại theo ngày</td><td>đo ở lần chạy đầu</td></tr>
+    </table></div>
+    <div class="note"><b>Dòng nào không điền được cột "Dựng lại từ đâu" là chỗ cần xem trước:</b> hoặc bản dẫn xuất đang giữ dữ liệu không có ở đâu khác (như 1.200 nhãn), hoặc chưa có lệnh dựng lại (như <code>daily_revenue</code> lúc trước). Cột "Mất bao lâu" dùng lại phép ước lượng nhanh: số dòng chia cho tốc độ dựng lại.</div>
+    <p class="desc" style="margin-bottom:0">Giữ index bám sát Postgres liên tục mà không bỏ sót thay đổi nào là câu hỏi riêng, cần cơ chế khác. Số liệu trong bài là số minh hoạ của khóa học. Thử điền bảng này cho hệ thống của bạn, bắt đầu từ bản dẫn xuất đầu tiên bạn thêm vào.</p>
+  </section>
+
+</div>
+
+<footer>Khi hai nơi lệch nhau, tra dòng của đúng loại dữ liệu: dòng ấy cho biết bản nào đúng</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-07.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
