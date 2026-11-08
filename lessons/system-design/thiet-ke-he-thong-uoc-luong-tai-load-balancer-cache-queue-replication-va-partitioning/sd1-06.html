@@ -134,9 +134,10 @@
   <div class="toc">
     <span>01 <b>Sai endpoint</b></span>
     <span>02 <b>Bảng giả định</b></span>
-    <span>03 <b>Little's Law &amp; headroom</b></span>
+    <span>03 <b>Little's Law</b></span>
     <span>04 <b>W đổi, L đổi</b></span>
-    <span>05 <b>Đối chiếu số đo</b></span>
+    <span>05 <b>Headroom</b></span>
+    <span>06 <b>Đối chiếu số đo</b></span>
   </div>
 </header>
 
@@ -262,7 +263,28 @@ Sau khi sửa (API chat) : L = 500 × 0,08 = 40
 Cách 2 : 10 / 0,08 = 125 req/s/instance × 60% = 75 → 500 / 75 ≈ 6,7 → 7</pre>
       <p>Báo "20 máy cho an toàn" nghĩa là trả tiền cho <b>13 instance</b> thừa cả năm mà không có phép tính nào để giải thích.</p>
     </div>
-    <h3 class="subh" style="color:var(--grow)">Headroom 40%: trả tiền cho phần capacity không dùng tới</h3>
+  </section>
+
+  <section>
+    <div class="tag">04. Độ nhạy</div>
+    <h2 class="c-avg">Cùng 500 req/s, số request đồng thời có thể gấp năm lần</h2>
+    <p class="desc">Giữ λ = 500 req/s, chỉ đổi W. Tải từ người dùng không tăng thêm request nào, nhưng L tăng theo W. Bảy instance chỉ giữ được khoảng 7 × 10 = <b>70</b> request đồng thời mà p99 còn dưới SLO.</p>
+
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">W = 0,08 s</span><div class="bar-bg"><div class="bar-fill" style="width:20%;background:var(--avg)"></div><div class="bar-mark" style="left:35%"></div></div><span class="bar-val">L = 40</span></div>
+      <div class="bar-row"><span class="bar-label">W = 0,4 s</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div><div class="bar-mark" style="left:35%"></div></div><span class="bar-val">L = 200</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = 70, số request đồng thời 7 instance giữ được dưới SLO</div>
+
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế (số giả định trong bài)</div>
+      <p>Một ngày Postgres chậm đi và API chat mất trung bình 400 ms thay vì 80 ms. λ vẫn 500 req/s nhưng L = 500 × 0,4 = 200 request, gấp ~3 lần mức 70 mà 7 instance chịu được. Latency tăng, W tăng thêm, L lại tăng tiếp. Cách xử lý chuyện này thuộc chủ đề khác; điều cần thấy ở đây là chỉ cần W đổi thì số máy cần chạy đổi theo.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Tradeoff</div>
+    <h2 class="c-grow">Headroom 40%: trả tiền cho phần capacity không dùng tới</h2>
     <p class="desc"><b>Headroom</b> là công suất cố ý chừa lại. Mức 60% ở đây chọn vì tải chat dao động mạnh theo giờ, không phải chuẩn ngành; tải càng dao động thì headroom càng nên lớn.</p>
 
     <div class="card-grid">
@@ -285,24 +307,7 @@ Cách 2 : 10 / 0,08 = 125 req/s/instance × 60% = 75 → 500 / 75 ≈ 6,7 → 7<
   </section>
 
   <section>
-    <div class="tag">04. Độ nhạy</div>
-    <h2 class="c-avg">Cùng 500 req/s, số request đồng thời có thể gấp năm lần</h2>
-    <p class="desc">Giữ λ = 500 req/s, chỉ đổi W. Tải từ người dùng không tăng thêm request nào, nhưng L tăng theo W. Bảy instance chỉ giữ được khoảng 7 × 10 = <b>70</b> request đồng thời mà p99 còn dưới SLO.</p>
-
-    <div class="bars">
-      <div class="bar-row"><span class="bar-label">W = 0,08 s</span><div class="bar-bg"><div class="bar-fill" style="width:20%;background:var(--avg)"></div><div class="bar-mark" style="left:35%"></div></div><span class="bar-val">L = 40</span></div>
-      <div class="bar-row"><span class="bar-label">W = 0,4 s</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div><div class="bar-mark" style="left:35%"></div></div><span class="bar-val">L = 200</span></div>
-    </div>
-    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = 70, số request đồng thời 7 instance giữ được dưới SLO</div>
-
-    <div class="example-box">
-      <div class="example-label">▸ Tình huống thực tế (số giả định trong bài)</div>
-      <p>Một ngày Postgres chậm đi và API chat mất trung bình 400 ms thay vì 80 ms. λ vẫn 500 req/s nhưng L = 500 × 0,4 = 200 request, gấp ~3 lần mức 70 mà 7 instance chịu được. Latency tăng, W tăng thêm, L lại tăng tiếp. Cách xử lý chuyện này thuộc chủ đề khác; điều cần thấy ở đây là chỉ cần W đổi thì số máy cần chạy đổi theo.</p>
-    </div>
-  </section>
-
-  <section>
-    <div class="tag">05. Đối chiếu</div>
+    <div class="tag">06. Đối chiếu</div>
     <h2 class="c-spec">Sau tuần chạy đầu tiên, sửa đúng những dòng lệch</h2>
     <p class="desc">Cột "cách kiểm tra" trong bảng chính là danh sách số liệu cần lấy sau tuần đầu. Hai truy vấn cho số tin mỗi ngày và số byte thật mỗi tin (đã gồm index):</p>
 

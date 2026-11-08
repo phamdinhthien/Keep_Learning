@@ -139,7 +139,8 @@
     <span>02 <b>Vì sao không dám sửa</b></span>
     <span>03 <b>Một nguồn gốc</b></span>
     <span>04 <b>Phép thử dựng lại</b></span>
-    <span>05 <b>Đo độ lệch &amp; ghi chú</b></span>
+    <span>05 <b>Đo độ lệch</b></span>
+    <span>06 <b>Bảng ghi chú</b></span>
   </div>
 </header>
 
@@ -289,7 +290,7 @@ Index còn giá cũ : 3.140 / 200.000 = <span class="bad">1,57%</span> document<
   </section>
 
   <section>
-    <div class="tag">05. Tradeoff, đo lường &amp; ghi chú</div>
+    <div class="tag">05. Tradeoff &amp; đo lường</div>
     <h2 class="c-grow">Đo độ lệch của bản dẫn xuất thay vì hy vọng nó nhỏ</h2>
     <div class="card-grid">
       <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Chuyển dữ liệu đang chỉ nằm ở bản dẫn xuất về gốc (cột <code>promo_label</code>, sửa trang admin)</li><li>Lệnh dựng lại phải chạy thử định kỳ, mỗi lần đọc 200.000 dòng bằng CPU và đĩa của Postgres đang phục vụ app</li><li>Checkout hỏi <code>products</code> thay vì index → Postgres nhận thêm truy vấn</li></ul></div>
@@ -302,14 +303,22 @@ Ngưỡng 0,1%      → 1 trên 1.000
 2 lần đo liên tiếp vượt ngưỡng = 10 phút → cảnh báo ≈ <span class="val">14:40</span>, không phải 16:40</pre>
       <p>Thiết kế mới không bảo đảm mọi nơi luôn khớp; index vẫn trễ vài giây, lâu hơn khi đồng bộ hỏng. Nó bảo đảm biết bản nào đúng, dựng lại được, và biết khi nào lệch quá mức. Khi hệ thống chỉ có một database và chưa có bản dẫn xuất nào thì chưa cần những việc này.</p>
     </div>
-    <h3 class="subh" style="color:var(--spec)">Một dòng ghi chú cho mỗi loại dữ liệu</h3>
-    <div class="tbl-scroll"><table>
+  </section>
+
+  <section>
+    <div class="tag">06. Mẫu áp dụng</div>
+    <h2 class="c-spec">Một dòng ghi chú cho mỗi loại dữ liệu</h2>
+    <p class="desc">Mỗi loại dữ liệu một dòng: source of truth ở đâu, bản dẫn xuất nào chép từ nó, dựng lại bằng lệnh gì và mất bao lâu. Hai cột cuối trả lời đúng hai câu mà lúc 16:40 không ai trả lời được.</p>
+    <div class="example-box" style="margin-bottom:22px">
+      <div class="example-label">▸ Bảng ghi chú của cửa hàng sau khi sửa</div>
+      <div class="tbl-scroll" style="margin-bottom:0"><table>
       <tr><th>Loại dữ liệu</th><th>Source of truth</th><th>Bản dẫn xuất</th><th>Dựng lại từ đâu</th><th>Mất bao lâu</th></tr>
       <tr><td class="k">Giá</td><td><code>products</code></td><td>search index</td><td>lệnh dựng lại toàn bộ index</td><td>~100 giây</td></tr>
       <tr><td class="k">Tồn kho</td><td><code>products</code></td><td>search index</td><td>cùng lần dựng lại index</td><td>~100 giây</td></tr>
       <tr><td class="k">Nhãn khuyến mãi</td><td><code>products.promo_label</code></td><td>search index</td><td>cùng lần dựng lại index</td><td>~100 giây</td></tr>
       <tr><td class="k">Doanh thu</td><td><code>orders</code></td><td><code>daily_revenue</code></td><td>câu tính lại theo ngày</td><td>đo ở lần chạy đầu</td></tr>
     </table></div>
+    </div>
     <div class="note"><b>Dòng nào không điền được cột "Dựng lại từ đâu" là chỗ cần xem trước:</b> hoặc bản dẫn xuất đang giữ dữ liệu không có ở đâu khác (như 1.200 nhãn), hoặc chưa có lệnh dựng lại (như <code>daily_revenue</code> lúc trước). Cột "Mất bao lâu" dùng lại phép ước lượng nhanh: số dòng chia cho tốc độ dựng lại.</div>
     <p class="desc" style="margin-bottom:0">Giữ index bám sát Postgres liên tục mà không bỏ sót thay đổi nào là câu hỏi riêng, cần cơ chế khác. Số liệu trong bài là số minh hoạ của khóa học. Thử điền bảng này cho hệ thống của bạn, bắt đầu từ bản dẫn xuất đầu tiên bạn thêm vào.</p>
   </section>

@@ -142,8 +142,9 @@
     <span>01 <b>Triệu chứng</b></span>
     <span>02 <b>Request path</b></span>
     <span>03 <b>Xác suất 401</b></span>
-    <span>04 <b>Session store &amp; cái giá</b></span>
+    <span>04 <b>Session store</b></span>
     <span>05 <b>State bắt buộc</b></span>
+    <span>06 <b>Tradeoff</b></span>
   </div>
 </header>
 
@@ -272,25 +273,6 @@ Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
 <span class="kw">const</span> session = JSON.parse(sessionData);</pre>
       <p>Phạm vi bảo đảm: session không mất khi đổi số instance. Một instance tắt đột ngột đúng lúc đang xử lý dở thì request dở dang đó vẫn có thể lỗi.</p>
     </div>
-    <h3 class="subh" style="color:var(--grow)">Tách session có giá: thêm một round trip, thêm một điểm lỗi</h3>
-    <div class="card-grid">
-      <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Mỗi request cần đăng nhập thêm ≥ 1 round trip, khoảng <b>0,5 ms</b> trong cùng datacenter</li><li>Redis sập thì mọi thao tác cần đăng nhập đều lỗi, dù app vẫn khỏe</li><li>Thêm một thành phần phải theo dõi RAM, cấu hình, dự phòng</li></ul></div>
-      <div class="card ok"><h3>CHỌN KHO NÀO</h3><ul><li><b>Redis</b>: rất nhanh, có sẵn TTL để session tự hết hạn, nhưng là service riêng phải chăm</li><li><b>Bảng sessions trong Postgres</b>: không thêm service, nhưng Postgres gánh thêm ~300 query/s lúc cao điểm</li></ul></div>
-    </div>
-    <div class="example-box">
-      <div class="example-label">▸ Số đo trước / sau khi dời sang Redis</div>
-      <pre>Dung lượng : 1.500 phiên × ~1 KB = <span class="val">~1,5 MB</span> RAM trên Redis
-
-Chỉ số             3 instance, session RAM   Sau khi dời sang Redis
-Lỗi 401            <span class="bad">63% – 65%</span>                 <span class="val">0,3%</span>
-Login / giờ        <span class="bad">9.080 – 9.450</span>             <span class="val">1.210</span>
-Ticket / giờ       <span class="bad">52 – 57</span>                   <span class="val">0 – 1</span>
-CPU TB             36% – 38%                 37% – 39%
-Latency thêm       0 ms                      ~0,5 ms
-
-Restart thử 1 instance lúc thấp điểm: <span class="val">0</span> người bị đăng xuất, tỉ lệ 401 không đổi</pre>
-    </div>
-    <div class="note"><b>Khi nào chưa cần dời?</b> Chỉ chạy 1 instance, tài nguyên còn dư, và việc mọi người bị đăng xuất mỗi lần deploy ban đêm không ảnh hưởng cam kết kinh doanh: session trong RAM vẫn là cách đơn giản và rẻ nhất.</div>
   </section>
 
   <section>
@@ -335,6 +317,29 @@ GET  /categories        → LB → App B → cache trong RAM của B trống
                                        → đọc Postgres, lưu RAM → <span class="val">200</span> <span class="cm"># chậm hơn vài ms</span></pre>
       <p>Hai request đầu theo bài; request thứ ba minh hoạ trường hợp in-process cache mà bài mô tả (danh mục sản phẩm, cấu hình hiển thị).</p>
     </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Tradeoff</div>
+    <h2 class="c-grow">Tách session có giá: thêm một round trip, thêm một điểm lỗi</h2>
+    <div class="card-grid">
+      <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Mỗi request cần đăng nhập thêm ≥ 1 round trip, khoảng <b>0,5 ms</b> trong cùng datacenter</li><li>Redis sập thì mọi thao tác cần đăng nhập đều lỗi, dù app vẫn khỏe</li><li>Thêm một thành phần phải theo dõi RAM, cấu hình, dự phòng</li></ul></div>
+      <div class="card ok"><h3>CHỌN KHO NÀO</h3><ul><li><b>Redis</b>: rất nhanh, có sẵn TTL để session tự hết hạn, nhưng là service riêng phải chăm</li><li><b>Bảng sessions trong Postgres</b>: không thêm service, nhưng Postgres gánh thêm ~300 query/s lúc cao điểm</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Số đo trước / sau khi dời sang Redis</div>
+      <pre>Dung lượng : 1.500 phiên × ~1 KB = <span class="val">~1,5 MB</span> RAM trên Redis
+
+Chỉ số             3 instance, session RAM   Sau khi dời sang Redis
+Lỗi 401            <span class="bad">63% – 65%</span>                 <span class="val">0,3%</span>
+Login / giờ        <span class="bad">9.080 – 9.450</span>             <span class="val">1.210</span>
+Ticket / giờ       <span class="bad">52 – 57</span>                   <span class="val">0 – 1</span>
+CPU TB             36% – 38%                 37% – 39%
+Latency thêm       0 ms                      ~0,5 ms
+
+Restart thử 1 instance lúc thấp điểm: <span class="val">0</span> người bị đăng xuất, tỉ lệ 401 không đổi</pre>
+    </div>
+    <div class="note"><b>Khi nào chưa cần dời?</b> Chỉ chạy 1 instance, tài nguyên còn dư, và việc mọi người bị đăng xuất mỗi lần deploy ban đêm không ảnh hưởng cam kết kinh doanh: session trong RAM vẫn là cách đơn giản và rẻ nhất.</div>
   </section>
 
   <section>
