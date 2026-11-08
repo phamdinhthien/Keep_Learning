@@ -76,6 +76,7 @@
   .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
   pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
   footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+.subh{font-size:17px;font-weight:700;margin:30px 0 10px;}
 </style>
 
 <!-- sdn:head -->
@@ -141,9 +142,8 @@
     <span>01 <b>Triệu chứng</b></span>
     <span>02 <b>Request path</b></span>
     <span>03 <b>Xác suất 401</b></span>
-    <span>04 <b>Session store</b></span>
+    <span>04 <b>Session store &amp; cái giá</b></span>
     <span>05 <b>State bắt buộc</b></span>
-    <span>06 <b>Tradeoff</b></span>
   </div>
 </header>
 
@@ -179,6 +179,16 @@
       <tr><td class="k">App instance</td><td>Rò rỉ bộ nhớ hết RAM, CPU chạm trần, process bị hệ điều hành tắt</td></tr>
       <tr><td class="k">Database</td><td>Cạn connection pool, truy vấn giữ khóa lâu khiến request phía trước xếp hàng tới timeout</td></tr>
     </table></div>
+    <div class="example-box" style="margin-bottom:22px">
+      <div class="example-label">▸ Lần theo một request lúc 14:20</div>
+      <pre>GET /orders/history   cookie: sid=… (tạo ở App A)
+  DNS          <span class="cm"># bỏ qua: IP đã có trong cache của trình duyệt</span>
+  LB           → round-robin chọn App B
+  App B        → tra Map session trong RAM của B … <span class="bad">không có sid</span>
+  Postgres     <span class="cm"># không được gọi tới</span>
+  ← <span class="bad">401 Unauthorized</span></pre>
+      <p>Không chặng nào "hỏng" theo nghĩa thông thường: DNS, LB, B và Postgres đều khoẻ. Request lỗi chỉ vì dữ liệu nó cần đang nằm ở chặng khác. (ví dụ minh hoạ dựa trên các bước của bài)</p>
+    </div>
     <div class="note"><b>Điểm mấu chốt:</b> khi gom session vào biến <code>Map</code> trong RAM của process, bạn đã biến tầng app thành nơi giữ state cục bộ, dù sơ đồ vẫn vẽ nó như tầng "chỉ xử lý".</div>
   </section>
 
@@ -186,6 +196,29 @@
     <div class="tag">03. Cơ chế</div>
     <h2 class="c-peak">Xác suất rơi vào instance không có session là (N − 1) / N</h2>
     <p class="desc">Round-robin chia request lần lượt A → B → C → A… Bạn <code>POST /login</code> vào A, A tạo session ID, lưu vào <code>Map</code> trong RAM của nó và trả cookie. Bạn bấm <code>GET /orders/history</code>, request sang B; B tra <code>Map</code> của nó không thấy → <b>401 Unauthorized</b>. Với N instance và tải chia gần đều, mỗi request cần đăng nhập chỉ có <b>1/N</b> cơ hội rơi đúng máy.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 230" role="img" aria-label="Bốn request liên tiếp chia round-robin cho ba instance">
+        <rect class="box" x="270" y="12" width="70" height="40" rx="6" stroke="var(--cmd)"/><text class="sm" x="305" y="30" text-anchor="middle">App A</text><text class="sm" x="305" y="45" text-anchor="middle" fill="var(--cmd)">có sid</text>
+        <rect class="box" x="370" y="12" width="70" height="40" rx="6"/><text class="sm" x="405" y="30" text-anchor="middle">App B</text><text class="sm" x="405" y="45" text-anchor="middle">trống</text>
+        <rect class="box" x="470" y="12" width="70" height="40" rx="6"/><text class="sm" x="505" y="30" text-anchor="middle">App C</text><text class="sm" x="505" y="45" text-anchor="middle">trống</text>
+        <line x1="305" y1="52" x2="305" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
+        <line x1="405" y1="52" x2="405" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
+        <line x1="505" y1="52" x2="505" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
+        <text class="sm" x="10" y="86">1 · POST /login</text>
+        <path class="ln" stroke="var(--cmd)" d="M180,82 L298,82" marker-end="url(#a-cmd)"/><circle cx="305" cy="82" r="5" fill="var(--cmd)"/>
+        <text class="sm" x="560" y="86" fill="var(--cmd)">✓ tạo session</text>
+        <text class="sm" x="10" y="126">2 · GET /orders/history</text>
+        <path class="ln" stroke="var(--peak)" d="M180,122 L398,122" marker-end="url(#a-peak)"/><circle cx="405" cy="122" r="5" fill="var(--peak)"/>
+        <text class="sm" x="560" y="126" fill="var(--peak)">✗ 401</text>
+        <text class="sm" x="10" y="166">3 · GET /cart</text>
+        <path class="ln" stroke="var(--peak)" d="M180,162 L498,162" marker-end="url(#a-peak)"/><circle cx="505" cy="162" r="5" fill="var(--peak)"/>
+        <text class="sm" x="560" y="166" fill="var(--peak)">✗ 401</text>
+        <text class="sm" x="10" y="206">4 · GET /orders/history</text>
+        <path class="ln" stroke="var(--cmd)" d="M180,202 L298,202" marker-end="url(#a-cmd)"/><circle cx="305" cy="202" r="5" fill="var(--cmd)"/>
+        <text class="sm" x="560" y="206" fill="var(--cmd)">✓ 200</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Round-robin A → B → C: chỉ 1 trong 3 lượt rơi đúng instance giữ session (bước 1–2 theo bài, bước 3–4 minh hoạ thêm)</div>
+    </div>
     <div class="bars">
       <div class="bar-row"><span class="bar-label">N = 1</span><div class="bar-bg"><div class="bar-fill" style="width:0%;background:var(--peak)"></div></div><span class="bar-val">miss 0%</span></div>
       <div class="bar-row"><span class="bar-label">N = 2</span><div class="bar-bg"><div class="bar-fill" style="width:50%;background:var(--peak)"></div></div><span class="bar-val">miss 50%</span></div>
@@ -224,7 +257,7 @@ Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
         <rect class="box" x="444" y="120" width="180" height="46" rx="8" stroke="var(--spec)"/>
         <text class="sm" x="534" y="140" text-anchor="middle" fill="var(--spec)">POSTGRES</text><text class="sm" x="534" y="156" text-anchor="middle">giữ state</text>
       </svg>
-      <div class="fig-cap">Hình 2 — Ba instance bình đẳng; state chỉ còn ở Redis và Postgres</div>
+      <div class="fig-cap">Hình 3 — Ba instance bình đẳng; state chỉ còn ở Redis và Postgres</div>
     </div>
     <div class="example-box">
       <div class="example-label">▸ Code — middleware xác thực đổi từ RAM sang Redis</div>
@@ -239,27 +272,7 @@ Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
 <span class="kw">const</span> session = JSON.parse(sessionData);</pre>
       <p>Phạm vi bảo đảm: session không mất khi đổi số instance. Một instance tắt đột ngột đúng lúc đang xử lý dở thì request dở dang đó vẫn có thể lỗi.</p>
     </div>
-  </section>
-
-  <section>
-    <div class="tag">05. Phân loại</div>
-    <h2 class="c-spec">Mất dữ liệu này thì kết quả sai, hay chỉ chậm hơn?</h2>
-    <p class="desc">Stateless không có nghĩa là xoá mọi dữ liệu tạm khỏi code. Hệ thống luôn cần state; việc cần làm là dời state từ nơi không được giữ (RAM của process có thể bị tắt, nhân bản tuỳ ý) sang backing service chuyên dụng. The Twelve-Factor App (phần "Processes") gọi đây là process stateless, share-nothing.</p>
-    <div class="tbl-scroll"><table>
-      <tr><th>Dữ liệu trong instance</th><th>Request sau không thấy nó thì</th><th>Xử lý</th></tr>
-      <tr><td class="k">Session người dùng</td><td><span class="miss">401 Unauthorized</span> — kết quả sai</td><td>Dời ra session store</td></tr>
-      <tr><td class="k">File upload trên đĩa local</td><td><span class="miss">404 Not Found</span> — <code>POST /avatar</code> ghi vào A, <code>GET /avatar/user1.jpg</code> rơi vào B</td><td>Dời ra nơi lưu tập trung</td></tr>
-      <tr><td class="k">In-process cache</td><td><span class="hit">chậm thêm vài ms</span> — đọc lại từ Postgres, kết quả vẫn đúng</td><td>Giữ lại trong RAM được</td></tr>
-    </table></div>
-    <div class="card-grid">
-      <div class="card avg"><h3>STICKY SESSION</h3><ul><li>Gắn người dùng với một instance cố định qua cookie hoặc IP</li><li>Triệu chứng biến mất, nhưng state vẫn nằm trong instance</li></ul></div>
-      <div class="card grow"><h3>COOKIE ĐÃ KÝ</h3><ul><li>Dời toàn bộ dữ liệu phiên ra trình duyệt, ký số trong cookie</li><li>Instance không cần tra kho nào</li></ul></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="tag">06. Tradeoff</div>
-    <h2 class="c-grow">Tách session có giá: thêm một round trip, thêm một điểm lỗi</h2>
+    <h3 class="subh" style="color:var(--grow)">Tách session có giá: thêm một round trip, thêm một điểm lỗi</h3>
     <div class="card-grid">
       <div class="card peak"><h3>PHẢI CHỊU THÊM</h3><ul><li>Mỗi request cần đăng nhập thêm ≥ 1 round trip, khoảng <b>0,5 ms</b> trong cùng datacenter</li><li>Redis sập thì mọi thao tác cần đăng nhập đều lỗi, dù app vẫn khỏe</li><li>Thêm một thành phần phải theo dõi RAM, cấu hình, dự phòng</li></ul></div>
       <div class="card ok"><h3>CHỌN KHO NÀO</h3><ul><li><b>Redis</b>: rất nhanh, có sẵn TTL để session tự hết hạn, nhưng là service riêng phải chăm</li><li><b>Bảng sessions trong Postgres</b>: không thêm service, nhưng Postgres gánh thêm ~300 query/s lúc cao điểm</li></ul></div>
@@ -278,6 +291,50 @@ Latency thêm       0 ms                      ~0,5 ms
 Restart thử 1 instance lúc thấp điểm: <span class="val">0</span> người bị đăng xuất, tỉ lệ 401 không đổi</pre>
     </div>
     <div class="note"><b>Khi nào chưa cần dời?</b> Chỉ chạy 1 instance, tài nguyên còn dư, và việc mọi người bị đăng xuất mỗi lần deploy ban đêm không ảnh hưởng cam kết kinh doanh: session trong RAM vẫn là cách đơn giản và rẻ nhất.</div>
+  </section>
+
+  <section>
+    <div class="tag">05. Phân loại</div>
+    <h2 class="c-spec">Mất dữ liệu này thì kết quả sai, hay chỉ chậm hơn?</h2>
+    <p class="desc">Stateless không có nghĩa là xoá mọi dữ liệu tạm khỏi code. Hệ thống luôn cần state; việc cần làm là dời state từ nơi không được giữ (RAM của process có thể bị tắt, nhân bản tuỳ ý) sang backing service chuyên dụng. The Twelve-Factor App (phần "Processes") gọi đây là process stateless, share-nothing.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 230" role="img" aria-label="Ba loại dữ liệu trong một app instance và hậu quả khi request sau không thấy chúng">
+        <rect x="8" y="8" width="684" height="214" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="5 5"/>
+        <text class="lb" x="24" y="30">TRONG RAM / ĐĨA CỦA MỘT APP INSTANCE</text>
+        <rect class="box" x="24" y="46" width="206" height="160" rx="10" stroke="var(--peak)"/>
+        <text x="127" y="72" text-anchor="middle" fill="var(--peak)">Session</text>
+        <text class="sm" x="127" y="98" text-anchor="middle">request sau không thấy</text>
+        <text x="127" y="128" text-anchor="middle" fill="var(--peak)" style="font-size:18px;font-weight:700">401</text>
+        <text class="sm" x="127" y="154" text-anchor="middle">kết quả sai</text>
+        <text class="sm" x="127" y="186" text-anchor="middle" fill="var(--peak)">→ dời ra session store</text>
+        <rect class="box" x="247" y="46" width="206" height="160" rx="10" stroke="var(--peak)"/>
+        <text x="350" y="72" text-anchor="middle" fill="var(--peak)">File upload</text>
+        <text class="sm" x="350" y="98" text-anchor="middle">request sau không thấy</text>
+        <text x="350" y="128" text-anchor="middle" fill="var(--peak)" style="font-size:18px;font-weight:700">404</text>
+        <text class="sm" x="350" y="154" text-anchor="middle">kết quả sai</text>
+        <text class="sm" x="350" y="186" text-anchor="middle" fill="var(--peak)">→ dời ra nơi lưu chung</text>
+        <rect class="box" x="470" y="46" width="206" height="160" rx="10" stroke="var(--cmd)"/>
+        <text x="573" y="72" text-anchor="middle" fill="var(--cmd)">In-process cache</text>
+        <text class="sm" x="573" y="98" text-anchor="middle">request sau không thấy</text>
+        <text x="573" y="128" text-anchor="middle" fill="var(--cmd)" style="font-size:18px;font-weight:700">+ vài ms</text>
+        <text class="sm" x="573" y="154" text-anchor="middle">đọc lại Postgres, vẫn đúng</text>
+        <text class="sm" x="573" y="186" text-anchor="middle" fill="var(--cmd)">→ giữ lại được</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Câu hỏi phân loại: thiếu nó thì kết quả sai, hay chỉ chậm hơn?</div>
+    </div>
+    <div class="card-grid">
+      <div class="card avg"><h3>STICKY SESSION</h3><ul><li>Gắn người dùng với một instance cố định qua cookie hoặc IP</li><li>Triệu chứng biến mất, nhưng state vẫn nằm trong instance</li></ul></div>
+      <div class="card grow"><h3>COOKIE ĐÃ KÝ</h3><ul><li>Dời toàn bộ dữ liệu phiên ra trình duyệt, ký số trong cookie</li><li>Instance không cần tra kho nào</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Trường hợp thực tế — ảnh đại diện 404</div>
+      <pre>POST /avatar            → LB → App A → ghi /uploads/user1.jpg <span class="cm"># đĩa local của A</span>
+GET  /avatar/user1.jpg  → LB → App B → /uploads/ của B không có file → <span class="bad">404 Not Found</span>
+
+GET  /categories        → LB → App B → cache trong RAM của B trống
+                                       → đọc Postgres, lưu RAM → <span class="val">200</span> <span class="cm"># chậm hơn vài ms</span></pre>
+      <p>Hai request đầu theo bài; request thứ ba minh hoạ trường hợp in-process cache mà bài mô tả (danh mục sản phẩm, cấu hình hiển thị).</p>
+    </div>
   </section>
 
   <section>

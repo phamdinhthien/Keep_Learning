@@ -248,6 +248,14 @@ Shop B : 2.000 / 400 = <span class="bad">5</span>    <span class="cm"># thiếu 
       <tr><td class="k">6 · Bottleneck</td><td>Tìm điểm nghẽn đầu tiên, lỗi dây chuyền, availability của chuỗi phụ thuộc; case báo cáo trên bảng orders</td></tr>
       <tr><td class="k">7 · So sánh &amp; ADR</td><td>Hai phương án từ cùng đầu vào, so bằng tiêu chí đo được, ghi ADR; case flash sale</td></tr>
     </table></div>
+    <div class="example-box">
+      <div class="example-label">▸ Minh hoạ — hai shop sẽ học chặng nào trước</div>
+      <div class="ba">
+        <div><b>SHOP B (thiếu 5 lần)</b>Chặng 3 để ghi peak 2.000 req/s của đêm sale thay vì 50 ngày thường → chặng 6 để biết Postgres là chỗ nghẽn đầu tiên → chặng 4 để chọn thành phần gánh bớt tải cho database.</div>
+        <div><b>SHOP A (thừa 13 lần)</b>Chặng 2 để ghi constraint "3 kỹ sư vừa làm tính năng vừa vận hành" → chặng 5 để thấy ở 30 req/s những thành phần nào chưa cần → chặng 7 để ghi lại vì sao bỏ bớt.</div>
+      </div>
+      <p style="margin-top:10px;font-size:12px;color:var(--ink-dim)">(ví dụ minh hoạ cách dùng lộ trình, ghép từ hai tình huống của bài)</p>
+    </div>
   </section>
 
   <section>
@@ -256,6 +264,14 @@ Shop B : 2.000 / 400 = <span class="bad">5</span>    <span class="cm"># thiếu 
     <div class="card-grid">
       <div class="card ok"><h3>TRONG KHÓA</h3><ul><li>Requirement đo được bằng số</li><li>Ước lượng nhanh dung lượng, băng thông, request đồng thời</li><li>Chọn thành phần theo workload, không thừa</li><li>Đọc triệu chứng, tìm bottleneck, so sánh phương án, ghi ADR</li></ul></div>
       <div class="card peak"><h3>NGOÀI KHÓA</h3><ul><li>Chọn TTL, cache invalidation, cache stampede, rate limiting, circuit breaker</li><li>Consistency model, quorum, failover, chia lại partition</li><li>Delivery semantics, thứ tự message; timeout, retry, idempotency</li><li>L4/L7, service discovery, Kubernetes, cấu hình riêng từng cloud</li></ul></div>
+    </div>
+    <div class="example-box" style="margin-bottom:22px">
+      <div class="example-label">▸ Minh hoạ — cùng một Redis, câu hỏi nào khóa trả lời</div>
+      <div class="ba">
+        <div><b>TRONG KHÓA</b>"Shop A tải cao điểm 30 req/s, bản tối giản chịu 400 req/s. Có cần Redis không, nếu thêm thì gánh bớt được bao nhiêu và phải vận hành thêm gì?"</div>
+        <div><b>NGOÀI KHÓA</b>"Đã có Redis rồi thì TTL đặt bao nhiêu giây, invalidate key thế nào, chống cache stampede ra sao?"</div>
+      </div>
+      <p style="margin-top:10px;font-size:12px;color:var(--ink-dim)">(ví dụ minh hoạ phạm vi, dựa trên danh sách chủ đề ngoài khóa của bài)</p>
     </div>
     <div class="note"><b>Kết luận của bài:</b> kiến trúc tốt không phải bản vẽ nhiều ô nhất, cũng không phải giữ tối giản cực đoan. Nó là bản vừa với requirement, chịu được tải cao điểm thật và nằm trong nguồn lực của dự án.</div>
     <p class="desc" style="margin-bottom:0">Số liệu trong bài là số minh hoạ của khóa học. Thử viết ba dòng cho hệ thống của bạn: requirement nào đo được, peak bao nhiêu req/s, constraint gì không đổi được.</p>
