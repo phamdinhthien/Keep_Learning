@@ -130,5 +130,18 @@ window.LESSONS = [
     "title": "Source of truth: dữ liệu nào là gốc, dữ liệu nào dựng lại được",
     "description": "Bốn nơi trả bốn kết quả: source of truth theo từng loại dữ liệu, bản dẫn xuất dựng lại được, đo độ lệch.",
     "readTime": "11 phút đọc"
+  },
+  {
+    "id": "sd1-08",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-08.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 9,
+    "title": "Khi nào cần đặt load balancer, reverse proxy hay API gateway trước app",
+    "description": "Một instance gánh 150% capacity bị restart 7 lần; load balancer + health check, N+1, ba vai trò ở edge và tradeoff.",
+    "readTime": "12 phút đọc"
   }
 ];
