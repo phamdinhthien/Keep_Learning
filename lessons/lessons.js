@@ -143,5 +143,18 @@ window.LESSONS = [
     "title": "Khi nào cần đặt load balancer, reverse proxy hay API gateway trước app",
     "description": "Một instance gánh 150% capacity bị restart 7 lần; load balancer + health check, N+1, ba vai trò ở edge và tradeoff.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "sd1-09",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-09.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 10,
+    "title": "Khi nào cần cache và nó gánh bớt được bao nhiêu tải đọc cho database",
+    "description": "SELECT 4,2 ms chiếm 79% CPU vì chạy 1.500 lần/giây; cache-aside, tải còn lại = tải đọc × miss ratio, hit ratio tối thiểu.",
+    "readTime": "13 phút đọc"
   }
 ];

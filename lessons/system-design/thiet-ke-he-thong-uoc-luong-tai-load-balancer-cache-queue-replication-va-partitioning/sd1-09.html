@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cache-aside — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-09">
+  <meta name="lesson:title" content="Khi nào cần cache và nó gánh bớt được bao nhiêu tải đọc cho database">
+  <meta name="lesson:description" content="SELECT 4,2 ms chiếm 79% CPU vì chạy 1.500 lần/giây; cache-aside, tải còn lại = tải đọc × miss ratio, hit ratio tối thiểu.">
+  <meta name="lesson:order" content="10">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Cache-aside · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Câu SELECT chỉ <span class="a">4,2 ms</span> nhưng chiếm <span class="b">79% CPU</span> Postgres — vì nó chạy 1.500 lần mỗi giây</h1>
+  <div class="sub">Cache không làm truy vấn nhanh hơn; nó làm phần lớn request không phải chạy truy vấn nữa. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 240" role="img" aria-label="Trước: mọi request xuống Postgres. Sau: app hỏi Redis trước, chỉ miss mới xuống Postgres">
+      <text class="lb" x="10" y="20" fill="var(--peak)">TRƯỚC</text>
+      <rect class="box" x="10" y="32" width="90" height="44" rx="8"/><text class="sm" x="55" y="58" text-anchor="middle">client</text>
+      <path class="ln" d="M100,54 L180,54" marker-end="url(#a-dim)"/><text class="sm" x="140" y="46" text-anchor="middle" fill="var(--avg)">1.500/s</text>
+      <rect class="box" x="184" y="32" width="150" height="44" rx="8"/><text class="sm" x="259" y="58" text-anchor="middle">GET /products/:id</text>
+      <path class="ln" stroke="var(--peak)" d="M334,54 L470,54" marker-end="url(#a-peak)"/><text class="sm" x="402" y="46" text-anchor="middle" fill="var(--peak)">1.500 SELECT/s</text>
+      <rect class="box" x="474" y="28" width="150" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="549" y="50" text-anchor="middle" fill="var(--spec)">Postgres 8 vCPU</text><text class="sm" x="549" y="66" text-anchor="middle" fill="var(--peak)">CPU 85% · p99 1,2 s</text>
+
+      <line x1="10" y1="98" x2="690" y2="98" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="lb" x="10" y="120" fill="var(--cmd)">SAU · CACHE-ASIDE</text>
+      <rect class="box" x="10" y="150" width="90" height="44" rx="8"/><text class="sm" x="55" y="176" text-anchor="middle">client</text>
+      <path class="ln" d="M100,172 L180,172" marker-end="url(#a-dim)"/><text class="sm" x="140" y="164" text-anchor="middle" fill="var(--avg)">1.500/s</text>
+      <rect class="box" x="184" y="150" width="150" height="44" rx="8"/><text class="sm" x="259" y="176" text-anchor="middle">GET /products/:id</text>
+      <path class="ln" stroke="var(--cmd)" d="M334,162 L470,140" marker-end="url(#a-cmd)"/><text class="sm" x="402" y="138" text-anchor="middle" fill="var(--cmd)">1. hỏi trước</text>
+      <rect class="box" x="474" y="116" width="150" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="549" y="136" text-anchor="middle" fill="var(--cmd)">Redis (RAM)</text><text class="sm" x="549" y="152" text-anchor="middle">hit 88% · TTL 60 s</text>
+      <path class="ln" stroke="var(--peak)" d="M334,184 L470,206" marker-end="url(#a-peak)"/><text class="sm" x="402" y="216" text-anchor="middle" fill="var(--peak)">2. chỉ khi miss</text>
+      <rect class="box" x="474" y="186" width="150" height="48" rx="8" stroke="var(--spec)"/><text class="sm" x="549" y="206" text-anchor="middle" fill="var(--spec)">Postgres</text><text class="sm" x="549" y="222" text-anchor="middle" fill="var(--cmd)">180 SELECT/s · CPU 16%</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Đường xuống Postgres từ "mọi request đều đi" thành một nhánh phụ chỉ request miss mới đi</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>pg_stat_statements</b></span>
+    <span>02 <b>Chậm hay chạy nhiều</b></span>
+    <span>03 <b>Cache-aside</b></span>
+    <span>04 <b>Tải còn lại</b></span>
+    <span>05 <b>Nóng vs long tail</b></span>
+    <span>06 <b>Tradeoff</b></span>
+    <span>07 <b>Hit ratio tối thiểu</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Câu SELECT nhanh nhất lại đứng đầu bảng tổng thời gian</h2>
+    <p class="desc"><b>pg_stat_statements</b> là extension của Postgres ghi thống kê cho từng truy vấn: chạy bao nhiêu lần, tổng và trung bình mất bao lâu. Sắp xếp theo <b>tổng thời gian thực thi</b> giờ cao điểm, dòng đầu là câu SELECT chi tiết sản phẩm. Nếu sắp theo thời gian trung bình như khi tìm truy vấn chậm, nó sẽ chìm giữa những câu chậm hơn. Cùng lúc, CPU Postgres <b>85%</b> và p99 trang sản phẩm <b>1,2 giây</b> trong khi SLO là p99 dưới <b>300 ms</b>.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">SELECT products</span><div class="bar-bg"><div class="bar-fill" style="width:93%;background:var(--peak)"></div></div><span class="bar-val">93% · 4,2 ms</span></div>
+      <div class="bar-row"><span class="bar-label">SELECT cart_items</span><div class="bar-bg"><div class="bar-fill" style="width:3%;background:var(--avg)"></div></div><span class="bar-val">3% · 2,1 ms</span></div>
+      <div class="bar-row"><span class="bar-label">INSERT orders</span><div class="bar-bg"><div class="bar-fill" style="width:1%;background:var(--avg)"></div></div><span class="bar-val">1% · 9,5 ms</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">Thanh = % tổng thời gian thực thi; số bên phải = thời gian trung bình mỗi lần</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ba dòng đầu pg_stat_statements, quy về một phút giờ cao điểm</div>
+      <div class="tbl-scroll"><table style="margin-bottom:0">
+        <tr><th>Query (rút gọn)</th><th>calls/phút</th><th>mean_exec_time</th><th>% tổng</th></tr>
+        <tr><td class="k">SELECT p.*, c.name, rs.avg_rating … WHERE p.id = $1</td><td>90.000</td><td>4,2 ms</td><td><span class="miss">93%</span></td></tr>
+        <tr><td class="k">SELECT … FROM cart_items WHERE cart_id = $1</td><td>6.000</td><td>2,1 ms</td><td>3%</td></tr>
+        <tr><td class="k">INSERT INTO orders …</td><td>600</td><td>9,5 ms</td><td>1%</td></tr>
+      </table></div>
+      <p style="margin-top:10px">Hệ thống: cửa hàng có <b>40.000 SKU</b>, endpoint nhận <b>1.500 req/s</b> giờ cao điểm, <b>90%</b> lượt đọc rơi vào <b>2.000 SKU</b> đang được xem nhiều nhất. Cách thường thấy là nâng Postgres lên máy lớn hơn — trước đó có một phép tính đáng làm. (số minh hoạ của bài)</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Chẩn đoán</div>
+    <h2 class="c-spec">Không chậm — chạy quá nhiều lần</h2>
+    <p class="desc">pg_stat_statements báo <b>thời gian thực thi</b>, không báo CPU; truy vấn có thể tốn thời gian vì chờ đĩa, chờ lock, hoặc dùng nhiều core khi chạy song song. Giả định câu này không rơi vào trường hợp nào như vậy thì 4,2 ms thực thi ≈ 4,2 ms CPU — và phải <b>đối chiếu với CPU đo được</b> để kiểm tra giả định. Thêm index chỉ làm mỗi lần rẻ hơn, không bớt được lần nào; hướng còn lại là để phần lớn request không phải chạy câu SELECT.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 120" role="img" aria-label="Đổi thời gian thực thi thành CPU">
+        <rect class="box" x="10" y="30" width="140" height="56" rx="8" stroke="var(--avg)"/><text class="sm" x="80" y="54" text-anchor="middle" fill="var(--avg)">1.500 truy vấn/s</text><text class="sm" x="80" y="72" text-anchor="middle">× 4,2 ms</text>
+        <path class="ln" d="M150,58 L180,58" marker-end="url(#a-dim)"/>
+        <rect class="box" x="184" y="30" width="140" height="56" rx="8"/><text class="sm" x="254" y="54" text-anchor="middle">6,3 giây CPU</text><text class="sm" x="254" y="72" text-anchor="middle">mỗi giây</text>
+        <path class="ln" d="M324,58 L354,58" marker-end="url(#a-dim)"/>
+        <rect class="box" x="358" y="30" width="140" height="56" rx="8" stroke="var(--peak)"/><text class="sm" x="428" y="54" text-anchor="middle">÷ 8 vCPU</text><text class="sm" x="428" y="72" text-anchor="middle" fill="var(--peak)">≈ 79% CPU</text>
+        <path class="ln" d="M498,58 L528,58" marker-end="url(#a-dim)"/>
+        <rect class="box" x="532" y="30" width="158" height="56" rx="8" stroke="var(--cmd)"/><text class="sm" x="611" y="54" text-anchor="middle">+ ~6% truy vấn khác</text><text class="sm" x="611" y="72" text-anchor="middle" fill="var(--cmd)">≈ 85% ✓ khớp đo</text>
+        <text class="sm" x="350" y="112" text-anchor="middle">Lệch xa CPU đo được → truy vấn đang mất thời gian vào việc khác ngoài CPU, hoặc CPU bị truy vấn khác dùng</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Phép đối chiếu khớp 85% nên giả định "thực thi ≈ CPU" đúng với ví dụ này</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Vì sao p99 1,2 giây khi mỗi câu chỉ 4,2 ms</div>
+      <p>85% là CPU <b>trung bình</b>. Request không đến đều từng mili giây, nên có những khoảnh khắc ngắn CPU chạm 100%; truy vấn đến lúc đó phải <b>xếp hàng chờ CPU</b>, thời gian chờ cộng thẳng vào latency. p99 là nhóm 1% chậm nhất — chính là những request rơi vào các khoảnh khắc đó. Và trong 1.500 SELECT/giây, có <b>1.350</b> câu lấy lại thông tin của cùng 2.000 sản phẩm gần như không đổi trong vài phút: Postgres đang tính lại cùng một kết quả 1.350 lần mỗi giây.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Cơ chế</div>
+    <h2 class="c-cmd">Cache-aside: app hỏi Redis trước, chỉ khi miss mới xuống Postgres</h2>
+    <p class="desc"><b>Cache-aside</b> (AWS gọi là <b>lazy loading</b>): cache đứng bên cạnh database, app tự quyết lúc nào đọc, lúc nào ghi vào cache. <b>TTL</b> (time to live) là thời gian Redis giữ một key trước khi hết hạn và bị xoá — đặt bằng <code>EXPIRE</code> hoặc ngay lúc ghi bằng <code>SET … EX 60</code>. Vì app chỉ ghi vào cache khi gặp miss, Redis chỉ chứa sản phẩm vừa có người đọc; sản phẩm không ai xem không chiếm chỗ.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 200" role="img" aria-label="Ba bước cache-aside">
+        <rect class="box" x="10" y="72" width="150" height="56" rx="8"/><text class="sm" x="85" y="96" text-anchor="middle">App</text><text class="sm" x="85" y="114" text-anchor="middle">getProduct(id)</text>
+        <path class="ln" stroke="var(--cmd)" d="M160,86 L300,40" marker-end="url(#a-cmd)"/><text class="sm" x="168" y="30" fill="var(--cmd)">① GET product:id</text>
+        <rect class="box" x="304" y="14" width="170" height="52" rx="8" stroke="var(--cmd)"/><text class="sm" x="389" y="36" text-anchor="middle" fill="var(--cmd)">Redis</text><text class="sm" x="389" y="54" text-anchor="middle">có → HIT, trả luôn</text>
+        <path class="ln" stroke="var(--peak)" d="M160,114 L300,160" marker-end="url(#a-peak)"/><text class="sm" x="168" y="186" fill="var(--peak)">② MISS → SELECT</text>
+        <rect class="box" x="304" y="134" width="170" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="389" y="156" text-anchor="middle" fill="var(--spec)">Postgres</text><text class="sm" x="389" y="174" text-anchor="middle">source of truth</text>
+        <path class="ln" stroke="var(--grow)" d="M474,160 L560,160 L560,48 L478,48" marker-end="url(#a-grow)"/>
+        <text class="sm" x="570" y="96" fill="var(--grow)">③ SET product:id</text><text class="sm" x="570" y="112" fill="var(--grow)">EX 60 rồi trả</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Request đi vào nhánh ① HIT không tạo truy vấn nào trên Postgres</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code — hàm đọc sản phẩm chỉ dài thêm vài dòng</div>
+      <pre><span class="kw">const</span> TTL_SECONDS = <span class="val">60</span>;
+
+<span class="kw">async function</span> getProduct(id: string): Promise&lt;Product | null&gt; {
+  <span class="kw">const</span> key = `product:${id}`;
+  <span class="cm">// Bước 1: hỏi Redis trước</span>
+  <span class="kw">const</span> cached = <span class="kw">await</span> redis.get(key);
+  <span class="kw">if</span> (cached !== <span class="kw">null</span>) {
+    <span class="kw">return</span> JSON.parse(cached) <span class="kw">as</span> Product; <span class="cm">// cache hit: Postgres không nhận truy vấn nào</span>
+  }
+  <span class="cm">// Bước 2: cache miss, chạy SELECT như trước</span>
+  <span class="kw">const</span> product = <span class="kw">await</span> db.findProductWithCategoryAndRating(id);
+  <span class="kw">if</span> (product === <span class="kw">null</span>) <span class="kw">return null</span>;
+  <span class="cm">// Bước 3: lưu bản sao kèm TTL 60 giây rồi trả</span>
+  <span class="kw">await</span> redis.set(key, JSON.stringify(product), { EX: TTL_SECONDS });
+  <span class="kw">return</span> product;
+}</pre>
+      <p>Handler của <code>GET /products/:id</code> vẫn gọi đúng một hàm như cũ; thay đổi chỉ nằm trong hàm này.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Tải còn lại</div>
+    <h2 class="c-cmd">Postgres chỉ nhận tải đọc × miss ratio</h2>
+    <p class="desc"><b>Hit ratio</b> = số lần hit / tổng số lần đọc cache; <b>miss ratio</b> = 1 − hit ratio. Postgres chỉ nhận phần miss. Với phân bố lượt đọc của ví dụ, hit ratio ước lượng <b>88%</b> (phần 05 tính ra con số này). Hit ratio 90% và 95% nghe gần như nhau, nhưng miss 10% so với 5% nghĩa là tải xuống Postgres <b>chênh nhau gấp đôi</b> — nên theo dõi miss ratio sẽ thấy rõ hơn.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Không cache</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div></div><span class="bar-val">1.500 truy vấn/s</span></div>
+      <div class="bar-row"><span class="bar-label">Hit 88%</span><div class="bar-bg"><div class="bar-fill" style="width:12%;background:var(--spec)"></div></div><span class="bar-val">180 truy vấn/s</span></div>
+      <div class="bar-row"><span class="bar-label">Hit 90%</span><div class="bar-bg"><div class="bar-fill" style="width:10%;background:var(--cmd)"></div></div><span class="bar-val">150 truy vấn/s</span></div>
+      <div class="bar-row"><span class="bar-label">Hit 95%</span><div class="bar-bg"><div class="bar-fill" style="width:5%;background:var(--cmd)"></div></div><span class="bar-val">75 truy vấn/s</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">Thanh = số truy vấn/giây còn xuống Postgres trên tổng 1.500</div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — CPU Postgres sau khi có cache</div>
+      <pre>1.500 req/s × (1 − 0,88) = <span class="val">180</span> truy vấn/s xuống Postgres
+180 × 4,2 ms             ≈ 0,76 giây CPU mỗi giây
+0,76 / 8 vCPU            ≈ 9,5%  + 6% truy vấn khác ≈ <span class="val">16% CPU</span>   <span class="cm"># từ 85%</span>
+
+p99 trang sản phẩm       : 1,2 giây → <span class="val">~150 ms</span>  <span class="cm"># dưới SLO 300 ms</span></pre>
+      <p>Một phần vì GET Redis trong cùng datacenter cỡ một round trip, ~0,5 ms (bậc độ lớn để ước lượng, không phải số đo). Nhưng nhóm p99 vẫn rơi vào nhánh miss: điều thay đổi là câu SELECT 4,2 ms giờ chạy trên một Postgres còn dư CPU, <b>không phải xếp hàng chờ</b> nữa.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Vì sao 88%</div>
+    <h2 class="c-grow">Hit ratio cao nhờ SKU được đọc lặp lại trong một TTL, không nhờ cache lớn hơn</h2>
+    <p class="desc">Mô hình gần đúng: lượt đọc trong mỗi nhóm đến đều theo thời gian, Redis đủ chỗ cho mọi key chưa hết hạn. Nhóm <b>2.000 SKU nóng</b> nhận 1.350 req/s → mỗi SKU ~0,675 lần/giây, ~40 lần trong TTL 60 giây: chỉ lần đầu sau khi hết hạn là miss. Nhóm <b>38.000 SKU long tail</b> nhận 150 req/s → mỗi SKU ~250 giây mới có lượt đọc tiếp, lâu hơn TTL nhiều, nên gần như lần nào cũng miss.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 190" role="img" aria-label="Hai dòng thời gian cùng TTL 60 giây">
+        <text class="lb" x="10" y="20" fill="var(--cmd)">1 SKU NÓNG</text>
+        <rect x="120" y="34" width="250" height="20" rx="4" fill="var(--grow)" opacity=".25"/><text class="sm" x="245" y="70" text-anchor="middle" fill="var(--grow)">TTL 60 s</text>
+        <line x1="120" y1="44" x2="680" y2="44" stroke="var(--ink-dim)"/>
+        <circle cx="120" cy="44" r="6" fill="var(--peak)"/>
+        <g fill="var(--cmd)"><circle cx="140" cy="44" r="3.5"/><circle cx="160" cy="44" r="3.5"/><circle cx="180" cy="44" r="3.5"/><circle cx="200" cy="44" r="3.5"/><circle cx="220" cy="44" r="3.5"/><circle cx="240" cy="44" r="3.5"/><circle cx="260" cy="44" r="3.5"/><circle cx="280" cy="44" r="3.5"/><circle cx="300" cy="44" r="3.5"/><circle cx="320" cy="44" r="3.5"/><circle cx="340" cy="44" r="3.5"/><circle cx="360" cy="44" r="3.5"/></g>
+        <text class="sm" x="420" y="26" fill="var(--cmd)">1 miss + ~39 hit → ~97,5% hit</text>
+        <text class="lb" x="10" y="110" fill="var(--peak)">1 SKU LONG TAIL</text>
+        <rect x="120" y="124" width="150" height="20" rx="4" fill="var(--grow)" opacity=".25"/><text class="sm" x="195" y="160" text-anchor="middle" fill="var(--grow)">TTL 60 s → key hết hạn</text>
+        <line x1="120" y1="134" x2="680" y2="134" stroke="var(--ink-dim)"/>
+        <circle cx="120" cy="134" r="6" fill="var(--peak)"/><circle cx="745" cy="134" r="0"/>
+        <circle cx="620" cy="134" r="6" fill="var(--peak)"/><text class="sm" x="620" y="160" text-anchor="middle" fill="var(--peak)">~250 s sau: lại miss</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Chấm đỏ = miss, chấm xanh = hit (vẽ minh hoạ, không đủ 39 chấm)</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — 88% và RAM cần dùng</div>
+      <pre>Nhóm nóng : 2.000 SKU / 60 s       ≈  <span class="val">33</span> miss/s   (~97,5% hit)
+Long tail : 150 req/s, gần như miss ≈ <span class="bad">150</span> miss/s
+Tổng      : 33 + 150 ≈ 183 → làm tròn <span class="val">180</span> / 1.500 = miss 12% → <span class="val">hit 88%</span>
+
+RAM Redis : 2.000 key nóng + ~9.000 key long tail (150/s × 60 s)
+            × ~5 KB  ≈ <span class="val">55 MB</span>, trong đó phần nóng chỉ ~10 MB</pre>
+      <p>Long tail chỉ chiếm 10% lượt đọc nhưng tạo ~150 trong 183 lần miss. Thêm RAM cho Redis không tăng hit ratio: key long tail không mất vì thiếu chỗ mà <b>hết hạn theo TTL</b> trước khi có người đọc lại. Khoảng 10 MB trong RAM đang gánh phần tải đọc mà phương án nâng máy Postgres phải trả tiền mỗi tháng để gánh.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Tradeoff</div>
+    <h2 class="c-grow">Giá có thể cũ 60 giây, thêm Redis phải vận hành, và headroom phụ thuộc Redis</h2>
+    <p class="desc">Cache là <b>dữ liệu dẫn xuất</b>: mất hết vẫn dựng lại được từ Postgres, và Postgres vẫn là source of truth. <b>TTL chính là khoảng thời gian bản sao được phép cũ hơn Postgres.</b> Cache chỉ gánh phần đọc lặp lại và không giảm tải ghi: mỗi INSERT/UPDATE vẫn đi thẳng vào Postgres.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 130" role="img" aria-label="Khoảng thời gian trang hiện giá cũ sau khi admin đổi giá">
+        <line x1="40" y1="60" x2="670" y2="60" stroke="var(--ink-dim)" stroke-width="1.5"/>
+        <circle cx="160" cy="60" r="6" fill="var(--spec)"/><text class="sm" x="160" y="36" text-anchor="middle" fill="var(--spec)">admin đổi giá trong Postgres</text>
+        <rect x="160" y="70" width="380" height="18" rx="4" fill="var(--grow)" opacity=".55"/>
+        <text class="sm" x="350" y="108" text-anchor="middle" fill="var(--grow)">Redis vẫn giữ bản cũ → trang hiện giá cũ (tối đa 60 s)</text>
+        <circle cx="540" cy="60" r="6" fill="var(--cmd)"/><text class="sm" x="540" y="36" text-anchor="middle" fill="var(--cmd)">key hết hạn → miss → giá mới</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — Khi khách đặt hàng và cần giá đúng, app vẫn đọc giá từ Postgres</div>
+    </div>
+    <div class="card-grid">
+      <div class="card peak"><h3>BA HẬU QUẢ</h3><ul><li>Trang có thể hiện giá cũ tới 60 giây</li><li>Team vận hành thêm Redis: cấp memory, giám sát, sự cố riêng</li><li>Redis không trả lời mà app đọc tiếp Postgres → mọi request thành miss, CPU quay lại 85% hoặc hơn</li></ul></div>
+      <div class="card ok"><h3>CHƯA NÊN THÊM CACHE KHI</h3><ul><li>Postgres còn headroom và p99 vẫn đạt SLO</li><li>Cùng dữ liệu hiếm khi được đọc lại trong một TTL (hit thấp như long tail)</li><li>Tải chủ yếu là ghi</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống — đề xuất cache cho team</div>
+      <p>Bạn đề xuất: "Thêm Redis cache-aside, TTL 60 giây cho <code>GET /products/:id</code>; CPU Postgres từ 85% xuống ~16%." Đi kèm phải nói rõ ngay từ đầu: (1) giá trên trang sản phẩm có thể cũ tối đa 60 giây, checkout vẫn đọc giá từ Postgres; (2) team có thêm Redis phải vận hành; (3) headroom vừa lấy lại phụ thuộc vào việc Redis còn chạy. (tóm tắt minh hoạ từ ba tradeoff của bài)</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Áp dụng</div>
+    <h2 class="c-spec">Tính ngược hit ratio tối thiểu để Postgres dưới 50% CPU</h2>
+    <p class="desc">Team muốn Postgres luôn dưới <b>50%</b> CPU giờ cao điểm. CPU dành cho câu SELECT = 50% − 6% = 44% của 8 vCPU = <b>3,52 giây CPU mỗi giây</b>. Tải tăng gấp đôi vì khuyến mãi thì cùng lượng CPU đó phải chia cho gấp đôi request, nên hit ratio tối thiểu không chỉ nhích vài điểm mà nhảy từ 45% lên 73%.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">1.500 req/s</span><div class="bar-bg"><div class="bar-fill" style="width:45%;background:var(--spec)"></div><div class="bar-mark" style="left:88%"></div></div><span class="bar-val">tối thiểu 45%</span></div>
+      <div class="bar-row"><span class="bar-label">3.000 req/s</span><div class="bar-bg"><div class="bar-fill" style="width:73%;background:var(--peak)"></div><div class="bar-mark" style="left:88%"></div></div><span class="bar-val">tối thiểu 73%</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = hit ratio hiện tại 88%, vẫn trên cả hai mức</div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính &amp; kiểm tra lại</div>
+      <pre>1.500 req/s: miss &lt; 3,52 / 6,3  ≈ 55,9% → hit &gt; ~44,1% → <span class="val">45%</span>
+3.000 req/s: miss &lt; 3,52 / 12,6 ≈ 27,9% → hit &gt; ~72,1% → <span class="bad">73%</span>
+
+Kiểm tra: 1.500 × 0,55 × 4,2 ms / 8 ≈ 43,3% + 6% ≈ 49,3% CPU
+          3.000 × 0,27 × 4,2 ms / 8 ≈ 42,5% + 6% ≈ 48,5% CPU</pre>
+      <p>Nếu hit ratio tụt xuống ~72% hoặc thấp hơn đúng vào đợt khuyến mãi, Postgres sẽ chạm hoặc vượt 50% CPU.</p>
+    </div>
+    <div class="note"><b>Bốn số liệu theo dõi sau khi thêm cache:</b> hit ratio, CPU Postgres, số lần câu SELECT chạy mỗi phút trong pg_stat_statements, p99 của trang. Tải đọc giữ nguyên mà hit ratio lên thì số lần SELECT và CPU phải giảm theo; nếu không, kiểm tra tải đọc đã tăng chưa, hoặc có request đọc thẳng Postgres không qua cache. Chọn TTL, đặt key, cập nhật cache khi dữ liệu đổi và chống nhiều key cùng hết hạn là các chủ đề triển khai riêng.</div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Đề xuất cache đi kèm ba con số</h2>
+    <div class="card-grid">
+      <div class="card ok"><h3>1 · TẢI CÒN LẠI</h3><ul><li>Postgres còn nhận bao nhiêu truy vấn/giây = tải đọc × miss ratio</li></ul></div>
+      <div class="card peak"><h3>2 · HIT TỐI THIỂU</h3><ul><li>Hit ratio phải đạt bao nhiêu để còn headroom ở peak hôm nay và ở mức gấp đôi</li></ul></div>
+      <div class="card grow"><h3>3 · ĐỘ CŨ</h3><ul><li>Trang được phép hiện dữ liệu cũ tới bao lâu (= TTL)</li></ul></div>
+      <div class="card avg"><h3>BƯỚC ĐẦU TIÊN</h3><ul><li>Lấy calls × mean_exec_time từ pg_stat_statements, đổi ra giây CPU, đối chiếu CPU đo được</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Cache không làm truy vấn nhanh hơn — nó làm phần lớn request không cần chạy truy vấn</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-09.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
