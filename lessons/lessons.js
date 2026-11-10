@@ -169,5 +169,18 @@ window.LESSONS = [
     "title": "Dùng queue để API không phải chờ những việc xử lý lâu",
     "description": "Đăng ký mất 3,8 giây vì chờ service email; queue và worker, câu hỏi phân loại, đỡ burst, queue depth và queue lag.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-11",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-11.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 12,
+    "title": "Read replica gánh bớt tải đọc cho database primary",
+    "description": "Primary 80% CPU giờ cao điểm; chuyển hai nhóm đọc nặng sang replica còn 32%, chọn truy vấn nào ở lại primary, replication lag và giới hạn.",
+    "readTime": "12 phút đọc"
   }
 ];

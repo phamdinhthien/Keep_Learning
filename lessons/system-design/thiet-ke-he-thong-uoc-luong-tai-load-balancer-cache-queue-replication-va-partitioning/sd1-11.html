@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Read replica — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-11">
+  <meta name="lesson:title" content="Read replica gánh bớt tải đọc cho database primary">
+  <meta name="lesson:description" content="Primary 80% CPU giờ cao điểm; chuyển hai nhóm đọc nặng sang replica còn 32%, chọn truy vấn nào ở lại primary, replication lag và giới hạn.">
+  <meta name="lesson:order" content="12">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="12 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Read replica · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Primary <span class="b">80% CPU</span> giờ cao điểm, chuyển hai trang đọc sang replica còn <span class="a">32%</span></h1>
+  <div class="sub">Read replica chạy được chính các câu SELECT chỉ đọc mà không phải sửa SQL; đổi lại, dữ liệu trên đó có thể cũ vài giây. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Trước: mọi truy vấn vào primary. Sau: hai nhóm đọc nặng sang replica">
+      <text class="lb" x="10" y="18" fill="var(--peak)">TRƯỚC</text>
+      <rect class="box" x="10" y="36" width="130" height="46" rx="8"/><text class="sm" x="75" y="63" text-anchor="middle">App cửa hàng</text>
+      <path class="ln" stroke="var(--peak)" d="M140,59 L398,59" marker-end="url(#a-peak)"/><text class="sm" x="269" y="50" text-anchor="middle">đọc 1.700/s · ghi 300/s</text>
+      <rect class="box" x="402" y="32" width="170" height="54" rx="8" stroke="var(--spec)"/><text class="sm" x="487" y="54" text-anchor="middle" fill="var(--spec)">Postgres primary 8 vCPU</text><text class="sm" x="487" y="72" text-anchor="middle" fill="var(--peak)">CPU 80% · quý sau 96%</text>
+
+      <line x1="10" y1="104" x2="690" y2="104" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="lb" x="10" y="126" fill="var(--cmd)">SAU</text>
+      <rect class="box" x="10" y="166" width="130" height="46" rx="8"/><text class="sm" x="75" y="193" text-anchor="middle">App cửa hàng</text>
+      <path class="ln" d="M140,178 L398,148" marker-end="url(#a-dim)"/><text class="sm" x="254" y="146" text-anchor="middle">ghi + đọc khác 600/s</text>
+      <rect class="box" x="402" y="122" width="170" height="50" rx="8" stroke="var(--spec)"/><text class="sm" x="487" y="142" text-anchor="middle" fill="var(--spec)">Primary</text><text class="sm" x="487" y="160" text-anchor="middle" fill="var(--cmd)">CPU 32%</text>
+      <path class="ln" stroke="var(--avg)" d="M140,200 L398,222" marker-end="url(#a-dim)"/><text class="sm" x="254" y="232" text-anchor="middle" fill="var(--avg)">hai nhóm đọc nặng 1.400/s</text>
+      <rect class="box" x="402" y="196" width="170" height="50" rx="8" stroke="var(--cmd)"/><text class="sm" x="487" y="216" text-anchor="middle" fill="var(--cmd)">Read replica 8 vCPU</text><text class="sm" x="487" y="234" text-anchor="middle">CPU 53%</text>
+      <path class="ln ln-d" stroke="var(--grow)" d="M572,160 L620,160 L620,208 L576,208" marker-end="url(#a-grow)"/><text class="sm" x="628" y="180" fill="var(--grow)">chép mọi</text><text class="sm" x="628" y="194" fill="var(--grow)">thay đổi</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — App vẫn có đường vào primary; replica là node mới duy nhất</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>20% CPU dư</b></span>
+    <span>02 <b>CPU theo nhóm</b></span>
+    <span>03 <b>Read replica</b></span>
+    <span>04 <b>Replica hay primary</b></span>
+    <span>05 <b>Tradeoff</b></span>
+    <span>06 <b>Giới hạn</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Primary chỉ còn 20% CPU dư đúng lúc khách mua nhiều nhất</h2>
+    <p class="desc">Một Postgres primary <b>8 vCPU</b> nhận mọi câu lệnh ghi và hiện nhận luôn mọi truy vấn đọc. CPU lên xuống đều theo giờ và chạm <b>80%</b> lúc 20:00. Ở mốc nào truy vấn đọc cũng nhiều hơn truy vấn ghi khoảng năm lần rưỡi: lúc 20:00 có <b>2.000 truy vấn/giây</b>, trong đó <b>1.700</b> là đọc (85%). Tải tăng khoảng <b>20% mỗi quý</b>, nên giữ nguyên thì quý sau CPU giờ cao điểm lên khoảng 80% × 1,2 = <b>96%</b>: truy vấn xếp hàng chờ nhau, trang nào cũng chậm, kể cả checkout.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 210" role="img" aria-label="CPU primary và số truy vấn đọc theo giờ">
+        <line x1="60" y1="170" x2="670" y2="170" stroke="var(--ink-dim)"/>
+        <line x1="60" y1="34" x2="670" y2="34" stroke="var(--peak)" stroke-dasharray="4 4"/><text class="sm" x="668" y="28" text-anchor="end" fill="var(--peak)">CPU 100%</text>
+        <g fill="var(--avg)" opacity=".55">
+          <rect x="88" y="148" width="34" height="22"/><rect x="198" y="114" width="34" height="56"/><rect x="308" y="93" width="34" height="77"/><rect x="418" y="64" width="34" height="106"/><rect x="528" y="51" width="34" height="119"/><rect x="618" y="60" width="34" height="110"/>
+        </g>
+        <polyline points="105,150 215,118 325,99 435,73 545,61 635,69" fill="none" stroke="var(--spec)" stroke-width="2.5"/>
+        <g fill="var(--spec)"><circle cx="105" cy="150" r="4"/><circle cx="215" cy="118" r="4"/><circle cx="325" cy="99" r="4"/><circle cx="435" cy="73" r="4"/><circle cx="545" cy="61" r="5"/><circle cx="635" cy="69" r="4"/></g>
+        <text class="sm" x="105" y="142" text-anchor="middle" fill="var(--spec)">15%</text><text class="sm" x="215" y="110" text-anchor="middle" fill="var(--spec)">38%</text><text class="sm" x="325" y="91" text-anchor="middle" fill="var(--spec)">52%</text><text class="sm" x="435" y="65" text-anchor="middle" fill="var(--spec)">71%</text><text class="sm" x="545" y="50" text-anchor="middle" fill="var(--spec)">80%</text><text class="sm" x="635" y="58" text-anchor="middle" fill="var(--spec)">74%</text>
+        <text class="sm" x="105" y="188" text-anchor="middle">03:00</text><text class="sm" x="215" y="188" text-anchor="middle">09:00</text><text class="sm" x="325" y="188" text-anchor="middle">12:00</text><text class="sm" x="435" y="188" text-anchor="middle">19:00</text><text class="sm" x="545" y="188" text-anchor="middle">20:00</text><text class="sm" x="635" y="188" text-anchor="middle">22:00</text>
+        <text class="sm" x="60" y="206" fill="var(--spec)">— CPU primary</text><text class="sm" x="200" y="206" fill="var(--avg)">▮ truy vấn đọc/giây (320 → 1.700)</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — CPU đi cùng nhịp với số truy vấn đọc; khoảng cách các mốc giờ không theo tỉ lệ</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Số liệu theo giờ (số minh hoạ của bài)</div>
+      <div class="tbl-scroll"><table style="margin-bottom:0">
+        <tr><th>Giờ</th><th>CPU primary</th><th>Đọc/giây</th><th>Ghi/giây</th></tr>
+        <tr><td class="k">03:00</td><td>15%</td><td>320</td><td>55</td></tr>
+        <tr><td class="k">09:00</td><td>38%</td><td>810</td><td>140</td></tr>
+        <tr><td class="k">12:00</td><td>52%</td><td>1.100</td><td>195</td></tr>
+        <tr><td class="k">19:00</td><td>71%</td><td>1.510</td><td>265</td></tr>
+        <tr><td class="k">20:00</td><td><span class="miss">80%</span></td><td>1.700</td><td>300</td></tr>
+        <tr><td class="k">22:00</td><td>74%</td><td>1.580</td><td>280</td></tr>
+      </table></div>
+      <p style="margin-top:10px">Trước khi nghĩ tới mua một máy to hơn, cần biết primary đang bận vì việc gì.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Chẩn đoán</div>
+    <h2 class="c-avg">Hai trang đọc nhiều nhất chiếm 48 trong 80 điểm CPU</h2>
+    <p class="desc">85% số truy vấn là đọc vẫn chưa nói nhóm nào tốn CPU nhất: một câu lệnh ghi phải sửa cả bảng lẫn index nên thường tốn hơn một truy vấn đọc đơn giản. Đo CPU từng loại lúc 20:00 rồi gom thành bốn nhóm, quy ra <b>điểm</b>: 1 điểm = 1% CPU máy 8 vCPU, nên 80% = 80 điểm. Ghi chỉ chiếm 20%; đọc là 85% số truy vấn nhưng 80% CPU.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 120" role="img" aria-label="80 điểm CPU chia theo bốn nhóm truy vấn">
+        <rect x="20" y="30" width="231" height="40" fill="var(--avg)"/><text class="sm" x="135" y="55" text-anchor="middle" fill="#0d0d0f">Danh sách SP · 28</text>
+        <rect x="251" y="30" width="165" height="40" fill="var(--avg)" opacity=".75"/><text class="sm" x="333" y="55" text-anchor="middle" fill="#0d0d0f">Lịch sử đơn · 20</text>
+        <rect x="416" y="30" width="132" height="40" fill="var(--ink-dim)" opacity=".5"/><text class="sm" x="482" y="55" text-anchor="middle">Đọc khác · 16</text>
+        <rect x="548" y="30" width="132" height="40" fill="var(--peak)" opacity=".8"/><text class="sm" x="614" y="55" text-anchor="middle" fill="#0d0d0f">Ghi · 16</text>
+        <path d="M20,80 L20,90 L416,90 L416,80" fill="none" stroke="var(--cmd)" stroke-width="1.5"/><text class="sm" x="218" y="108" text-anchor="middle" fill="var(--cmd)">48 điểm = 60% CPU primary đang dùng → ứng viên chuyển đi</text>
+        <text class="sm" x="20" y="20">0</text><text class="sm" x="680" y="20" text-anchor="end">80 điểm (CPU 80%)</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Cả hai nhóm đọc nặng đều không cần dữ liệu mới đến từng mili giây</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ CPU theo nhóm truy vấn lúc 20:00</div>
+      <div class="tbl-scroll"><table style="margin-bottom:0">
+        <tr><th>Nhóm</th><th>Truy vấn/giây</th><th>Tỉ trọng CPU</th><th>Điểm</th></tr>
+        <tr><td class="k">Danh sách sản phẩm</td><td>900</td><td>35%</td><td>28</td></tr>
+        <tr><td class="k">Lịch sử đơn</td><td>500</td><td>25%</td><td>20</td></tr>
+        <tr><td class="k">Đọc khác</td><td>300</td><td>20%</td><td>16</td></tr>
+        <tr><td class="k">Câu lệnh ghi</td><td>300</td><td>20%</td><td>16</td></tr>
+      </table></div>
+      <p style="margin-top:10px"><b>Vì sao không dùng cache?</b> Cache chỉ gánh truy vấn đọc lặp lại; ở đây hit ratio sẽ thấp: lịch sử đơn mỗi khách một kết quả, danh sách sản phẩm có rất nhiều tổ hợp bộ lọc và số trang. Cần một máy khác chạy được chính các câu SELECT này mà không phải sửa SQL — read replica là một máy như thế.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Cơ chế</div>
+    <h2 class="c-cmd">Read replica nhận các truy vấn đọc chịu được dữ liệu cũ một chút</h2>
+    <p class="desc"><b>Read replica</b> là bản sao của primary: liên tục nhận thay đổi từ primary và áp dụng vào dữ liệu của chính nó, nhưng với app thì chỉ nhận truy vấn đọc. Postgres gọi chế độ này là <b>hot standby</b>; gửi INSERT tới replica sẽ bị từ chối kiểu <code>cannot execute INSERT in a read-only transaction</code>. Việc ghi lại thay đổi cũng tốn CPU của replica, khoảng <b>5 điểm</b>. Replica cùng cấu hình 8 vCPU nên điểm trên hai máy cộng trừ như nhau.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Primary trước</span><div class="bar-bg"><div class="bar-fill" style="width:80%;background:var(--peak)"></div></div><span class="bar-val">80%</span></div>
+      <div class="bar-row"><span class="bar-label">Primary sau</span><div class="bar-bg"><div class="bar-fill" style="width:32%;background:var(--spec)"></div></div><span class="bar-val">32%</span></div>
+      <div class="bar-row"><span class="bar-label">Replica sau</span><div class="bar-bg"><div class="bar-fill" style="width:53%;background:var(--cmd)"></div></div><span class="bar-val">53%</span></div>
+      <div class="bar-row"><span class="bar-label">Quý sau · không replica</span><div class="bar-bg"><div class="bar-fill" style="width:96%;background:var(--peak)"></div></div><span class="bar-val">96%</span></div>
+      <div class="bar-row"><span class="bar-label">Quý sau · primary</span><div class="bar-bg"><div class="bar-fill" style="width:38%;background:var(--spec)"></div></div><span class="bar-val">~38%</span></div>
+      <div class="bar-row"><span class="bar-label">Quý sau · replica</span><div class="bar-bg"><div class="bar-fill" style="width:64%;background:var(--cmd)"></div></div><span class="bar-val">~64%</span></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — trước, sau và quý sau</div>
+      <pre>1. Trước (primary)  : 28 + 20 + 16 + 16 = 80 điểm   → CPU <span class="bad">80%</span>, 2.000 truy vấn/s
+
+2. Sau khi thêm replica
+   Primary : 16 (đọc khác) + 16 (ghi)    = 32 điểm   → CPU <span class="val">32%</span>, 600 truy vấn/s
+   Replica : 28 + 20 + 5 (ghi lại thay đổi) = 53 điểm → CPU <span class="val">53%</span>, 1.400 truy vấn/s
+
+3. Quý sau, tải +20%
+   Không replica : 80% × 1,2 = <span class="bad">96%</span>
+   Có replica    : primary 32% × 1,2 ≈ <span class="val">38%</span> · replica 53% × 1,2 ≈ <span class="val">64%</span></pre>
+      <p>Câu SELECT đọc lịch sử đơn và danh sách sản phẩm vẫn y nguyên; chỉ đổi kết nối mà chúng chạy trên đó. Có thêm một bản sao đang chạy cũng nghĩa là nếu primary hỏng, không phải ngồi chờ khôi phục từ backup — đưa replica lên thay gọi là <b>failover</b>, cách làm thuộc phần vận hành database.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Chọn đường</div>
+    <h2 class="c-spec">Truy vấn này có chịu được dữ liệu cũ một chút không?</h2>
+    <p class="desc">Không phải truy vấn đọc nào cũng nên sang replica. Cột trái là thứ khách <b>xem</b>: cũ vài giây không làm ai mất tiền. Cột phải là truy vấn app dùng để <b>quyết định nghiệp vụ</b> — còn hàng thì cho đặt, giỏ bao nhiêu tiền thì trừ bấy nhiêu — nên phải đọc từ source of truth, ở đây là primary. Hai truy vấn này nằm trong nhóm "đọc khác", và cả nhóm ở lại primary.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Hai cột: chuyển sang replica và ở lại primary">
+        <rect class="box" x="10" y="10" width="330" height="150" rx="10" stroke="var(--cmd)"/>
+        <text class="lb" x="26" y="34" fill="var(--cmd)">→ REPLICA · KHÁCH XEM</text>
+        <text class="sm" x="26" y="64">• Danh sách sản phẩm (products)</text>
+        <text class="sm" x="26" y="88">• Lịch sử đơn của khách (orders)</text>
+        <text class="sm" x="26" y="128" fill="var(--cmd)">cũ vài giây: không ai mất tiền</text>
+        <rect class="box" x="360" y="10" width="330" height="150" rx="10" stroke="var(--spec)"/>
+        <text class="lb" x="376" y="34" fill="var(--spec)">→ PRIMARY · QUYẾT ĐỊNH NGHIỆP VỤ</text>
+        <text class="sm" x="376" y="64">• Kiểm tra tồn kho khi bấm đặt hàng</text>
+        <text class="sm" x="376" y="88">• Tính tiền giỏ hàng lúc checkout</text>
+        <text class="sm" x="376" y="128" fill="var(--peak)">đọc replica: thấy "còn hàng"</text>
+        <text class="sm" x="376" y="144" fill="var(--peak)">trong khi primary vừa bán hết</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Cùng là SELECT, ranh giới là "dùng để xem" hay "dùng để quyết định"</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code — chỉ khác biến kết nối đứng trước .query</div>
+      <pre><span class="kw">import</span> { Pool } <span class="kw">from</span> <span class="val">"pg"</span>;
+<span class="cm">// Primary: câu lệnh ghi và truy vấn đọc cần dữ liệu mới nhất</span>
+<span class="kw">const</span> primary = <span class="kw">new</span> Pool({ connectionString: process.env.PRIMARY_URL });
+<span class="cm">// Replica: truy vấn đọc chịu được dữ liệu cũ vài giây</span>
+<span class="kw">const</span> replica = <span class="kw">new</span> Pool({ connectionString: process.env.REPLICA_URL });
+
+<span class="cm">// Lịch sử đơn: chậm vài giây vẫn chấp nhận được</span>
+<span class="kw">export async function</span> getOrderHistory(customerId: string) {
+  <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="val">replica</span>.query(
+    <span class="val">"SELECT id, total, created_at FROM orders WHERE customer_id = $1 ORDER BY created_at DESC LIMIT 20"</span>,
+    [customerId]);
+  <span class="kw">return</span> rows;
+}
+<span class="cm">// Kiểm tra tồn kho khi đặt hàng: quyết định có bán hay không</span>
+<span class="kw">export async function</span> hasEnoughStock(productId: string, quantity: number) {
+  <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="bad">primary</span>.query(<span class="val">"SELECT stock FROM products WHERE id = $1"</span>, [productId]);
+  <span class="kw">return</span> rows.length &gt; 0 &amp;&amp; rows[0].stock &gt;= quantity;
+}</pre>
+      <p>Quyết định "chịu được dữ liệu cũ hay không" nằm hẳn ở một chữ: <code>replica</code> hay <code>primary</code>. Chính vì chỉ một chữ nên rất dễ chọn nhầm, và người viết mỗi truy vấn đọc mới đều phải tự trả lời câu hỏi đó.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Tradeoff</div>
+    <h2 class="c-grow">Đổi CPU primary lấy dữ liệu có thể cũ trên replica</h2>
+    <p class="desc"><b>Replication lag</b> là khoảng thời gian dữ liệu trên replica chậm hơn primary. Thường không ai thấy, cho tới lúc một khách vừa đặt đơn xong và tải lại trang lịch sử ngay.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Đơn ORD-58213 trên primary và replica theo thời gian">
+        <text class="lb" x="10" y="44" fill="var(--spec)">PRIMARY</text>
+        <text class="lb" x="10" y="114" fill="var(--cmd)">REPLICA</text>
+        <line x1="100" y1="40" x2="680" y2="40" stroke="var(--ink-dim)"/>
+        <line x1="100" y1="110" x2="680" y2="110" stroke="var(--ink-dim)"/>
+        <circle cx="140" cy="40" r="6" fill="var(--spec)"/><text class="sm" x="140" y="24" text-anchor="middle" fill="var(--spec)">07.120 POST /orders 201 · ORD-58213</text>
+        <rect x="140" y="100" width="420" height="20" rx="4" fill="var(--grow)" opacity=".35"/>
+        <text class="sm" x="350" y="140" text-anchor="middle" fill="var(--grow)">replication lag: replica chưa có ORD-58213</text>
+        <circle cx="200" cy="110" r="6" fill="var(--peak)"/><text class="sm" x="200" y="88" text-anchor="middle" fill="var(--peak)">07.430 GET /me/orders · thiếu</text>
+        <circle cx="620" cy="110" r="6" fill="var(--cmd)"/><text class="sm" x="620" y="88" text-anchor="middle" fill="var(--cmd)">11.050 · có</text>
+        <text class="sm" x="100" y="164">20:14:07 → 20:14:11 · trục không theo tỉ lệ</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — 0,3 giây sau khi ghi, trang lịch sử đọc từ replica vẫn thiếu đúng đơn vừa đặt</div>
+    </div>
+    <div class="card-grid">
+      <div class="card peak"><h3>BA ĐIỀU PHẢI CHẤP NHẬN</h3><ul><li><b>Dữ liệu cũ:</b> người vừa đặt hàng thấy lịch sử thiếu đơn, trông như đơn chưa được ghi nhận</li><li><b>Chi phí gấp đôi phần database</b> và thêm một database phải theo dõi, nâng cấp, xử lý sự cố</li><li><b>App phải chọn đúng đường:</b> mỗi truy vấn đọc mới phải quyết định thuộc cột nào</li></ul></div>
+      <div class="card avg"><h3>SO VỚI NÂNG MÁY</h3><ul><li>Nâng primary lên gấp đôi vCPU tốn gần bằng một replica</li><li>Nhưng mọi truy vấn vẫn chạy trên một máy, và một máy dù to đến đâu vẫn có mức tải tối đa</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Log — ba dòng của một lần như thế</div>
+      <pre>20:14:07.120  POST /orders     201  orderId=<span class="val">ORD-58213</span>              db=primary
+20:14:07.430  GET  /me/orders  200  rows=20  has ORD-58213: <span class="bad">false</span>  db=replica
+20:14:11.050  GET  /me/orders  200  rows=20  has ORD-58213: <span class="val">true</span>   db=replica</pre>
+      <p>Gửi nhầm một truy vấn dùng để quyết định nghiệp vụ sang replica thì lỗi chỉ lộ ra đúng lúc replica đang chậm hơn primary — lúc test trên máy mình rất khó gặp đúng thời điểm đó.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Giới hạn</div>
+    <h2 class="c-peak">Ba vấn đề thêm bao nhiêu replica cũng không giải quyết được</h2>
+    <p class="desc">Replica chia được tải đọc, không chia được tải ghi, không gánh thêm khi phải lên thay primary, và không thay được backup. Nó cũng không phải bước đầu tiên trong mọi trường hợp: <b>xem bảng CPU theo nhóm truy vấn trước khi thêm máy</b>.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="DELETE thiếu WHERE chạy trên primary được chép sang replica">
+        <rect class="box" x="10" y="40" width="220" height="60" rx="8" stroke="var(--peak)"/><text class="sm" x="120" y="64" text-anchor="middle" fill="var(--peak)">DELETE FROM orders;</text><text class="sm" x="120" y="82" text-anchor="middle">(thiếu WHERE)</text>
+        <path class="ln" stroke="var(--peak)" d="M230,70 L276,70" marker-end="url(#a-peak)"/>
+        <rect class="box" x="280" y="40" width="160" height="60" rx="8" stroke="var(--spec)"/><text class="sm" x="360" y="64" text-anchor="middle" fill="var(--spec)">Primary</text><text class="sm" x="360" y="82" text-anchor="middle" fill="var(--peak)">orders: 0 dòng</text>
+        <path class="ln ln-d" stroke="var(--grow)" d="M440,70 L486,70" marker-end="url(#a-grow)"/><text class="sm" x="463" y="60" text-anchor="middle" fill="var(--grow)">chép</text>
+        <rect class="box" x="490" y="40" width="200" height="60" rx="8" stroke="var(--cmd)"/><text class="sm" x="590" y="64" text-anchor="middle" fill="var(--cmd)">Replica</text><text class="sm" x="590" y="82" text-anchor="middle" fill="var(--peak)">orders: 0 dòng</text>
+        <text class="sm" x="350" y="130" text-anchor="middle">Muốn lấy lại dữ liệu bị xoá nhầm (hoặc cập nhật nhầm) vẫn cần backup</text>
+      </svg>
+      <div class="fig-cap">Hình 6 — Replica giúp chạy tiếp khi primary hỏng, không cứu được dữ liệu bị xoá nhầm</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — ghi tăng gấp bốn, và khi replica lên thay primary</div>
+      <pre>Ghi tăng ×4    : 16 × 4 + 16 (đọc khác) = <span class="bad">80%</span> CPU primary   <span class="cm"># dù có 1 hay 3 replica</span>
+Replica lên thay: 32 (phần của primary) + 48 (hai trang đọc) ≈ <span class="bad">80 điểm</span> <span class="cm"># đúng mức ban đầu</span></pre>
+      <p>Phần ghi phải xử lý ngay trên primary: tối ưu câu lệnh ghi hay nâng máy; chỉ khi một máy đã không ghi kịp mới tính tới chia dữ liệu.</p>
+    </div>
+    <div class="note"><b>Replica chưa phải bước đầu khi:</b> CPU primary giờ cao điểm còn dư nhiều (thêm database chỉ thêm chi phí); phần nặng là câu lệnh ghi (replica không gánh được); hoặc một nhóm truy vấn ngốn CPU chỉ vì thiếu index (thêm index rẻ hơn nhiều so với thêm một máy). Khi đã có replica, theo dõi ba chỉ số: <b>CPU primary</b>, <b>CPU replica</b> và <b>replication lag</b>.</div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Endpoint nào của bạn chịu được dữ liệu cũ vài giây?</h2>
+    <div class="card-grid">
+      <div class="card ok"><h3>THƯỜNG LÀ "CÓ" → REPLICA</h3><ul><li>Trang danh sách, trang chi tiết, trang lịch sử, báo cáo cho admin</li><li>Ưu tiên endpoint chiếm nhiều CPU nhất</li></ul></div>
+      <div class="card peak"><h3>THƯỜNG LÀ "KHÔNG" → PRIMARY</h3><ul><li>Kiểm tra tồn kho, tính tiền, kiểm tra số dư</li><li>Mọi truy vấn quyết định có cho phép một thao tác hay không, dù nhận nhiều request đến đâu</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Mỗi endpoint đọc từ replica là một chỗ bạn đã chủ động chấp nhận người dùng có thể thấy dữ liệu cũ vài giây, để đổi lấy một primary chỉ dùng 32% CPU vào giờ đông khách nhất. Cách replication chạy bên trong và đo lag nằm ngoài phạm vi bài. Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Replica chia tải đọc — không chia tải ghi, và không thay được backup</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-11.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
