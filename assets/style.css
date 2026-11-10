@@ -49,47 +49,111 @@ a { color: var(--pct); }
 }
 
 /* ---------- Trang chủ: Category › Khóa › Bài học ---------- */
-.home { max-width: 840px; margin: 0 auto; padding: 44px 20px 72px; }
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto 0; height: 520px; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(600px 300px at 18% -8%, rgb(94 234 212 / .13), transparent 70%),
+    radial-gradient(520px 280px at 82% -4%, rgb(192 132 252 / .11), transparent 70%);
+}
+.home { max-width: 920px; margin: 0 auto; padding: 48px 20px 80px; }
+.home > * { animation: rise .35s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
 .page-head { margin-bottom: 28px; }
-.page-head .kicker { margin: 0 0 12px; font: 500 12px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-dim); }
-.page-head h1 { font-size: clamp(26px, 5.4vw, 40px); font-weight: 800; line-height: 1.25; letter-spacing: -.01em; margin: 0 0 12px; }
+.page-head .kicker { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font: 500 11.5px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+.page-head .kicker::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pct); box-shadow: 0 0 10px var(--pct); }
+.page-head h1 { font-size: clamp(28px, 5.6vw, 46px); font-weight: 800; line-height: 1.18; letter-spacing: -.02em; margin: 0 0 14px; text-wrap: balance; }
+.page-head h1 .grad { background: linear-gradient(90deg, var(--pct), var(--thr) 55%, var(--example)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .page-head .sub { color: var(--ink-dim); font-size: 15px; margin: 0; max-width: 600px; }
-.page-head .sub b { color: var(--ink); font-weight: 600; }
+.crumbs + .page-head h1 { font-size: clamp(24px, 4.2vw, 34px); line-height: 1.25; }
+
+.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 26px; padding: 0; list-style: none; }
+.stats li { display: flex; align-items: baseline; gap: 8px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 12px; background: rgb(23 23 26 / .7); }
+.stats b { font: 700 20px/1 var(--mono); color: var(--ink); }
+.stats span { font: 500 11.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+
+.search-wrap { position: relative; margin-bottom: 34px; }
+.search-wrap svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--ink-dim); pointer-events: none; }
+.search-wrap kbd { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink-dim); font: 500 12px/1.2 var(--mono); pointer-events: none; }
 .search {
-  width: 100%; height: 46px; padding: 0 16px; margin-bottom: 32px; color: var(--ink); background: var(--panel);
-  border: 1px solid var(--line); border-radius: 10px; font: 14px var(--mono);
+  width: 100%; height: 52px; padding: 0 52px 0 46px; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 14px; font: 15px var(--font);
+  transition: border-color .2s, box-shadow .2s;
 }
 .search::placeholder { color: var(--ink-dim); }
-.search:focus { outline: none; border-color: var(--pct); }
-.section-title { margin: 0 0 12px; font: 600 12px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.search:focus { outline: none; border-color: var(--pct); box-shadow: 0 0 0 4px rgb(94 234 212 / .12); }
+.search:focus ~ kbd { display: none; }
+@media (hover: none) { .search-wrap kbd { display: none; } }
+
+.section-title { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; font: 600 12px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.list.grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.list.grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
 .card {
-  display: grid; grid-template-columns: auto 1fr; align-content: start; gap: 4px 14px; height: 100%;
-  padding: 16px 18px; text-decoration: none; color: var(--ink);
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  transition: border-color .15s, background-color .15s;
+  --acc: var(--pct);
+  position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 16px; height: 100%;
+  padding: 16px 18px; text-decoration: none; color: var(--ink); cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  transition: border-color .2s, background-color .2s, transform .2s, box-shadow .2s;
 }
-.card:hover { border-color: var(--pct); background: var(--panel-2); }
+.card:hover, .card:focus-visible { border-color: color-mix(in srgb, var(--acc) 70%, transparent); background: var(--panel-2); transform: translateY(-2px); box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--acc) 45%, transparent); }
+.card:active { transform: translateY(0); }
 .card .num {
-  grid-row: span 3; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px;
-  background: rgb(94 234 212 / .14); color: var(--pct); font: 700 13px/1 var(--mono);
+  grid-row: 1 / span 3; align-self: start; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px;
+  background: color-mix(in srgb, var(--acc) 14%, transparent); color: var(--acc); font: 700 13px/1 var(--mono);
 }
-.card-khoa { padding: 22px; }
-.card-khoa .t { font-size: 20px; font-weight: 800; }
-.card-lop .num { background: rgb(96 165 250 / .14); color: var(--thr); }
-.card-lesson .num { background: rgb(245 165 36 / .14); color: var(--sat); }
+.card .num svg { width: 20px; height: 20px; }
+.card .t, .card .d, .card .m, .card .bar { grid-column: 2; min-width: 0; }
 .card .t { font-weight: 700; line-height: 1.4; }
 .card .d { color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
 .card .m { color: var(--ink-dim); font: 12px/1.5 var(--mono); letter-spacing: .02em; }
-.empty { color: var(--ink-dim); font-family: var(--mono); font-size: 13px; }
+.card .go { grid-column: 3; grid-row: 1 / span 3; width: 18px; height: 18px; color: var(--ink-dim); transition: transform .2s, color .2s; }
+.card:hover .go { color: var(--acc); transform: translateX(3px); }
+.bar { display: block; height: 4px; margin-top: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 99px; background: var(--acc); transition: width .4s ease-out; }
+
+.card-khoa { grid-template-columns: 1fr auto; padding: 22px; gap: 6px 14px; align-items: start; overflow: hidden; }
+.card-khoa::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--acc), transparent); }
+.card-khoa .num { grid-row: auto; grid-column: 1; width: 48px; height: 48px; border-radius: 12px; margin-bottom: 10px; }
+.card-khoa .num svg { width: 24px; height: 24px; }
+.card-khoa .t, .card-khoa .d, .card-khoa .m, .card-khoa .bar { grid-column: 1 / -1; }
+.card-khoa .t { font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
+.card-khoa .go { grid-column: 2; grid-row: 1; align-self: start; margin-top: 14px; }
+.card-lop { padding: 20px; }
+.card-lop .t { font-size: 17px; }
+.card-lesson.seen .num { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.card-lesson .chip { grid-column: 2; justify-self: start; margin-top: 4px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 99px; color: var(--ink-dim); font: 500 11.5px/1.6 var(--mono); }
+.card-lesson.seen .chip.ok { border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.chips { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.resume-wrap { margin-bottom: 30px; }
+.resume { --acc: var(--example); }
+.resume .num { background: linear-gradient(135deg, var(--pct), var(--example)); color: #0d0d0f; }
+.resume .m { text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--example); }
+
+.progress-head { display: flex; align-items: center; gap: 14px; margin: -6px 0 24px; font: 500 12px/1.4 var(--mono); color: var(--ink-dim); }
+.progress-head .bar { flex: 1; margin: 0; height: 6px; --acc: var(--ok); }
+.empty { padding: 32px 20px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; color: var(--ink-dim); font-size: 14px; }
 
 .crumbs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-bottom: 22px; font: 12px/1.6 var(--mono); color: var(--ink-dim); }
-.crumbs a { color: var(--ink-dim); text-decoration: none; }
+.crumbs a { color: var(--ink-dim); text-decoration: none; padding: 4px 0; transition: color .2s; }
 .crumbs a:hover { color: var(--pct); }
 .crumbs b { color: var(--ink); font-weight: 500; }
 
-.site-foot { max-width: 840px; margin: 0 auto; padding: 28px 20px 40px; border-top: 1px solid var(--line); text-align: center; color: var(--ink-dim); font: 12.5px/1.6 var(--mono); }
+.site-foot { max-width: 920px; margin: 0 auto; padding: 28px 20px 40px; border-top: 1px solid var(--line); text-align: center; color: var(--ink-dim); font: 12.5px/1.6 var(--mono); }
+
+@media (max-width: 560px) {
+  .home { padding-top: 32px; }
+  .card { gap: 4px 12px; padding: 14px; }
+  .card-lesson .go, .card-lop .go { display: none; }
+  .card-lesson, .card-lop { grid-template-columns: auto 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .home > *, .card, .card .go, .bar i { animation: none; transition: none; }
+  .card:hover { transform: none; }
+}
 
 /* ---------- Trang bài giảng dạng bài viết (import từ trang 200Lab đã lưu) ---------- */
 .lesson-layout { max-width: 800px; margin: 0 auto; padding: 32px 20px 72px; }
