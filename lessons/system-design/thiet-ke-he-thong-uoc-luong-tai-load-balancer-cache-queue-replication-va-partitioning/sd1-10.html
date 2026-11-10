@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Queue và worker — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-10">
+  <meta name="lesson:title" content="Dùng queue để API không phải chờ những việc xử lý lâu">
+  <meta name="lesson:description" content="Đăng ký mất 3,8 giây vì chờ service email; queue và worker, câu hỏi phân loại, đỡ burst, queue depth và queue lag.">
+  <meta name="lesson:order" content="11">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Queue &amp; worker · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Đăng ký mất <span class="b">3,8 giây</span>, trong đó 3,4 giây là chờ một việc client <span class="a">không cần chờ</span></h1>
+  <div class="sub">API chỉ ghi user, đẩy job vào queue rồi trả lời ngay; worker gửi email và tạo ảnh sau. Queue không làm email nhanh hơn, nó chuyển việc chờ ra khỏi request. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Trước: API chờ service email. Sau: API đẩy job vào queue, worker gọi service email">
+      <text class="lb" x="10" y="18" fill="var(--peak)">TRƯỚC</text>
+      <rect class="box" x="10" y="42" width="80" height="40" rx="8"/><text class="sm" x="50" y="66" text-anchor="middle">client</text>
+      <path class="ln" d="M90,62 L146,62" marker-end="url(#a-dim)"/>
+      <rect class="box" x="150" y="42" width="90" height="40" rx="8"/><text class="sm" x="195" y="66" text-anchor="middle">API</text>
+      <path class="ln" d="M240,54 L326,40" marker-end="url(#a-dim)"/>
+      <rect class="box" x="330" y="24" width="130" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="395" y="43" text-anchor="middle" fill="var(--spec)">Postgres · 0,05 s</text>
+      <path class="ln" stroke="var(--peak)" d="M240,70 L326,84" marker-end="url(#a-peak)"/>
+      <rect class="box" x="330" y="68" width="190" height="30" rx="6" stroke="var(--peak)"/><text class="sm" x="425" y="87" text-anchor="middle" fill="var(--peak)">service email · chờ 3,4 s</text>
+      <text class="sm" x="540" y="58" fill="var(--peak)">p99 POST /signup</text><text x="540" y="80" fill="var(--peak)" style="font-size:18px;font-weight:700">3,8 giây</text>
+
+      <line x1="10" y1="116" x2="690" y2="116" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="lb" x="10" y="138" fill="var(--cmd)">SAU</text>
+      <rect class="box" x="10" y="170" width="80" height="40" rx="8"/><text class="sm" x="50" y="194" text-anchor="middle">client</text>
+      <path class="ln" d="M90,190 L146,190" marker-end="url(#a-dim)"/>
+      <rect class="box" x="150" y="170" width="90" height="40" rx="8"/><text class="sm" x="195" y="194" text-anchor="middle">API</text>
+      <path class="ln" d="M240,182 L296,166" marker-end="url(#a-dim)"/>
+      <rect class="box" x="300" y="148" width="110" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="355" y="167" text-anchor="middle" fill="var(--spec)">Postgres</text>
+      <path class="ln" stroke="var(--cmd)" d="M240,198 L296,214" marker-end="url(#a-cmd)"/>
+      <rect class="box" x="300" y="200" width="110" height="30" rx="6" stroke="var(--cmd)"/><text class="sm" x="355" y="219" text-anchor="middle" fill="var(--cmd)">queue (job)</text>
+      <path class="ln" d="M410,215 L436,215" marker-end="url(#a-dim)"/>
+      <rect class="box" x="440" y="200" width="80" height="30" rx="6" stroke="var(--grow)"/><text class="sm" x="480" y="219" text-anchor="middle" fill="var(--grow)">worker</text>
+      <path class="ln" d="M520,215 L546,215" marker-end="url(#a-dim)"/>
+      <rect class="box" x="550" y="200" width="140" height="30" rx="6"/><text class="sm" x="620" y="219" text-anchor="middle">service email</text>
+      <path class="ln ln-d" d="M480,200 L480,163 L414,163" marker-end="url(#a-dim)"/><text class="sm" x="490" y="170">cập nhật avatar_url</text>
+      <text class="sm" x="540" y="140" fill="var(--cmd)">p99 ≈ 0,15 giây</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Mũi tên sang service email giờ đi ra từ worker: service email chậm bao nhiêu cũng chỉ worker phải chờ</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Trace 3,8 giây</b></span>
+    <span>02 <b>Queue &amp; worker</b></span>
+    <span>03 <b>Câu hỏi phân loại</b></span>
+    <span>04 <b>Đỡ burst</b></span>
+    <span>05 <b>Tradeoff</b></span>
+    <span>06 <b>Queue lag</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Latency của request bằng tổng các span chạy nối tiếp</h2>
+    <p class="desc">Handler đăng ký có ba <code>await</code> nối tiếp: ghi <code>users</code>, gọi service email, tạo ảnh đại diện, rồi mới trả 201. Việc sau chỉ bắt đầu khi việc trước xong, nên latency = 0,05 + 3,40 + 0,30 + 0,05 = <b>3,80 giây</b>. Bình thường service email trả lời trong khoảng 0,5 giây; request này rơi đúng một lần nó chậm. p99 là SLI của endpoint, nên <b>1%</b> lượt đăng ký đang chờ từ 3,8 giây trở lên ở ngay bước đầu tiên với sản phẩm. Lúc bình thường có khoảng <b>10 lượt</b> đăng ký mỗi giây.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Trace của POST /signup trước khi sửa">
+        <text class="sm" x="10" y="34">db.insert users</text>
+        <text class="sm" x="10" y="64" fill="var(--peak)">http email-service /send</text>
+        <text class="sm" x="10" y="94">avatar.generate</text>
+        <text class="sm" x="10" y="124">other (validate…)</text>
+        <rect x="180" y="24" width="6.6" height="14" fill="var(--spec)"/><text class="sm" x="192" y="35">0,05 s</text>
+        <rect x="186.6" y="54" width="447" height="14" rx="2" fill="var(--peak)"/><text class="sm" x="410" y="50" text-anchor="middle" fill="var(--peak)">3,40 s — API đứng chờ</text>
+        <rect x="634" y="84" width="39.5" height="14" rx="2" fill="var(--grow)"/><text class="sm" x="628" y="95" text-anchor="end">0,30 s</text>
+        <rect x="673.5" y="114" width="6.6" height="14" fill="var(--ink-dim)"/><text class="sm" x="667" y="125" text-anchor="end">0,05 s</text>
+        <line x1="180" y1="140" x2="680" y2="140" stroke="var(--line)"/>
+        <text class="sm" x="180" y="158">0 s</text><text class="sm" x="311" y="158" text-anchor="middle">1</text><text class="sm" x="443" y="158" text-anchor="middle">2</text><text class="sm" x="575" y="158" text-anchor="middle">3</text><text class="sm" x="680" y="158" text-anchor="end">3,80 s</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Span lớn nhất trong trace là một việc client không cần chờ</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống — đứng ở vị trí của client</div>
+      <p>Client gửi form và chờ response. Nó cần biết <b>tài khoản đã được tạo</b>: dòng <code>users</code> đã ghi, email chưa bị ai dùng, để màn hình kế tiếp có user và đăng nhập được ngay. Email xác nhận thì mở hộp thư sau vài giây hay vài phút cũng được; ảnh đại diện thì giao diện hiện ảnh mặc định trong lúc chờ. Tệ hơn, mỗi khi service email gặp sự cố, trang đăng ký chậm theo dù code và database của bạn không lỗi gì. (số minh hoạ của bài)</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Cơ chế</div>
+    <h2 class="c-cmd">API chỉ ghi user, đẩy job vào queue rồi trả lời ngay</h2>
+    <p class="desc"><b>Queue</b> là nơi giữ những việc cần làm, nằm giữa API và phần xử lý. Mỗi việc được gói thành một <b>job</b> (ở đây: id của user vừa tạo). <b>Worker</b> là process riêng, lấy job ra theo tốc độ của chính nó: gửi email, tạo ảnh, cập nhật <code>avatar_url</code>. Một job mất trung bình <b>0,8 giây</b> (0,5 email + 0,3 ảnh). Bảng <code>users</code> vẫn là source of truth của tài khoản; queue chỉ giữ việc còn phải làm.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 120" role="img" aria-label="Trace sau khi sửa trên cùng thang thời gian">
+        <text class="sm" x="10" y="30">db.insert users</text>
+        <text class="sm" x="10" y="56" fill="var(--cmd)">queue.enqueue signup</text>
+        <text class="sm" x="10" y="82">other (validate…)</text>
+        <rect x="180" y="20" width="6.6" height="14" fill="var(--spec)"/><text class="sm" x="204" y="31">0,05 s</text>
+        <rect x="186.6" y="46" width="3" height="14" fill="var(--cmd)"/><text class="sm" x="204" y="57" fill="var(--cmd)">0,01 s</text>
+        <rect x="188" y="72" width="6.6" height="14" fill="var(--ink-dim)"/><text class="sm" x="204" y="83">0,05 s</text>
+        <line x1="180" y1="98" x2="680" y2="98" stroke="var(--line)"/>
+        <text class="sm" x="180" y="114">0 s</text><text class="sm" x="680" y="114" text-anchor="end">3,80 s (thang của trace cũ)</text>
+        <text x="440" y="60" text-anchor="middle" fill="var(--cmd)" style="font-size:18px;font-weight:700">tổng 0,11 s</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Cùng thang thời gian với Hình 2: trace mới chỉ còn một vệt mỏng ở đầu trục</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code — thay đổi nằm trọn trong handler</div>
+      <pre> <span class="kw">async function</span> signup(req: SignupRequest): Promise&lt;SignupResponse&gt; {
+   <span class="cm">// unique constraint trên users.email: email trùng thì INSERT báo lỗi</span>
+   <span class="kw">const</span> user = <span class="kw">await</span> db.insertUser(req.email, req.name);
+<span class="bad">-  await emailService.sendVerification(user.email);
+-  await generateAvatar(user.id, user.name);</span>
+<span class="val">+  await queue.enqueue("signup", { userId: user.id });</span>
+   <span class="kw">return</span> { status: <span class="val">201</span>, user };
+ }</pre>
+      <p>p99 của <code>POST /signup</code>: <b>3,8 giây → ~0,15 giây</b>. Nhưng queue <b>không làm việc gửi email nhanh hơn</b>: worker vẫn mất 3,4 giây cho một lần gọi chậm, và từ lúc bấm đăng ký tới lúc email vào hộp thư không hề ngắn đi, có lúc còn dài hơn khi nhiều job xếp trước. Queue chỉ chuyển việc chờ từ request sang queue.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Phân loại</div>
+    <h2 class="c-spec">Client có cần kết quả này trước khi nhận response không?</h2>
+    <p class="desc">Hỏi câu này với từng <code>await</code> của handler. <b>"Có"</b> khi response, hoặc request kế tiếp của client, phụ thuộc vào kết quả đó. <b>"Không"</b> khi client chịu được việc kết quả tới sau, và nếu việc đó lỗi rồi phải chạy lại thì response đã trả cũng không vì thế mà sai.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Việc trong handler</th><th>Trả lời</th><th>Vì sao</th></tr>
+      <tr><td class="k">Ghi users + kiểm tra email trùng</td><td><span class="miss">Có</span> → ở lại request</td><td>Response chứa user vừa tạo; email trùng phải báo lỗi ngay trong request này</td></tr>
+      <tr><td class="k">Gửi email xác nhận</td><td><span class="hit">Không</span> → ra queue</td><td>Tới sau vài giây hay vài phút luồng đăng ký vẫn đúng; gửi lại thì 201 đã trả vẫn đúng</td></tr>
+      <tr><td class="k">Tạo ảnh đại diện</td><td><span class="hit">Không</span> → ra queue</td><td>Có ảnh mặc định trong lúc chờ; ảnh thật hiện khi worker cập nhật <code>avatar_url</code></td></tr>
+    </table></div>
+    <div class="fig">
+      <svg viewBox="0 0 700 190" role="img" aria-label="Sai: đẩy cả việc ghi users ra queue. Đúng: ghi users trong request">
+        <rect x="8" y="8" width="336" height="174" rx="10" fill="none" stroke="var(--peak)" stroke-dasharray="5 5"/>
+        <text class="lb" x="22" y="30" fill="var(--peak)">SAI · GHI USERS CŨNG RA QUEUE</text>
+        <rect class="box" x="22" y="44" width="70" height="34" rx="6"/><text class="sm" x="57" y="65" text-anchor="middle">client</text>
+        <path class="ln" d="M92,61 L118,61" marker-end="url(#a-dim)"/>
+        <rect class="box" x="122" y="44" width="60" height="34" rx="6"/><text class="sm" x="152" y="65" text-anchor="middle">API</text>
+        <path class="ln" stroke="var(--peak)" d="M182,61 L208,61" marker-end="url(#a-peak)"/>
+        <rect class="box" x="212" y="44" width="118" height="34" rx="6" stroke="var(--peak)"/><text class="sm" x="271" y="65" text-anchor="middle" fill="var(--peak)">queue: ghi users</text>
+        <text class="sm" x="22" y="104">← 201 "thành công", users chưa có dòng</text>
+        <text class="sm" x="22" y="128" fill="var(--peak)">✗ bấm đăng nhập ngay → thất bại</text>
+        <text class="sm" x="22" y="150" fill="var(--peak)">✗ email trùng → lỗi trong worker,</text>
+        <text class="sm" x="22" y="166" fill="var(--peak)">  không còn client nào chờ nhận</text>
+        <rect x="356" y="8" width="336" height="174" rx="10" fill="none" stroke="var(--cmd)" stroke-dasharray="5 5"/>
+        <text class="lb" x="370" y="30" fill="var(--cmd)">ĐÚNG · GHI USERS TRONG REQUEST</text>
+        <rect class="box" x="370" y="44" width="70" height="34" rx="6"/><text class="sm" x="405" y="65" text-anchor="middle">client</text>
+        <path class="ln" d="M440,61 L466,61" marker-end="url(#a-dim)"/>
+        <rect class="box" x="470" y="44" width="60" height="34" rx="6"/><text class="sm" x="500" y="65" text-anchor="middle">API</text>
+        <path class="ln" stroke="var(--cmd)" d="M530,61 L556,61" marker-end="url(#a-cmd)"/>
+        <rect class="box" x="560" y="44" width="118" height="34" rx="6" stroke="var(--spec)"/><text class="sm" x="619" y="65" text-anchor="middle" fill="var(--spec)">INSERT users</text>
+        <text class="sm" x="370" y="104">← 201 kèm user, dòng users đã có</text>
+        <text class="sm" x="370" y="128" fill="var(--cmd)">✓ đăng nhập được ngay</text>
+        <text class="sm" x="370" y="150" fill="var(--cmd)">✓ email trùng → lỗi ngay trong request</text>
+        <text class="sm" x="370" y="166">queue chỉ giữ job email + ảnh</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Mọi việc mà response hoặc request kế tiếp dựa vào phải nằm trong request</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống — lỗi dễ mắc</div>
+      <p>Thấy API đã nhanh hơn, bạn muốn đẩy luôn việc ghi user ra queue để response về sớm hơn nữa. Khi đó client nhận "đăng ký thành công" trong lúc dòng <code>users</code> chưa tồn tại: người dùng bấm đăng nhập ngay và thất bại. Người đăng ký bằng email đã có người dùng cũng nhận "thành công", rồi lỗi unique constraint mới xảy ra trong worker, lúc không còn ai chờ để nhận báo lỗi.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Đỡ burst</div>
+    <h2 class="c-grow">60 job/giây vào, 20 job/giây ra: phần chờ chuyển thành 10 phút email trễ</h2>
+    <p class="desc"><b>Little's Law</b>: số việc đang xử lý cùng lúc = tốc độ vào × thời gian mỗi việc. Muốn xử lý 20 job/giây với 0,8 giây mỗi job cần 20 × 0,8 = <b>16 worker</b>. Bình thường 10 lượt/giây nên worker chạy nửa công suất, nửa kia là headroom. Rồi một đợt <b>burst</b>: 5 phút liền, 60 lượt đăng ký mỗi giây. API vẫn chỉ ghi <code>users</code> và đẩy job nên vẫn ~0,15 giây; tải dồn lại ở queue. Giả định: queue rỗng lúc burst bắt đầu, worker lấy job theo đúng thứ tự vào.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 230" role="img" aria-label="Queue depth và queue lag theo thời gian">
+        <line x1="60" y1="180" x2="670" y2="180" stroke="var(--ink-dim)"/>
+        <rect x="60" y="40" width="120" height="140" fill="var(--peak)" opacity=".10"/>
+        <text class="sm" x="120" y="34" text-anchor="middle" fill="var(--peak)">burst 60 job/s</text>
+        <polyline points="60,180 180,60 660,180" fill="none" stroke="var(--avg)" stroke-width="2"/>
+        <polyline points="60,180 420,60 660,180" fill="none" stroke="var(--grow)" stroke-width="2" stroke-dasharray="6 4"/>
+        <circle cx="180" cy="60" r="5" fill="var(--avg)"/><text class="sm" x="190" y="54" fill="var(--avg)">depth 12.000 job</text>
+        <circle cx="180" cy="140" r="5" fill="var(--grow)"/><text class="sm" x="190" y="152" fill="var(--grow)">lag 200 s</text>
+        <circle cx="420" cy="60" r="5" fill="var(--grow)"/><text class="sm" x="430" y="54" fill="var(--grow)">lag 600 s (cao nhất)</text>
+        <circle cx="420" cy="120" r="5" fill="var(--avg)"/><text class="sm" x="410" y="148" text-anchor="end" fill="var(--avg)">depth 6.000</text>
+        <line x1="420" y1="60" x2="420" y2="180" stroke="var(--line)" stroke-dasharray="3 4"/>
+        <text class="sm" x="60" y="198" text-anchor="middle">0</text><text class="sm" x="180" y="198" text-anchor="middle">300 s</text><text class="sm" x="420" y="198" text-anchor="middle">900 s</text><text class="sm" x="660" y="198" text-anchor="middle">1.500 s</text>
+        <text class="sm" x="60" y="222" fill="var(--avg)">— queue depth (số job chờ)</text><text class="sm" x="290" y="222" fill="var(--grow)">- - queue lag (job cũ nhất đã chờ)</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — Depth đạt đỉnh lúc burst kết thúc, lag đạt đỉnh 10 phút sau đó. Các mốc 300 s và 900 s theo bài; đoạn nối giữa các mốc suy ra từ cùng giả định</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — người đăng ký ở giây cuối burst nhận email sau bao lâu</div>
+      <pre>Queue tăng               : 60 − 20 = 40 job/giây
+
+Lúc burst kết thúc (giây 300)
+  queue depth            : 40 × 300 = <span class="bad">12.000</span> job
+  job vừa vào phải chờ   : 12.000 / 20 = <span class="bad">600 giây = 10 phút</span>
+  worker đã xử lý        : 20 × 300 = 6.000 job (mọi job vào trong 100 giây đầu)
+  queue lag              : job cũ nhất vào lúc giây 100, đã chờ <span class="val">200 giây</span>
+
+Khoảng giây 900          : queue lag 600 giây (cao nhất), depth 12.000 − 10 × 600 = 6.000
+
+Sau burst (về 10 job/s)  : queue giảm 20 − 10 = 10 job/giây
+  rút hết sau            : 12.000 / 10 = 1.200 giây = <span class="val">20 phút</span>
+  p99 POST /signup       : vẫn ~<span class="val">0,15 giây</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Tradeoff</div>
+    <h2 class="c-grow">Email và ảnh tới sau, thêm queue và worker phải vận hành</h2>
+    <p class="desc">Queue chỉ đỡ được <b>burst ngắn</b>: queue ở trên rút hết được vì sau 5 phút tải về 10 job/giây, thấp hơn tốc độ worker. Ghi <code>users</code> và đẩy job là hai bước riêng, nên app crash đúng giữa hai bước thì <b>job có thể mất</b>: user đã có trong database nhưng email xác nhận không được gửi.</p>
+    <div class="card-grid">
+      <div class="card peak"><h3>PHẢI CHẤP NHẬN</h3><ul><li>Lúc nhận response người dùng chưa có email và ảnh: giao diện phải báo "đang gửi", hiện ảnh mặc định, cập nhật khi worker xong</li><li>Thêm một queue và một nhóm worker phải deploy, theo dõi, kèm chỉ số queue lag</li></ul></div>
+      <div class="card ok"><h3>GỌI THẲNG VẪN ỔN KHI</h3><ul><li>Gửi email và tạo ảnh chỉ mất vài chục ms và ổn định</li><li>Client cần kết quả ngay (vd kết quả thanh toán): phải nằm trong request dù mất bao lâu</li><li>Team chưa có người vận hành thêm thành phần: bảng <code>jobs</code> trong Postgres + worker đọc định kỳ cũng là một dạng queue</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Trường hợp queue không tự cứu được</div>
+      <pre>Tải trung bình kéo dài : 25 job/giây
+Worker xử lý           : 20 job/giây
+Queue tăng             : 25 − 20 = <span class="bad">5 job/giây</span>, không dừng lại</pre>
+      <p>Queue lag tăng theo từng phút. Cách xử lý là thêm worker hoặc giảm lượng việc mỗi job phải làm. Queue lưu job ở đâu, chia job cho worker thế nào tuỳ sản phẩm (RabbitMQ, Amazon SQS, NATS JetStream) và nằm ngoài phạm vi bài.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Theo dõi</div>
+    <h2 class="c-avg">Queue lag cho biết worker còn theo kịp không, nhưng không phải thời gian người dùng chờ</h2>
+    <p class="desc">Sau khi tách, latency của request không còn cho biết email có tới kịp hay không: suốt burst p99 vẫn 0,15 giây trong khi email trễ 10 phút. Ba đại lượng đo cùng một thời điểm nhưng lệch nhau xa. <b>Queue depth</b>: số job đang chờ. <b>Queue lag</b>: thời gian job cũ nhất đã nằm chờ. <b>Thời gian chờ của job vừa vào</b>: quãng nó phải đợi worker làm hết các job xếp trước.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Queue lúc burst vừa kết thúc">
+        <text class="lb" x="10" y="20">QUEUE LÚC BURST VỪA KẾT THÚC (GIÂY 300)</text>
+        <rect class="box" x="130" y="50" width="440" height="50" rx="8" stroke="var(--avg)"/>
+        <g fill="var(--avg)" opacity=".5"><rect x="140" y="60" width="26" height="30" rx="3"/><rect x="172" y="60" width="26" height="30" rx="3"/><rect x="204" y="60" width="26" height="30" rx="3"/><rect x="236" y="60" width="26" height="30" rx="3"/><rect x="268" y="60" width="26" height="30" rx="3"/><rect x="406" y="60" width="26" height="30" rx="3"/><rect x="438" y="60" width="26" height="30" rx="3"/><rect x="470" y="60" width="26" height="30" rx="3"/><rect x="502" y="60" width="26" height="30" rx="3"/></g>
+        <rect x="534" y="60" width="26" height="30" rx="3" fill="var(--grow)"/>
+        <rect x="140" y="60" width="26" height="30" rx="3" fill="none" stroke="var(--peak)" stroke-width="2"/>
+        <text class="sm" x="350" y="80" text-anchor="middle" fill="var(--avg)">12.000 job</text>
+        <path class="ln" d="M570,75 L606,75" marker-end="url(#a-dim)"/><text class="sm" x="612" y="71">worker</text><text class="sm" x="612" y="87">20 job/s</text>
+        <path class="ln" d="M84,75 L126,75" marker-end="url(#a-dim)"/><text class="sm" x="10" y="79">job mới</text>
+        <text class="sm" x="153" y="122" text-anchor="middle" fill="var(--peak)">job vừa vào</text><text class="sm" x="153" y="138" text-anchor="middle" fill="var(--peak)">sẽ chờ ~600 s</text>
+        <text class="sm" x="547" y="122" text-anchor="middle" fill="var(--grow)">job cũ nhất</text><text class="sm" x="547" y="138" text-anchor="middle" fill="var(--grow)">đã chờ 200 s = queue lag</text>
+        <text class="sm" x="350" y="160" text-anchor="middle">Đọc "lag 200 s" thành "người dùng chờ 200 s" là sai: người vừa đăng ký chờ khoảng 600 s</text>
+      </svg>
+      <div class="fig-cap">Hình 6 — Cùng một thời điểm: 12.000 job, 200 giây và 600 giây</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Ba chỉ số cần canh sau khi tách</div>
+      <div class="tbl-scroll"><table style="margin-bottom:0">
+        <tr><th>Chỉ số</th><th>Ngưỡng</th><th>Cho biết</th></tr>
+        <tr><td class="k">p99 POST /signup</td><td>SLO: dưới 300 ms</td><td>Request path còn nhanh</td></tr>
+        <tr><td class="k">Queue lag</td><td>Cảnh báo khi vượt 60 giây trong 5 phút liền</td><td>Worker có đang tụt lại không, dù queue nhiều hay ít job</td></tr>
+        <tr><td class="k">Job xử lý/giây + queue depth</td><td>xem cùng nhau</td><td>Worker làm nhanh tới đâu so với lượng job đang chờ</td></tr>
+      </table></div>
+      <p style="margin-top:10px">Trong burst ở trên, lag đã 200 giây lúc burst kết thúc và còn lên 600 giây, nên cảnh báo chắc chắn kêu. Thấy queue depth đang giảm rồi kết luận người dùng hết phải chờ lâu là kết luận đúng vào lúc lag cao nhất (giây 900). Kỹ sư trực quyết định 10 phút email trễ có chấp nhận được không, hay phải thêm worker.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Áp dụng cho endpoint chậm nhất của bạn</h2>
+    <div class="card-grid">
+      <div class="card avg"><h3>1 · LIỆT KÊ</h3><ul><li>Mỗi <code>await</code> của handler một dòng, kèm thời gian trong trace</li></ul></div>
+      <div class="card peak"><h3>2 · HỎI TỪNG DÒNG</h3><ul><li>Client có cần kết quả này trước khi nhận response không?</li></ul></div>
+      <div class="card ok"><h3>3 · TÁCH</h3><ul><li>"Có" ở lại request; "không" là ứng viên ra queue, trace cho biết ứng viên nào tốn thời gian nhất</li></ul></div>
+      <div class="card grow"><h3>4 · CẢNH BÁO</h3><ul><li>Đặt cảnh báo queue lag ngay trong lần deploy worker đầu tiên</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Queue không làm việc chậm nhanh hơn — nó để người dùng không phải đứng chờ việc đó</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-10.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

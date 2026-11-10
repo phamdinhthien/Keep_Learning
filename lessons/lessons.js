@@ -156,5 +156,18 @@ window.LESSONS = [
     "title": "Khi nào cần cache và nó gánh bớt được bao nhiêu tải đọc cho database",
     "description": "SELECT 4,2 ms chiếm 79% CPU vì chạy 1.500 lần/giây; cache-aside, tải còn lại = tải đọc × miss ratio, hit ratio tối thiểu.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-10",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-10.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 11,
+    "title": "Dùng queue để API không phải chờ những việc xử lý lâu",
+    "description": "Đăng ký mất 3,8 giây vì chờ service email; queue và worker, câu hỏi phân loại, đỡ burst, queue depth và queue lag.",
+    "readTime": "13 phút đọc"
   }
 ];
