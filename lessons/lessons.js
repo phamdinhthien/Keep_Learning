@@ -182,5 +182,18 @@ window.LESSONS = [
     "title": "Read replica gánh bớt tải đọc cho database primary",
     "description": "Primary 80% CPU giờ cao điểm; chuyển hai nhóm đọc nặng sang replica còn 32%, chọn truy vấn nào ở lại primary, replication lag và giới hạn.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "sd1-12",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-12.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 13,
+    "title": "Partition khi một bảng quá lớn và sharding khi một máy không ghi kịp",
+    "description": "DELETE 15 triệu dòng mất 5,2 giờ; partition theo ngày, DROP partition, partition key và pruning, tradeoff, trần ghi của một máy.",
+    "readTime": "13 phút đọc"
   }
 ];

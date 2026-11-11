@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partition và sharding — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-12">
+  <meta name="lesson:title" content="Partition khi một bảng quá lớn và sharding khi một máy không ghi kịp">
+  <meta name="lesson:description" content="DELETE 15 triệu dòng mất 5,2 giờ; partition theo ngày, DROP partition, partition key và pruning, tradeoff, trần ghi của một máy.">
+  <meta name="lesson:order" content="13">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Partition &amp; sharding · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>DELETE 15 triệu dòng mất <span class="b">5,2 giờ</span>, bỏ một partition mất <span class="a">chưa tới 1 giây</span></h1>
+  <div class="sub">Partition chia một bảng lớn thành bảng con ngay trên một máy; sharding chia dữ liệu ra nhiều máy, chỉ cần khi một máy không ghi kịp. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 250" role="img" aria-label="Trước: một bảng events 2 tỉ dòng bị DELETE từng lô. Sau: partition theo ngày, DROP partition cũ nhất">
+      <text class="lb" x="10" y="18" fill="var(--peak)">TRƯỚC · MỘT BẢNG CHƯA CHIA</text>
+      <rect class="box" x="10" y="32" width="160" height="70" rx="8" stroke="var(--spec)"/><text class="sm" x="90" y="58" text-anchor="middle" fill="var(--spec)">events</text><text class="sm" x="90" y="76" text-anchor="middle">2 tỉ dòng · 500 GB</text><text class="sm" x="90" y="92" text-anchor="middle" fill="var(--peak)">ổ đĩa gần đầy</text>
+      <path class="ln" stroke="var(--peak)" d="M330,67 L174,67" marker-end="url(#a-peak)"/><text class="sm" x="258" y="58" text-anchor="middle" fill="var(--peak)">DELETE lô 10.000 × ~1.500</text>
+      <rect class="box" x="334" y="44" width="160" height="46" rx="8" stroke="var(--peak)"/><text class="sm" x="414" y="64" text-anchor="middle">Job dọn 02:00–06:00</text><text class="sm" x="414" y="80" text-anchor="middle" fill="var(--peak)">cần 5,2 giờ</text>
+      <text class="sm" x="514" y="62" fill="var(--peak)">INSERT p99</text><text x="514" y="84" fill="var(--peak)" style="font-size:18px;font-weight:700">15 → 400 ms</text>
+
+      <line x1="10" y1="118" x2="690" y2="118" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="lb" x="10" y="140" fill="var(--cmd)">SAU · PARTITION THEO NGÀY (created_at)</text>
+      <g>
+        <rect x="10" y="156" width="44" height="40" rx="4" fill="var(--peak)" opacity=".25" stroke="var(--peak)" stroke-dasharray="4 3"/>
+        <text class="sm" x="32" y="181" text-anchor="middle" fill="var(--peak)">cũ</text>
+        <rect x="60" y="156" width="44" height="40" rx="4" fill="var(--spec)" opacity=".45"/><rect x="110" y="156" width="44" height="40" rx="4" fill="var(--spec)" opacity=".45"/><rect x="160" y="156" width="44" height="40" rx="4" fill="var(--spec)" opacity=".45"/>
+        <text class="sm" x="240" y="181" text-anchor="middle">…</text>
+        <rect x="276" y="156" width="44" height="40" rx="4" fill="var(--spec)" opacity=".45"/><rect x="326" y="156" width="44" height="40" rx="4" fill="var(--spec)" opacity=".75"/>
+        <text class="sm" x="348" y="210" text-anchor="middle" fill="var(--spec)">hôm nay</text>
+        <rect x="376" y="156" width="44" height="40" rx="4" fill="none" stroke="var(--cmd)" stroke-dasharray="4 3"/><rect x="426" y="156" width="44" height="40" rx="4" fill="none" stroke="var(--cmd)" stroke-dasharray="4 3"/><text class="sm" x="494" y="181" text-anchor="middle" fill="var(--cmd)">…</text>
+        <text class="sm" x="436" y="210" text-anchor="middle" fill="var(--cmd)">7 tạo sẵn</text>
+      </g>
+      <text class="sm" x="10" y="216" fill="var(--cmd)">DROP &lt; 1 s</text>
+      <text class="sm" x="530" y="168" fill="var(--cmd)">98 partition</text><text class="sm" x="530" y="186">~1,36 tỉ dòng · 340 GB</text><text class="sm" x="530" y="204" fill="var(--cmd)">INSERT p99 ~15 ms</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — App vẫn INSERT và SELECT vào events như cũ; Postgres tự đưa mỗi dòng vào đúng partition</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Job chưa xong</b></span>
+    <span>02 <b>800 dòng/giây</b></span>
+    <span>03 <b>Partition theo ngày</b></span>
+    <span>04 <b>Partition key</b></span>
+    <span>05 <b>Tradeoff</b></span>
+    <span>06 <b>Trần ghi một máy</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Job DELETE chạy từ 2 giờ sáng vẫn chưa xong</h2>
+    <p class="desc">App ghi mỗi hành vi của người dùng (xem sản phẩm, thêm vào giỏ) thành một dòng trong <code>events</code>, cao điểm khoảng <b>600 dòng/giây</b>. API tra cứu đọc theo khoảng ngày (báo cáo) và theo user (trang hoạt động). Job dọn mỗi đêm phải giữ bảng chỉ còn <b>90 ngày</b>, trong khung <b>02:00–06:00</b>. Bảng đang có <b>~2 tỉ dòng</b>, ~500 GB, mỗi ngày thêm <b>15 triệu dòng</b>, mỗi dòng ~250 byte tính cả index. Thêm máy hay thêm read replica đều không giúp: câu DELETE vẫn phải xoá từng dòng trên primary.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Khung giờ job dọn và INSERT p99">
+        <line x1="60" y1="120" x2="670" y2="120" stroke="var(--ink-dim)"/>
+        <rect x="120" y="90" width="400" height="30" fill="var(--cmd)" opacity=".18" stroke="var(--cmd)" stroke-dasharray="4 3"/>
+        <text class="sm" x="320" y="110" text-anchor="middle" fill="var(--cmd)">khung cho phép 4 giờ</text>
+        <rect x="120" y="60" width="520" height="22" fill="var(--peak)" opacity=".7"/>
+        <text class="sm" x="380" y="75" text-anchor="middle" fill="#0d0d0f">job DELETE cần ~5,2 giờ</text>
+        <line x1="486" y1="30" x2="486" y2="128" stroke="var(--peak)" stroke-dasharray="3 3"/><text class="sm" x="486" y="24" text-anchor="middle" fill="var(--peak)">05:40 cảnh báo INSERT p99 400 ms</text>
+        <text class="sm" x="120" y="140" text-anchor="middle">02:00</text><text class="sm" x="320" y="140" text-anchor="middle">04:00</text><text class="sm" x="520" y="140" text-anchor="middle">06:00</text><text class="sm" x="640" y="140" text-anchor="middle">~07:12</text>
+        <text class="sm" x="60" y="164">Trong suốt khung giờ job chạy, INSERT tranh chấp đĩa và WAL với hàng triệu thao tác xoá</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Đêm nào job cũng chạy quá khung giờ, sáng nào cảnh báo INSERT p99 cũng tới</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế (số minh hoạ của bài)</div>
+      <p>05:40, điện thoại báo INSERT p99 của <code>events</code> đã lên <b>400 ms</b>, bình thường chỉ khoảng 15 ms. Mở <code>pg_stat_activity</code>, dòng đầu là một câu DELETE theo lô của job dọn, mới bắt đầu được vài giây. Log của job cho thấy nó chạy từ <b>02:00:03</b>, tức 3 giờ 40 phút, vẫn đang xoá từng lô một. Còn hai mươi phút là hết khung giờ, và theo tiến độ này đêm nay lại không xong, giống những đêm trước.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Nguyên nhân</div>
+    <h2 class="c-peak">DELETE chỉ xoá được 800 dòng/giây, mỗi đêm sót 3,5 triệu dòng</h2>
+    <p class="desc">Với từng dòng, Postgres phải tìm dòng đó, đánh dấu đã xoá, rồi ghi thay đổi vào <b>WAL</b> (write-ahead log, nơi ghi lại mọi thay đổi trước khi sửa dữ liệu để khôi phục được khi máy gặp sự cố). Dòng bị đánh dấu chưa biến khỏi đĩa ngay mà thành <b>dead tuple</b> — đã xoá nhưng vẫn chiếm chỗ cho tới khi VACUUM dọn — nên sau DELETE còn cả một lượt VACUUM. Điều đáng ngại không phải là bảng có 2 tỉ dòng, mà là cách dọn: mỗi đêm xoá từng dòng, 15 triệu lần.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Cần (5,2 giờ)</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div><div class="bar-mark" style="left:76.9%"></div></div><span class="bar-val">15 triệu dòng</span></div>
+      <div class="bar-row"><span class="bar-label">Xoá được (4 giờ)</span><div class="bar-bg"><div class="bar-fill" style="width:76.9%;background:var(--spec)"></div><div class="bar-mark" style="left:76.9%"></div></div><span class="bar-val">~11,5 triệu</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = hết khung 4 giờ; phần đỏ vượt vạch là ~3,5 triệu dòng sót lại mỗi đêm</div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — thời gian cần và phần cộng dồn</div>
+      <pre>Tốc độ xoá   : 10.000 dòng ÷ 12,5 giây      = <span class="bad">800</span> dòng/giây
+Thời gian cần: 15.000.000 ÷ 800 ≈ 18.750 giây ≈ <span class="bad">5,2 giờ</span>   <span class="cm"># chỉ có 4 giờ</span>
+Xoá được     : 4 × 3.600 × 800              ≈ 11,5 triệu dòng
+Còn sót      : 15 − 11,5                    ≈ <span class="bad">3,5 triệu</span> dòng ≈ 0,9 GB mỗi đêm
+
+Sau ~186 đêm (hơn 6 tháng): thừa ~650 triệu dòng ≈ <span class="bad">160 GB</span>
+Lẽ ra giữ    : 90 × 15 triệu = 1,35 tỉ  + 650 triệu thừa = <span class="val">2 tỉ</span> (khớp dashboard)</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Cơ chế</div>
+    <h2 class="c-cmd">Chia bảng theo ngày để dọn dữ liệu cũ bằng một câu lệnh</h2>
+    <p class="desc"><b>Partition</b> là bảng con giữ một phần dữ liệu của bảng lớn: mỗi ngày một bảng con. Cột quyết định dòng nào vào partition nào là <b>partition key</b>, ở đây <code>created_at</code>. Postgres không xoá từng dòng mà <b>bỏ đi cả file</b>: không có 15 triệu lần ghi WAL, không có dead tuple chờ VACUUM, không có bốn giờ INSERT tranh chấp đĩa. Muốn tách ra trước rồi xử lý sau thì dùng <code>DETACH PARTITION</code>; cả hai cách đều không xoá từng dòng.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Job mỗi đêm: bỏ partition cũ nhất, tạo một partition mới">
+        <rect x="10" y="40" width="70" height="50" rx="6" fill="var(--peak)" opacity=".2" stroke="var(--peak)" stroke-dasharray="4 3"/><text class="sm" x="45" y="62" text-anchor="middle" fill="var(--peak)">07/04</text><text class="sm" x="45" y="78" text-anchor="middle" fill="var(--peak)">DROP</text>
+        <rect x="90" y="40" width="70" height="50" rx="6" fill="var(--spec)" opacity=".4"/><text class="sm" x="125" y="69" text-anchor="middle">07/05</text>
+        <rect x="170" y="40" width="70" height="50" rx="6" fill="var(--spec)" opacity=".4"/><text class="sm" x="205" y="69" text-anchor="middle">07/06</text>
+        <text class="sm" x="270" y="69" text-anchor="middle">…</text>
+        <rect x="300" y="40" width="70" height="50" rx="6" fill="var(--spec)" opacity=".75"/><text class="sm" x="335" y="62" text-anchor="middle">10/03</text><text class="sm" x="335" y="78" text-anchor="middle">hôm nay</text>
+        <rect x="380" y="40" width="70" height="50" rx="6" fill="none" stroke="var(--cmd)" stroke-dasharray="4 3"/><text class="sm" x="415" y="69" text-anchor="middle">10/04</text>
+        <text class="sm" x="480" y="69" text-anchor="middle">…</text>
+        <rect x="510" y="40" width="70" height="50" rx="6" fill="none" stroke="var(--cmd)" stroke-dasharray="4 3"/><text class="sm" x="545" y="69" text-anchor="middle">10/09</text>
+        <rect x="590" y="40" width="70" height="50" rx="6" fill="var(--cmd)" opacity=".25" stroke="var(--cmd)"/><text class="sm" x="625" y="62" text-anchor="middle" fill="var(--cmd)">10/10</text><text class="sm" x="625" y="78" text-anchor="middle" fill="var(--cmd)">CREATE</text>
+        <path d="M90,104 L90,112 L370,112 L370,104" fill="none" stroke="var(--spec)"/><text class="sm" x="230" y="130" text-anchor="middle" fill="var(--spec)">91 partition có dữ liệu (90 ngày + hôm nay)</text>
+        <path d="M380,104 L380,112 L660,112 L660,104" fill="none" stroke="var(--cmd)"/><text class="sm" x="520" y="130" text-anchor="middle" fill="var(--cmd)">7 partition rỗng tạo sẵn</text>
+        <text class="sm" x="10" y="24">Mỗi đêm: bỏ một ngày cũ nhất, tạo sẵn một ngày ở tuần sau → tổng dung lượng ổn định</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Ngày tháng theo ví dụ SQL của bài; khoảng giữa rút gọn bằng "…"</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ SQL — cách dọn cũ, khai báo mới, cách dọn mới</div>
+      <pre><span class="cm">-- Trước: mỗi lần xoá một lô 10.000 dòng, lặp ~1.500 lần mỗi đêm</span>
+<span class="cm">-- (DELETE của Postgres không có LIMIT nên chọn lô bằng subquery)</span>
+<span class="bad">DELETE FROM events
+WHERE id IN (
+  SELECT id FROM events
+  WHERE created_at &lt; now() - interval '90 days'
+  LIMIT 10000
+);</span>
+
+<span class="cm">-- Sau: bảng events khai báo chia theo created_at</span>
+<span class="kw">CREATE TABLE</span> events (
+  id         bigint      NOT NULL,
+  user_id    bigint      NOT NULL,
+  type       text        NOT NULL,
+  created_at timestamptz NOT NULL,
+  <span class="kw">PRIMARY KEY</span> (id, created_at)
+) <span class="kw">PARTITION BY RANGE</span> (created_at);
+
+<span class="cm">-- Sau: job mỗi đêm bỏ partition cũ nhất và tạo sẵn một ngày sắp tới</span>
+<span class="val">DROP TABLE events_2026_07_04;
+CREATE TABLE events_2026_10_10 PARTITION OF events
+  FOR VALUES FROM ('2026-10-10') TO ('2026-10-11');</span></pre>
+      <pre>Mỗi partition         : 15.000.000 × 250 byte ≈ 3,75 GB
+Có dữ liệu            : 91 partition ≈ 1,36 tỉ dòng ≈ <span class="val">340 GB</span>
+Tạo sẵn               : 7 → tổng 98 partition
+Job mỗi đêm           : DROP 1 (<span class="val">&lt; 1 giây</span>, khi không có truy vấn dài trên bảng) + CREATE 1
+INSERT p99 giờ job    : <span class="val">~15 ms</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Partition key</div>
+    <h2 class="c-avg">Partition key quyết định truy vấn nào được loại bớt partition</h2>
+    <p class="desc">Khi truy vấn có điều kiện trên partition key, Postgres loại trước những partition chắc chắn không có dòng khớp rồi chỉ đọc phần còn lại — gọi là <b>partition pruning</b>. Truy vấn không lọc theo <code>created_at</code> thì không có căn cứ để loại, nên mọi partition đều nằm trong <b>execution plan</b> (các bước Postgres chọn để chạy truy vấn).</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 190" role="img" aria-label="Truy vấn A chỉ chạm 7 partition, truy vấn B giữ cả 98">
+        <text class="lb" x="10" y="20" fill="var(--avg)">A · BÁO CÁO 7 NGÀY (lọc created_at)</text>
+        <g fill="var(--ink-dim)" opacity=".2"><rect x="10" y="32" width="18" height="34" rx="2"/><rect x="32" y="32" width="18" height="34" rx="2"/><rect x="54" y="32" width="18" height="34" rx="2"/><rect x="76" y="32" width="18" height="34" rx="2"/><rect x="98" y="32" width="18" height="34" rx="2"/><rect x="120" y="32" width="18" height="34" rx="2"/><rect x="142" y="32" width="18" height="34" rx="2"/><rect x="164" y="32" width="18" height="34" rx="2"/><rect x="186" y="32" width="18" height="34" rx="2"/><rect x="208" y="32" width="18" height="34" rx="2"/><rect x="230" y="32" width="18" height="34" rx="2"/><rect x="252" y="32" width="18" height="34" rx="2"/><rect x="274" y="32" width="18" height="34" rx="2"/><rect x="296" y="32" width="18" height="34" rx="2"/><rect x="318" y="32" width="18" height="34" rx="2"/><rect x="340" y="32" width="18" height="34" rx="2"/><rect x="362" y="32" width="18" height="34" rx="2"/><rect x="384" y="32" width="18" height="34" rx="2"/><rect x="406" y="32" width="18" height="34" rx="2"/></g>
+        <g fill="var(--avg)"><rect x="428" y="32" width="18" height="34" rx="2"/><rect x="450" y="32" width="18" height="34" rx="2"/><rect x="472" y="32" width="18" height="34" rx="2"/><rect x="494" y="32" width="18" height="34" rx="2"/><rect x="516" y="32" width="18" height="34" rx="2"/><rect x="538" y="32" width="18" height="34" rx="2"/><rect x="560" y="32" width="18" height="34" rx="2"/></g>
+        <text class="sm" x="590" y="54" fill="var(--avg)">7 / 98</text>
+        <text class="lb" x="10" y="104" fill="var(--peak)">B · HOẠT ĐỘNG CỦA USER 4821 (lọc user_id)</text>
+        <g fill="var(--peak)" opacity=".55"><rect x="10" y="116" width="18" height="34" rx="2"/><rect x="32" y="116" width="18" height="34" rx="2"/><rect x="54" y="116" width="18" height="34" rx="2"/><rect x="76" y="116" width="18" height="34" rx="2"/><rect x="98" y="116" width="18" height="34" rx="2"/><rect x="120" y="116" width="18" height="34" rx="2"/><rect x="142" y="116" width="18" height="34" rx="2"/><rect x="164" y="116" width="18" height="34" rx="2"/><rect x="186" y="116" width="18" height="34" rx="2"/><rect x="208" y="116" width="18" height="34" rx="2"/><rect x="230" y="116" width="18" height="34" rx="2"/><rect x="252" y="116" width="18" height="34" rx="2"/><rect x="274" y="116" width="18" height="34" rx="2"/><rect x="296" y="116" width="18" height="34" rx="2"/><rect x="318" y="116" width="18" height="34" rx="2"/><rect x="340" y="116" width="18" height="34" rx="2"/><rect x="362" y="116" width="18" height="34" rx="2"/><rect x="384" y="116" width="18" height="34" rx="2"/><rect x="406" y="116" width="18" height="34" rx="2"/><rect x="428" y="116" width="18" height="34" rx="2"/><rect x="450" y="116" width="18" height="34" rx="2"/><rect x="472" y="116" width="18" height="34" rx="2"/><rect x="494" y="116" width="18" height="34" rx="2"/><rect x="516" y="116" width="18" height="34" rx="2"/><rect x="538" y="116" width="18" height="34" rx="2"/><rect x="560" y="116" width="18" height="34" rx="2"/></g>
+        <text class="sm" x="590" y="138" fill="var(--peak)">98 / 98</text>
+        <text class="sm" x="10" y="176">Vẽ rút gọn, không đủ 98 ô: phần xanh là 7 partition của 7 ngày, phần còn lại không được đọc</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Cùng một bảng: báo cáo loại được 91 partition, trang hoạt động không loại được cái nào</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tóm tắt EXPLAIN cho hai truy vấn chính</div>
+      <pre><span class="cm">-- Truy vấn A: báo cáo 7 ngày gần nhất</span>
+SELECT type, count(*) FROM events
+WHERE created_at &gt;= '2026-09-26' AND created_at &lt; '2026-10-03'
+GROUP BY type;
+  -&gt; plan chỉ đọc <span class="val">7 partition</span>: events_2026_09_26 ... events_2026_10_02
+
+<span class="cm">-- Truy vấn B: trang hoạt động của một user</span>
+SELECT * FROM events
+WHERE user_id = 4821
+ORDER BY created_at DESC LIMIT 50;
+  -&gt; plan <span class="bad">không loại được partition nào</span>: giữ cả 98 (91 có dữ liệu, 7 rỗng),
+     mỗi partition một bước dò index theo user_id</pre>
+      <p>B không chắc chậm hơn trước khi chia, cũng không chắc phải đọc đủ 91 partition: nó chỉ lấy 50 dòng mới nhất nên có thể dừng sớm. Chỉ <code>EXPLAIN ANALYZE</code> trên dữ liệu thật mới trả lời được. Chọn <code>user_id</code> làm key thì B nhanh, nhưng báo cáo 7 ngày lại không loại được gì, và việc dọn quay về DELETE từng dòng. <b>Không có cột nào làm mọi truy vấn cùng nhanh hơn</b>; với <code>events</code>, cả việc dọn lẫn báo cáo đều đi theo ngày nên <code>created_at</code> hợp lý.</p>
+    </div>
+    <div class="note"><b>Khác với read replica:</b> replica nhận bớt tải đọc, nhưng mọi câu lệnh ghi vẫn dồn về primary và mỗi replica vẫn chứa đủ 2 tỉ dòng. Partition thì chia nhỏ chính bảng đó.</div>
+  </section>
+
+  <section>
+    <div class="tag">05. Tradeoff</div>
+    <h2 class="c-grow">Dọn trong một giây, đổi lại ba việc phải lo</h2>
+    <div class="card-grid">
+      <div class="card peak"><h3>BA VIỆC PHẢI LO</h3><ul><li><b>Truy vấn không lọc theo key</b> không loại được partition nào; chạy <code>EXPLAIN ANALYZE</code> trước và sau khi chuyển</li><li><b>Job tạo sẵn partition</b> phải được theo dõi: sang ngày mới mà chưa có partition (và không có default partition) thì gần như mọi INSERT mới đều lỗi</li><li><b>Khóa chính và unique phải chứa partition key</b>: Postgres chỉ bảo đảm duy nhất trong từng partition</li></ul></div>
+      <div class="card ok"><h3>BỐN SỐ LIỆU THEO DÕI</h3><ul><li>Thời gian chạy của job dọn mỗi đêm</li><li>INSERT p99 trong giờ job chạy, so với ~15 ms giờ bình thường</li><li>Số dòng và GB theo tuần, ổn định quanh 1,36 tỉ dòng / 340 GB</li><li>Với mỗi truy vấn chính: số partition chạm tới và thời gian thật từ <code>EXPLAIN ANALYZE</code></li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Hai trường hợp cụ thể</div>
+      <div class="ba">
+        <div><b>JOB TẠO PARTITION HỎNG</b>7 partition tạo sẵn cho khoảng một tuần để phát hiện — với điều kiện có cảnh báo khi số partition tạo sẵn bắt đầu giảm. Không ai để ý thì tới ngày thứ 8, gần như mọi event mới đều lỗi INSERT.</div>
+        <div><b>KHÓA CHÍNH (id, created_at)</b>Database chặn giá trị trùng trên cặp hai cột này. Hai dòng cùng <code>id</code> nhưng khác <code>created_at</code> vẫn được ghi, vì mỗi partition chỉ tự kiểm tra trùng trong phạm vi của nó.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Trần ghi</div>
+    <h2 class="c-peak">Partition không bảo đảm máy ghi được nhiều hơn — lúc đó mới tới sharding</h2>
+    <p class="desc">Mọi partition của <code>events</code> vẫn nằm trên cùng một máy, dùng chung CPU, đĩa và một WAL. Partition giúp dọn dữ liệu và giữ mỗi phần bảng nhỏ, nhưng không thêm tài nguyên. <b>Sharding</b> là chia dữ liệu ra nhiều máy, mỗi máy giữ một phần và chỉ nhận lượng ghi của phần đó: thêm máy thì thêm khả năng ghi, nhưng vận hành nặng hơn hẳn. Với một bảng nghiêng hẳn về ghi như <code>events</code>, read replica cũng không đỡ được phần thiếu.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Ghi hiện tại</span><div class="bar-bg"><div class="bar-fill" style="width:20%;background:var(--spec)"></div><div class="bar-mark" style="left:83.3%"></div></div><span class="bar-val">600 dòng/s</span></div>
+      <div class="bar-row"><span class="bar-label">Kế hoạch ×5</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div><div class="bar-mark" style="left:83.3%"></div></div><span class="bar-val">3.000 dòng/s</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = 2.500 dòng/giây, mức ghi tối đa của một máy đo bằng load test (đã chia partition)</div>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Sharding: tầng định tuyến chia dữ liệu ra nhiều máy, một shard có thể thành hot partition">
+        <rect class="box" x="10" y="62" width="120" height="46" rx="8"/><text class="sm" x="70" y="82" text-anchor="middle">App / tầng</text><text class="sm" x="70" y="98" text-anchor="middle">định tuyến</text>
+        <path class="ln" stroke="var(--grow)" d="M130,74 L246,32" marker-end="url(#a-grow)"/><path class="ln" stroke="var(--grow)" d="M130,85 L246,85" marker-end="url(#a-grow)"/><path class="ln" stroke="var(--peak)" d="M130,96 L246,138" marker-end="url(#a-peak)"/>
+        <rect class="box" x="250" y="12" width="170" height="40" rx="8" stroke="var(--grow)"/><text class="sm" x="335" y="36" text-anchor="middle">máy 1 · CPU thấp</text>
+        <rect class="box" x="250" y="65" width="170" height="40" rx="8" stroke="var(--grow)"/><text class="sm" x="335" y="89" text-anchor="middle">máy 2 · CPU thấp</text>
+        <rect class="box" x="250" y="118" width="170" height="40" rx="8" stroke="var(--peak)"/><text class="sm" x="335" y="142" text-anchor="middle" fill="var(--peak)">máy 3 · CPU 95%</text>
+        <text class="sm" x="440" y="36">mỗi máy: backup, theo dõi,</text><text class="sm" x="440" y="52">nâng cấp riêng</text>
+        <text class="sm" x="440" y="89">truy vấn chạm nhiều máy</text><text class="sm" x="440" y="105">phải gom kết quả</text>
+        <text class="sm" x="440" y="142" fill="var(--peak)">hot partition: ghi không</text><text class="sm" x="440" y="158" fill="var(--peak)">phân bố đều theo cột chia</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — Sharding thêm khả năng ghi, kèm cái giá vận hành và rủi ro tải lệch về một máy</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — khi một máy không còn ghi kịp</div>
+      <pre>Tải ghi cao điểm hiện tại : 600 dòng/giây
+Kế hoạch (gấp 5)          : 600 × 5 = <span class="bad">3.000</span> dòng/giây
+Tối đa một máy (load test): <span class="val">2.500</span> dòng/giây  <span class="cm"># giả định gần như giữ nguyên sau khi chia</span>
+Vượt quá                  : 3.000 − 2.500 = <span class="bad">500</span> dòng/giây</pre>
+      <p>Chia nhỏ hơn nữa cũng không thêm được tài nguyên, vì mọi partition vẫn ghi vào cùng một đĩa và một WAL. Ví dụ ở quy mô rất lớn được bài dẫn: <b>Shopify</b> chia MySQL thành các shard theo từng shop và chuyển shop giữa các shard khi tải bị lệch.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Chọn partition key cho bảng lớn nhất của bạn</h2>
+    <p class="desc">Không phải bảng lớn nào cũng cần partition. Tài liệu Postgres cho biết partition thường có lợi khi bảng lớn hơn RAM của máy database; nhỏ hơn thế thì index thường đã đủ. Dữ liệu không có thời hạn lưu cố định thì mất lợi ích "bỏ cả ngày bằng một câu lệnh", và partition chỉ còn đáng làm khi các truy vấn chính cùng lọc theo một cột.</p>
+    <div class="card-grid">
+      <div class="card avg"><h3>1 · ƯỚC LƯỢNG</h3><ul><li>Tốc độ tăng mỗi ngày × thời gian giữ → số dòng và GB; so với RAM và headroom của máy</li></ul></div>
+      <div class="card ok"><h3>2 · CHỌN CỘT</h3><ul><li>Cột khớp cách dữ liệu hết hạn và có trong điều kiện lọc của truy vấn chính</li></ul></div>
+      <div class="card peak"><h3>3 · LIỆT KÊ RỦI RO</h3><ul><li>Những truy vấn không lọc theo cột ấy là những truy vấn có thể chậm đi</li></ul></div>
+      <div class="card grow"><h3>KẾT QUẢ: HAI DÒNG</h3><ul><li>Cột làm partition key, và tên một truy vấn sẽ chạy <code>EXPLAIN ANALYZE</code> trước và sau khi chia</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Chia dữ liệu ra nhiều máy theo cột nào và chuyển dữ liệu giữa các máy ra sao là chi tiết triển khai sharding, nằm ngoài phạm vi bài. Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Postgres không xoá từng dòng — nó bỏ đi cả file</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-12.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
