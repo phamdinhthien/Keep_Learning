@@ -195,5 +195,18 @@ window.LESSONS = [
     "title": "Partition khi một bảng quá lớn và sharding khi một máy không ghi kịp",
     "description": "DELETE 15 triệu dòng mất 5,2 giờ; partition theo ngày, DROP partition, partition key và pruning, tradeoff, trần ghi của một máy.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-13",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-13.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 14,
+    "title": "Đưa file và ảnh ra khỏi database bằng object storage và CDN",
+    "description": "Ảnh chiếm 540/600 GB database và 69% hóa đơn; object storage + CDN, hit ratio theo byte, băng thông chỉ giảm ~28%, ảnh mồ côi và ảnh cũ.",
+    "readTime": "14 phút đọc"
   }
 ];
