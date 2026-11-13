@@ -221,5 +221,18 @@ window.LESSONS = [
     "title": "Hệ thống lớn dần thì thêm thành phần nào, khi nào và vì sao",
     "description": "Năm nấc từ 2 lên 7 thành phần: mỗi lần thêm Redis, CDN, queue, load balancer, replica đều bắt đầu từ một triệu chứng đo được.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-15",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-15.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 16,
+    "title": "Thiết kế dịch vụ rút gọn link từ requirement tới kiến trúc",
+    "description": "Link chiến dịch đẩy p99 redirect từ 12 ms lên 1,8 s; ước lượng, Redis cache-aside, bộ đếm base62 vs hash, giả định đúng và lệch.",
+    "readTime": "14 phút đọc"
   }
 ];

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case rút gọn link — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-15">
+  <meta name="lesson:title" content="Thiết kế dịch vụ rút gọn link từ requirement tới kiến trúc">
+  <meta name="lesson:description" content="Link chiến dịch đẩy p99 redirect từ 12 ms lên 1,8 s; ước lượng, Redis cache-aside, bộ đếm base62 vs hash, giả định đúng và lệch.">
+  <meta name="lesson:order" content="16">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="14 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Case: rút gọn link · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Bản ước lượng đúng từng phép nhân, vậy mà link chiến dịch đẩy p99 redirect từ <span class="a">12 ms</span> lên <span class="b">1,8 giây</span></h1>
+  <div class="sub">Một vòng thiết kế đầy đủ: requirement → ước lượng → chỗ kiến trúc không chịu nổi khi một link bị share mạnh → thêm Redis → số liệu chứng minh. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 240" role="img" aria-label="Trước: mọi redirect SELECT Postgres. Sau: Redis đứng trước, chỉ miss mới xuống Postgres">
+      <text class="lb" x="10" y="18" fill="var(--peak)">20:00 · TRƯỚC</text>
+      <rect class="box" x="10" y="32" width="110" height="44" rx="8"/><text class="sm" x="65" y="52" text-anchor="middle">Khách bấm</text><text class="sm" x="65" y="68" text-anchor="middle" fill="var(--avg)">32.000/s</text>
+      <path class="ln" d="M120,54 L166,54" marker-end="url(#a-dim)"/>
+      <rect class="box" x="170" y="32" width="160" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="250" y="52" text-anchor="middle" fill="var(--avg)">LB → link-api × 4</text><text class="sm" x="250" y="68" text-anchor="middle">GET /:code → 302</text>
+      <path class="ln" stroke="var(--peak)" d="M330,54 L436,54" marker-end="url(#a-peak)"/><text class="sm" x="383" y="46" text-anchor="middle" fill="var(--peak)">32.000 SELECT/s</text>
+      <rect class="box" x="440" y="28" width="250" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="565" y="48" text-anchor="middle" fill="var(--spec)">Postgres · ngưỡng 15.000/s</text><text class="sm" x="565" y="66" text-anchor="middle" fill="var(--peak)">CPU 97% · p99 1,8 s · 5xx 4%</text>
+
+      <line x1="10" y1="98" x2="690" y2="98" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="lb" x="10" y="120" fill="var(--cmd)">SAU · CACHE-ASIDE</text>
+      <rect class="box" x="10" y="150" width="110" height="44" rx="8"/><text class="sm" x="65" y="170" text-anchor="middle">Khách bấm</text><text class="sm" x="65" y="186" text-anchor="middle" fill="var(--avg)">32.000/s</text>
+      <path class="ln" d="M120,172 L166,172" marker-end="url(#a-dim)"/>
+      <rect class="box" x="170" y="150" width="160" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="250" y="170" text-anchor="middle" fill="var(--avg)">LB → link-api × 4</text><text class="sm" x="250" y="186" text-anchor="middle">p99 8 ms</text>
+      <path class="ln" stroke="var(--cmd)" d="M330,162 L436,140" marker-end="url(#a-cmd)"/><text class="sm" x="383" y="138" text-anchor="middle" fill="var(--cmd)">tra trước</text>
+      <rect class="box" x="440" y="120" width="250" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="565" y="140" text-anchor="middle" fill="var(--cmd)">Redis · hit 95% · ~3 GB</text><text class="sm" x="565" y="156" text-anchor="middle">key link:&lt;code&gt;, TTL 24 giờ</text>
+      <path class="ln ln-d" d="M330,182 L436,204" marker-end="url(#a-dim)"/><text class="sm" x="383" y="222" text-anchor="middle">chỉ khi miss</text>
+      <rect class="box" x="440" y="182" width="250" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="565" y="202" text-anchor="middle" fill="var(--spec)">Postgres · ~1.720 truy vấn/s</text><text class="sm" x="565" y="218" text-anchor="middle" fill="var(--cmd)">≈ 11% ngưỡng</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Chặng duy nhất khác đi là Redis đứng giữa link-api và Postgres</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>Sự cố 20:00</b></span>
+    <span>02 <b>Requirement &amp; ước lượng</b></span>
+    <span>03 <b>Vì sao quá tải</b></span>
+    <span>04 <b>Redis cache-aside</b></span>
+    <span>05 <b>Sinh mã ngắn</b></span>
+    <span>06 <b>Tradeoff &amp; 4 chỉ số</b></span>
+    <span>07 <b>Giả định đúng/lệch</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Mười phút đắt nhất của chiến dịch cũng là mười phút dịch vụ chậm nhất</h2>
+    <p class="desc">20:00, một KOL đăng link rút gọn của chiến dịch. 20:03, riêng mã đó nhận khoảng <b>20.000 redirect/giây</b>. p99 redirect, nhiều tuần nằm yên quanh <b>12 ms</b>, dựng đứng lên <b>1,8 giây</b> — chậm gần 150 lần; cứ 100 lượt bấm có <b>4 lượt</b> nhận 5xx; CPU Postgres <b>97%</b>. Tình trạng kéo dài 20:00 → 20:10, đúng quãng marketing đã trả tiền thuê KOL. Hệ thống không được dựng vội: đã ước lượng, đã load test, và mở lại bản ước lượng thì không thấy phép tính nào sai.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="p99 redirect theo thời gian quanh 20:00">
+        <line x1="60" y1="140" x2="670" y2="140" stroke="var(--ink-dim)"/>
+        <line x1="60" y1="118" x2="670" y2="118" stroke="var(--cmd)" stroke-dasharray="5 4"/><text class="sm" x="668" y="112" text-anchor="end" fill="var(--cmd)">SLO p99 50 ms</text>
+        <rect x="200" y="20" width="300" height="120" fill="var(--peak)" opacity=".08"/>
+        <polyline points="60,135 200,135 215,30 485,30 500,135 670,135" fill="none" stroke="var(--peak)" stroke-width="2.5"/>
+        <text class="sm" x="350" y="22" text-anchor="middle" fill="var(--peak)">p99 1,8 s · 5xx 4% · CPU PG 97%</text>
+        <text class="sm" x="120" y="128" text-anchor="middle">~12 ms</text>
+        <text class="sm" x="200" y="158" text-anchor="middle">20:00</text><text class="sm" x="500" y="158" text-anchor="middle">20:10</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Trục dọc không theo tỉ lệ: 12 ms và 1,8 giây chênh nhau gần 150 lần</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Tình huống thực tế (số minh hoạ của bài)</div>
+      <p>Lượt bấm nhiều nhất của cả chiến dịch rơi đúng vào lúc dịch vụ chậm nhất. Riêng link chiến dịch trong 10 phút đó nhận 20.000 × 600 giây = <b>12 triệu</b> lượt bấm. Bài đi hết một vòng thiết kế của dịch vụ ấy để tìm ra bản ước lượng đã bỏ sót điều gì.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Thiết kế ban đầu</div>
+    <h2 class="c-spec">Requirement, bản ước lượng, và vì sao một Postgres là đủ</h2>
+    <p class="desc">Marketing tạo link qua <code>POST /links</code>; link-api (4 instance sau load balancer, không giữ state) sinh mã ngắn rồi ghi bảng <code>links</code> (<code>code</code> khóa chính, <code>long_url</code>, <code>created_at</code>). Khách bấm <code>GET /:code</code>, link-api SELECT theo <code>code</code> rồi trả 302. Peak lấy bằng <b>3 lần trung bình</b> — ước chừng theo kinh nghiệm khi chưa có số liệu đo thật. Ngưỡng <b>15.000 truy vấn/giây</b> là mức load test cho thấy Postgres vẫn giữ p99 dưới SLO với tải đọc/ghi 100:1 rải đều; không phải mức tối đa máy chịu được.</p>
+    <div class="card-grid">
+      <div class="card avg"><h3>REQUIREMENT</h3><ul><li><b>Functional:</b> tạo link mới; redirect mã ngắn → URL gốc</li><li><b>Non-functional:</b> p99 redirect &lt; 50 ms (SLO); link in trên banner không được mất; link vừa tạo redirect được ngay</li><li><b>Constraint:</b> team 3 người, chỉ vận hành được Postgres và Redis</li></ul></div>
+      <div class="card ok"><h3>KẾT LUẬN LÚC ĐÓ</h3><ul><li>Peak ~12.100 truy vấn/giây &lt; 15.000</li><li>Thêm Redis lúc này là thêm một thành phần phải vận hành khi chưa có triệu chứng đo được nào đòi hỏi</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — bản ước lượng ban đầu</div>
+      <pre>Một tháng  = 30 × 86.400 = 2.592.000 giây
+Link mới   : 100.000.000 / 2.592.000 ≈ <span class="val">39</span> link/giây → peak ×3 ≈ 120
+Redirect   : 100 triệu link × 100 lượt đọc = 10 tỉ/tháng
+             10 tỉ / 2.592.000 ≈ <span class="val">3.900</span>/giây → peak ×3 ≈ <span class="val">12.000</span>/giây
+Đọc/ghi    : 100 : 1
+Dung lượng : 100 triệu dòng × 500 byte = 50 GB/tháng → 600 GB/năm
+
+Tải peak   : 12.000 SELECT + 120 INSERT ≈ 12.100 truy vấn/giây
+So ngưỡng  : 12.100 &lt; 15.000 → <span class="val">một Postgres đủ</span> cho cả đọc lẫn ghi</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Nguyên nhân</div>
+    <h2 class="c-peak">Không phép tính nào sai — peak "×3" không tính tới một link viral</h2>
+    <p class="desc">Một redirect bằng đúng một SELECT, nên số redirect/giây cũng là số SELECT/giây. Handler trả <b>302</b> (không phải 301 — chuyển hướng vĩnh viễn mà trình duyệt có thể giữ rất lâu) kèm <code>Cache-Control: no-store</code> để mọi lượt bấm đều tới link-api. Trong năm số liệu, write/giây, dung lượng, redirect trung bình đều khớp; <b>số lệch là peak</b>. Postgres không dừng hẳn: phần lớn truy vấn vẫn chạy xong nhưng phải chờ tới lượt; request chờ quá timeout của link-api thì thành 5xx.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Peak ước lượng</span><div class="bar-bg"><div class="bar-fill" style="width:37.5%;background:var(--spec)"></div><div class="bar-mark" style="left:46.9%"></div></div><span class="bar-val">12.000/s</span></div>
+      <div class="bar-row"><span class="bar-label">Lúc 20:00</span><div class="bar-bg"><div class="bar-fill" style="width:37.5%;background:var(--spec)"></div><div class="bar-fill" style="width:62.5%;background:var(--peak);position:absolute;left:37.5%;top:0"></div><div class="bar-mark" style="left:46.9%"></div></div><span class="bar-val">12.000 + 20.000</span></div>
+    </div>
+    <div class="fig-cap" style="margin:-10px 0 22px;text-align:left">┆ vạch đứt = 15.000 truy vấn/giây, ngưỡng còn giữ được SLO; phần đỏ là link chiến dịch chồng lên tải nền</div>
+    <div class="example-box">
+      <div class="example-label">▸ Code &amp; phép tính — tách lượng gửi tới với lượng thành công</div>
+      <pre>app.get(<span class="val">"/:code"</span>, <span class="kw">async</span> (req, res) =&gt; {
+  <span class="kw">const</span> code = req.params.code;
+  <span class="kw">const</span> longUrl = <span class="kw">await</span> <span class="bad">selectLongUrl(code)</span>;   <span class="cm">// mỗi lần gọi = một truy vấn Postgres</span>
+  <span class="kw">if</span> (longUrl === <span class="kw">null</span>) <span class="kw">return</span> res.status(<span class="val">404</span>).send(<span class="val">"Link không tồn tại"</span>);
+  res.set(<span class="val">"Cache-Control"</span>, <span class="val">"no-store"</span>);
+  <span class="kw">return</span> res.redirect(<span class="val">302</span>, longUrl);
+});</pre>
+      <pre>Gửi tới     : 12.000 (tải nền) + 20.000 (chiến dịch) = <span class="bad">32.000</span> SELECT/giây  <span class="cm"># &gt; 2 × 15.000</span>
+5xx (4%)    : 1.280 lượt bấm/giây nhận trang lỗi
+Thành công  : ~30.700 lượt/giây vẫn redirect được, nhưng chậm</pre>
+      <p><b>Chỗ dễ nghĩ sai:</b> đổ lỗi cho việc lượt đọc dồn vào một link. Postgres quá tải vì <b>tổng peak</b>: 32.000 lượt đọc dù rải đều như load test vẫn hơn gấp đôi mức đã kiểm tra. Còn cách lượt đọc phân bố trên các link sẽ giải thích vì sao giải pháp hiệu quả.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Cơ chế</div>
+    <h2 class="c-cmd">Đặt Redis trước Postgres để lượt bấm lặp lại không chạm tới database</h2>
+    <p class="desc">Cache-aside: hit thì trả luôn, miss thì đọc Postgres rồi ghi vào Redis. Link mới <b>không cần ghi trước</b> vào Redis: lượt bấm đầu tiên chỉ là một cache miss, đọc thẳng Postgres, nên "link vừa tạo phải redirect được ngay" vẫn đạt. Redis cũng nằm trong constraint của team, nên ba người không phải học vận hành hệ thống mới. Hit ratio 95% đến từ việc <b>20.000 lượt/giây cùng hỏi một mã</b>: những lượt đẩy tổng tải vượt ngưỡng lại là những lượt dễ thành cache hit nhất.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Lượt đọc dồn vào ít link thì hit ratio cao">
+        <text class="lb" x="10" y="20" fill="var(--cmd)">LINK CHIẾN DỊCH · 20.000 LƯỢT/GIÂY CÙNG MỘT MÃ</text>
+        <circle cx="30" cy="50" r="7" fill="var(--peak)"/><text class="sm" x="30" y="76" text-anchor="middle" fill="var(--peak)">miss</text>
+        <g fill="var(--cmd)"><circle cx="60" cy="50" r="5"/><circle cx="80" cy="50" r="5"/><circle cx="100" cy="50" r="5"/><circle cx="120" cy="50" r="5"/><circle cx="140" cy="50" r="5"/><circle cx="160" cy="50" r="5"/><circle cx="180" cy="50" r="5"/><circle cx="200" cy="50" r="5"/><circle cx="220" cy="50" r="5"/><circle cx="240" cy="50" r="5"/><circle cx="260" cy="50" r="5"/><circle cx="280" cy="50" r="5"/><circle cx="300" cy="50" r="5"/><circle cx="320" cy="50" r="5"/></g>
+        <text class="sm" x="350" y="54" fill="var(--cmd)">… mọi lượt sau đều hit khi mã đã nằm trong Redis</text>
+        <text class="lb" x="10" y="108" fill="var(--avg)">LINK ÍT NGƯỜI BẤM</text>
+        <circle cx="30" cy="128" r="7" fill="var(--peak)"/><circle cx="160" cy="128" r="7" fill="var(--peak)"/><circle cx="300" cy="128" r="5" fill="var(--cmd)"/>
+        <text class="sm" x="350" y="132">→ bị cache miss nhiều hơn link viral</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Hit ratio cao vì nhiều lượt đọc lặp lại cùng key, không phải vì một lệnh Redis nhanh hơn một câu SELECT</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Code &amp; phép tính sau khi thêm cache</div>
+      <pre> app.get(<span class="val">"/:code"</span>, <span class="kw">async</span> (req, res) =&gt; {
+   <span class="kw">const</span> code = req.params.code;
+<span class="bad">-  const longUrl = await selectLongUrl(code);</span>
+<span class="val">+  // Tra Redis trước, cache miss mới gọi selectLongUrl rồi ghi kết quả vào Redis
++  const longUrl = await getWithCacheAside(`link:${code}`, 24 * 3600, () =&gt;
++    selectLongUrl(code),
++  );</span>
+   <span class="kw">if</span> (longUrl === <span class="kw">null</span>) { … }</pre>
+      <pre>Cùng 32.000 redirect/giây như lúc 20:00
+SELECT tới PG : 32.000 × (1 − 0,95) = <span class="val">1.600</span>/giây
+Cộng phần ghi : 1.600 + tối đa 120 INSERT ≈ <span class="val">1.720</span>/giây ≈ 11% ngưỡng 15.000
+Bộ nhớ Redis  : 10.000.000 link bấm gần đây × 300 byte ≈ <span class="val">3 GB</span>
+
+p99 redirect  : 1,8 giây → <span class="val">8 ms</span>   (thấp hơn cả 12 ms trước sự cố)
+Tỉ lệ 5xx     : 4%      → <span class="val">gần 0</span>
+Redirect SELECT: 100%   → ~5%</pre>
+      <p>95% là <b>giả định</b> cho lúc Redis đã giữ các mã đang được bấm, không phải mức cơ chế cache-aside bảo đảm; phép tính giả định mã viral nằm trong Redis suốt cả đợt. TTL 24 giờ là tham số chọn cho ví dụ.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Sinh mã</div>
+    <h2 class="c-grow">Bộ đếm + base62 hay hash cắt ngắn: cách nào phải thử lại khi trùng mã?</h2>
+    <p class="desc">Mã viết bằng <b>base62</b> (0-9, a-z, A-Z). <b>Bộ đếm</b>: lấy số kế tiếp từ sequence của Postgres rồi đổi sang base62 — mỗi số cấp một lần nên không bao giờ trùng; 120 link/giây không làm sequence thành bottleneck. <b>Hash cắt ngắn</b>: hash URL dài + chuỗi ngẫu nhiên (ví dụ SHA-256), lấy dư cho 62^7, đổi sang base62 rồi thêm số 0 bên trái cho đủ 7 ký tự — mã rải gần đều (cắt 7 ký tự đầu của base62 thông thường thì không đều vì ký tự đầu không bao giờ là 0).</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 170" role="img" aria-label="Hai cách sinh mã và bước thử lại khi trùng">
+        <text class="lb" x="10" y="20" fill="var(--avg)">BỘ ĐẾM + BASE62</text>
+        <rect class="box" x="10" y="30" width="150" height="40" rx="6"/><text class="sm" x="85" y="54" text-anchor="middle">sequence: 125.000</text>
+        <path class="ln" d="M160,50 L206,50" marker-end="url(#a-dim)"/>
+        <rect class="box" x="210" y="30" width="120" height="40" rx="6" stroke="var(--avg)"/><text class="sm" x="270" y="54" text-anchor="middle" fill="var(--avg)">đổi base62</text>
+        <path class="ln" d="M330,50 L376,50" marker-end="url(#a-dim)"/>
+        <rect class="box" x="380" y="30" width="160" height="40" rx="6" stroke="var(--cmd)"/><text class="sm" x="460" y="54" text-anchor="middle" fill="var(--cmd)">INSERT · luôn ok</text>
+        <text class="sm" x="556" y="54">0 lần thử lại</text>
+        <text class="lb" x="10" y="104" fill="var(--grow)">HASH CẮT NGẮN 7 KÝ TỰ</text>
+        <rect class="box" x="10" y="114" width="150" height="40" rx="6"/><text class="sm" x="85" y="138" text-anchor="middle">SHA-256(url + rand)</text>
+        <path class="ln" d="M160,134 L206,134" marker-end="url(#a-dim)"/>
+        <rect class="box" x="210" y="114" width="120" height="40" rx="6" stroke="var(--grow)"/><text class="sm" x="270" y="138" text-anchor="middle" fill="var(--grow)">mod 62^7</text>
+        <path class="ln" d="M330,134 L376,134" marker-end="url(#a-dim)"/>
+        <rect class="box" x="380" y="114" width="160" height="40" rx="6" stroke="var(--peak)"/><text class="sm" x="460" y="138" text-anchor="middle" fill="var(--peak)">UNIQUE từ chối?</text>
+        <path class="ln ln-d" stroke="var(--peak)" d="M460,154 L460,164 L85,164 L85,158" marker-end="url(#a-peak)"/><text class="sm" x="556" y="132" fill="var(--peak)">trùng → đổi rand,</text><text class="sm" x="556" y="148" fill="var(--peak)">hash lại</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Số 125.000 chỉ là ví dụ minh hoạ; bảng links cần UNIQUE trên code (khóa chính đã bảo đảm)</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — số mã và số lần trùng sau một năm</div>
+      <pre>6 ký tự : 62^6 = 56.800.235.584 mã (~56,8 tỉ) → 56,8 tỉ / 1,2 tỉ link mỗi năm ≈ <span class="val">47 năm</span>
+7 ký tự : 62^7 = 3.521.614.606.208 mã (~3,52 nghìn tỉ)
+
+Hash 7 ký tự, năm đầu (n = 1,2 tỉ link, N = 3,52 nghìn tỉ mã)
+Giả định: mỗi mã là một lần chọn ngẫu nhiên đều trong N mã
+Số lần trùng ≈ n² / (2N) = (1,2 tỉ)² / (2 × 3,52 nghìn tỉ) ≈ <span class="bad">204.000</span> ≈ 0,017%</pre>
+      <div class="tbl-scroll"><table style="margin:10px 0 0">
+        <tr><th>Tiêu chí</th><th>Bộ đếm + base62</th><th>Hash cắt ngắn 7 ký tự</th></tr>
+        <tr><td class="k">Độ dài mã</td><td>≤ 6 ký tự trong ~47 năm</td><td>Luôn 7 ký tự</td></tr>
+        <tr><td class="k">Thử lại vì trùng</td><td><span class="hit">0</span></td><td><span class="miss">~204.000 năm đầu (0,017%)</span></td></tr>
+        <tr><td class="k">Đoán được mã kế tiếp</td><td><span class="miss">Có, mã nối tiếp</span></td><td><span class="hit">Không, mã rải đều</span></td></tr>
+        <tr><td class="k">Cần bộ đếm chung</td><td>Có, sequence Postgres</td><td>Không</td></tr>
+      </table></div>
+      <p style="margin-top:10px">Không chặn trùng thì đó là 204.000 lần hai link khác nhau dùng chung một mã — khách có thể bị đưa tới nhầm URL. Chuỗi ngẫu nhiên còn làm cùng một URL tạo hai lần ra hai mã: chấp nhận được vì marketing vốn cần mỗi kênh một link. Link marketing công khai thì việc đoán được mã thường không đáng ngại; không muốn lộ số link hay bị quét lần lượt thì chọn hash, đổi lại mỗi mã dài thêm một ký tự. Khi nhiều máy phải sinh ID không qua bộ đếm chung thì có Snowflake, UUIDv7 — chủ đề sinh ID phân tán.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Tradeoff</div>
+    <h2 class="c-grow">Một link vừa bị khóa vẫn redirect tới trang lừa đảo, có thể tới 24 giờ</h2>
+    <p class="desc">Một link vừa bị báo là lừa đảo, team khóa nó trong Postgres. Ba tradeoff của Redis hiện ra cùng lúc trên chính link này. Cache chỉ đỡ phần đọc: tối đa 120 INSERT/giây và 600 GB mỗi năm vẫn do Postgres gánh. Dịch vụ chỉ vài trăm redirect/giây thì Postgres xử lý thoải mái và Redis chưa cần; read replica, queue hay object storage cũng chưa cần vì chưa có triệu chứng nào đòi hỏi.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 130" role="img" aria-label="Link đã khóa vẫn redirect cho tới hết TTL">
+        <line x1="40" y1="60" x2="670" y2="60" stroke="var(--ink-dim)" stroke-width="1.5"/>
+        <circle cx="120" cy="60" r="6" fill="var(--spec)"/><text class="sm" x="120" y="38" text-anchor="middle" fill="var(--spec)">khóa link trong Postgres</text>
+        <rect x="120" y="70" width="460" height="18" rx="4" fill="var(--grow)" opacity=".55"/>
+        <text class="sm" x="350" y="108" text-anchor="middle" fill="var(--peak)">mã còn trong Redis → cache hit → vẫn redirect tới trang lừa đảo</text>
+        <circle cx="580" cy="60" r="6" fill="var(--cmd)"/><text class="sm" x="580" y="38" text-anchor="middle" fill="var(--cmd)">hết TTL → miss → 404</text>
+        <text class="sm" x="350" y="126" text-anchor="middle">tối đa 24 giờ — TTL là khoảng thời gian người dùng có thể thấy dữ liệu cũ</text>
+      </svg>
+      <div class="fig-cap">Hình 5 — Trục thời gian không theo tỉ lệ</div>
+    </div>
+    <div class="card-grid">
+      <div class="card peak"><h3>BA TRADEOFF</h3><ul><li><b>Link đã khóa vẫn redirect</b> tới hết TTL, có thể 24 giờ</li><li><b>Thêm một thành phần vận hành:</b> điều tra phải xem cả Redis lẫn Postgres; team 3 người thêm một chỗ phải theo dõi, nâng cấp, khôi phục</li><li><b>Redis sập thì mọi lượt đọc dồn về Postgres:</b> helper bỏ qua cache khi Redis lỗi → 32.000/giây lại đổ xuống, dashboard quay về đúng 20:00</li></ul></div>
+      <div class="card ok"><h3>BỐN CHỈ SỐ CẦN ĐO</h3><ul><li><b>p99 redirect</b> vs SLO 50 ms: 1,8 s → 8 ms</li><li><b>Hit ratio:</b> 0% → ~95%</li><li><b>Truy vấn/giây tới Postgres:</b> &gt;32.000 → ~1.720</li><li><b>Tỉ lệ 5xx:</b> 4% → gần 0</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Cách đọc bốn chỉ số</div>
+      <p>Chỉ số 2 và 3 cho biết <b>vì sao</b> kết quả thay đổi; chỉ số 1 và 4 cho biết <b>người dùng có thấy</b> thay đổi đó không. Nếu p99 vẫn đẹp mà hit ratio đang tụt dần, bạn biết trước số truy vấn tới Postgres sắp vượt ngưỡng 15.000 thêm một lần nữa.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Nhìn lại</div>
+    <h2 class="c-avg">Giả định nào trong bản ước lượng đã đúng, giả định nào đã lệch</h2>
+    <p class="desc">Hai dòng lệch có tác động ngược chiều: <b>peak lệch</b> là lý do Postgres quá tải; <b>lượt đọc không rải đều</b> lại là lý do Redis đạt hit 95% — chỗ lệch thứ hai giúp giải quyết hậu quả của chỗ lệch thứ nhất.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Giả định</th><th>Thực tế</th><th>Đánh giá</th></tr>
+      <tr><td class="k">~120 link mới/giây lúc cao điểm</td><td>Không phải nguyên nhân sự cố</td><td><span class="hit">Đúng</span></td></tr>
+      <tr><td class="k">600 GB dữ liệu mỗi năm</td><td>Không đổi</td><td><span class="hit">Đúng</span></td></tr>
+      <tr><td class="k">Đọc/ghi 100 : 1</td><td>Vẫn đúng nếu tính trung bình</td><td><span class="hit">Đúng</span></td></tr>
+      <tr><td class="k">Peak = 3 × trung bình ≈ 12.000/s</td><td>32.000/s, gấp ~8 lần 3.900</td><td><span class="miss">Lệch</span></td></tr>
+      <tr><td class="k">Lượt đọc rải đều trên các link</td><td>20.000/s dồn vào một mã</td><td><span class="miss">Lệch</span></td></tr>
+    </table></div>
+    <div class="example-box">
+      <div class="example-label">▸ Hai câu hỏi lẽ ra nên ghi cạnh bản ước lượng</div>
+      <div class="ba">
+        <div><b>PEAK LỚN NHẤT TỚI TỪ ĐÂU?</b>Cho biết hệ thống cần đỡ bao nhiêu request mỗi giây — ở đây là một link được KOL share chồng lên tải nền.</div>
+        <div><b>LƯỢT ĐỌC DỒN VÀO BAO NHIÊU LINK?</b>Cho biết cache có thể đỡ được bao nhiêu trong số đó — càng dồn vào ít link, hit ratio càng cao.</div>
+      </div>
+    </div>
+    <div class="note"><b>Demo kit của bài:</b> 200Lab kèm bộ kit chạy bằng Docker (API rút gọn link, Postgres, Redis, k6 tạo tải) để tái hiện cảnh một link chiến dịch đẩy p99 redirect vượt SLO. Bạn tải kit trong trang bài học trên 200Lab. Số liệu trong bài là số minh hoạ của khóa học.</div>
+  </section>
+
+</div>
+
+<footer>Bản ước lượng không hỏng ở phép nhân — nó thiếu câu hỏi peak tới từ đâu và lượt đọc dồn vào đâu</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-15.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
