@@ -234,5 +234,18 @@ window.LESSONS = [
     "title": "Thiết kế dịch vụ rút gọn link từ requirement tới kiến trúc",
     "description": "Link chiến dịch đẩy p99 redirect từ 12 ms lên 1,8 s; ước lượng, Redis cache-aside, bộ đếm base62 vs hash, giả định đúng và lệch.",
     "readTime": "14 phút đọc"
+  },
+  {
+    "id": "sd1-16",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-16.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 17,
+    "title": "Thêm instance mà throughput không tăng thì bottleneck nằm ở đâu",
+    "description": "Gấp đôi app mà p99 tăng 180 → 650 ms; USE method từng chặng, mức trần CPU primary, chuyển đọc sang replica và bottleneck chuyển chỗ.",
+    "readTime": "13 phút đọc"
   }
 ];
