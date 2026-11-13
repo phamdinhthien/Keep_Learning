@@ -208,5 +208,18 @@ window.LESSONS = [
     "title": "Đưa file và ảnh ra khỏi database bằng object storage và CDN",
     "description": "Ảnh chiếm 540/600 GB database và 69% hóa đơn; object storage + CDN, hit ratio theo byte, băng thông chỉ giảm ~28%, ảnh mồ côi và ảnh cũ.",
     "readTime": "14 phút đọc"
+  },
+  {
+    "id": "sd1-14",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-14.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 15,
+    "title": "Hệ thống lớn dần thì thêm thành phần nào, khi nào và vì sao",
+    "description": "Năm nấc từ 2 lên 7 thành phần: mỗi lần thêm Redis, CDN, queue, load balancer, replica đều bắt đầu từ một triệu chứng đo được.",
+    "readTime": "13 phút đọc"
   }
 ];
