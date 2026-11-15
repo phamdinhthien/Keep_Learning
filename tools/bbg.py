@@ -29,11 +29,12 @@ CSS = """<!-- bbg:css -->
   .bbg-legend .lnk.d{border-top-style:dashed}
   .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
-  .bbg svg text,.bbg svg text:not([fill]){font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;fill:#1e293b;letter-spacing:0}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
   .bbg svg text.bb-l{font-size:16px;font-weight:700}
-  .bbg svg text.bb-s,.bbg svg text.bb-s:not([fill]){font-size:11.5px;font-weight:500;fill:#64748b}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
   .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
-  .bbg svg text.bb-a{font-size:12px;font-weight:600;fill:#334155;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
   .bbg svg text.bb-n{font-size:15px;font-weight:800}
   .bbg svg .bb-node rect{stroke-width:2.5}
   .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}

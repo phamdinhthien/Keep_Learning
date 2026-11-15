@@ -91,11 +91,95 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -109,32 +193,8 @@
   <h1>Ba instance đều khỏe, CPU dưới 40%, vậy mà <span class="b">2/3 request</span> trả 401</h1>
   <div class="sub">Lỗi không nằm ở phần cứng mà ở chỗ session đang được giữ: trong RAM của từng instance. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 250" role="img" aria-label="Request path với session nằm trong RAM của từng instance">
-      <rect class="box" x="10" y="98" width="96" height="46" rx="8"/>
-      <text class="sm" x="58" y="118" text-anchor="middle">TRÌNH DUYỆT</text><text class="sm" x="58" y="134" text-anchor="middle">cookie: sid</text>
-      <rect class="box" x="10" y="20" width="96" height="34" rx="8" stroke-dasharray="4 4"/>
-      <text class="sm" x="58" y="41" text-anchor="middle">DNS (bên cạnh)</text>
-      <path class="ln ln-d" d="M58,54 L58,94"/>
-      <path class="ln" d="M106,121 L146,121" marker-end="url(#a-dim)"/>
-      <rect class="box" x="150" y="98" width="110" height="46" rx="8" stroke="var(--avg)"/>
-      <text class="sm" x="205" y="118" text-anchor="middle" fill="var(--avg)">LOAD BALANCER</text><text class="sm" x="205" y="134" text-anchor="middle">round-robin</text>
-      <path class="ln" d="M260,112 L318,52" marker-end="url(#a-dim)"/>
-      <path class="ln" d="M260,121 L318,121" marker-end="url(#a-dim)"/>
-      <path class="ln" d="M260,130 L318,190" marker-end="url(#a-dim)"/>
-      <rect class="box" x="322" y="28" width="170" height="48" rx="8" stroke="var(--peak)"/>
-      <text class="sm" x="407" y="48" text-anchor="middle">App A</text><text class="sm" x="407" y="64" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
-      <rect class="box" x="322" y="97" width="170" height="48" rx="8" stroke="var(--peak)"/>
-      <text class="sm" x="407" y="117" text-anchor="middle">App B</text><text class="sm" x="407" y="133" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
-      <rect class="box" x="322" y="166" width="170" height="48" rx="8" stroke="var(--peak)"/>
-      <text class="sm" x="407" y="186" text-anchor="middle">App C</text><text class="sm" x="407" y="202" text-anchor="middle" fill="var(--peak)">Map session (giữ state)</text>
-      <path class="ln" d="M492,52 L556,112" marker-end="url(#a-dim)"/>
-      <path class="ln" d="M492,121 L556,121" marker-end="url(#a-dim)"/>
-      <path class="ln" d="M492,190 L556,130" marker-end="url(#a-dim)"/>
-      <rect class="box" x="560" y="98" width="128" height="46" rx="8" stroke="var(--spec)"/>
-      <text class="sm" x="624" y="118" text-anchor="middle" fill="var(--spec)">POSTGRES</text><text class="sm" x="624" y="134" text-anchor="middle">giữ state</text>
-      <text class="sm" x="350" y="240" text-anchor="middle">Login vào A, request kế tiếp sang B → B không có session → 401</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#dbeafe;border-color:#3b82f6"></i>Client</span><span><i class="sw" style="background:#f1f5f9;border-color:#94a3b8"></i>Hạ tầng mạng</span><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>App instance</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Database</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 455" role="img" aria-label="Request path với session nằm trong RAM của từng instance"><g class="bb-node" transform="translate(30,40)"><rect width="170" height="84" rx="14" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="8 5"/><use href="#bi-globe" x="68.0" y="6" width="34" height="34" style="color:#94a3b8"/><text x="85.0" y="60" text-anchor="middle" class="bb-l">DNS</text><text x="85.0" y="78" text-anchor="middle" class="bb-s">chỉ hỏi khi chưa có IP</text></g><path class="bb-ar d" d="M115,128 V176" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(30,180)"><rect width="170" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="68.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Trình duyệt</text><text x="85.0" y="84" text-anchor="middle" class="bb-s">cookie: sid</text></g><path class="bb-ar" d="M204,228 H266" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(270,180)"><rect width="180" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="73.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Load Balancer</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">round-robin</text></g><path class="bb-ar" d="M454,212 H495 V92 H536" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M454,228 H536" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M454,244 H495 V364 H536" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(540,50)"><rect width="220" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="60" text-anchor="middle" class="bb-l">App A</text><text x="110.0" y="78" text-anchor="middle" class="bb-s" fill="#dc2626">Map session (giữ state)</text></g><g class="bb-node" transform="translate(540,186)"><rect width="220" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="60" text-anchor="middle" class="bb-l">App B</text><text x="110.0" y="78" text-anchor="middle" class="bb-s" fill="#dc2626">Map session (giữ state)</text></g><g class="bb-node" transform="translate(540,322)"><rect width="220" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="60" text-anchor="middle" class="bb-l">App C</text><text x="110.0" y="78" text-anchor="middle" class="bb-s" fill="#dc2626">Map session (giữ state)</text></g><path class="bb-ar" d="M764,92 H820 V212 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M764,228 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M764,364 H820 V244 H876" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,180)"><rect width="190" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="66" text-anchor="middle" class="bb-l">Postgres</text><text x="95.0" y="84" text-anchor="middle" class="bb-s">giữ state</text></g><text x="550" y="442" text-anchor="middle" fill="#dc2626" style="font-weight:600;font-size:13px">Login vào A, request kế tiếp sang B → B không có session → 401</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Request đi từ trái sang phải; khung đỏ là nơi giữ state. DNS chỉ được hỏi khi chưa có IP trong cache nên nằm bên cạnh</div>
   </div>
 
@@ -197,27 +257,8 @@
     <div class="tag">03. Cơ chế</div>
     <h2 class="c-peak">Xác suất rơi vào instance không có session là (N − 1) / N</h2>
     <p class="desc">Round-robin chia request lần lượt A → B → C → A… Bạn <code>POST /login</code> vào A, A tạo session ID, lưu vào <code>Map</code> trong RAM của nó và trả cookie. Bạn bấm <code>GET /orders/history</code>, request sang B; B tra <code>Map</code> của nó không thấy → <b>401 Unauthorized</b>. Với N instance và tải chia gần đều, mỗi request cần đăng nhập chỉ có <b>1/N</b> cơ hội rơi đúng máy.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 230" role="img" aria-label="Bốn request liên tiếp chia round-robin cho ba instance">
-        <rect class="box" x="270" y="12" width="70" height="40" rx="6" stroke="var(--cmd)"/><text class="sm" x="305" y="30" text-anchor="middle">App A</text><text class="sm" x="305" y="45" text-anchor="middle" fill="var(--cmd)">có sid</text>
-        <rect class="box" x="370" y="12" width="70" height="40" rx="6"/><text class="sm" x="405" y="30" text-anchor="middle">App B</text><text class="sm" x="405" y="45" text-anchor="middle">trống</text>
-        <rect class="box" x="470" y="12" width="70" height="40" rx="6"/><text class="sm" x="505" y="30" text-anchor="middle">App C</text><text class="sm" x="505" y="45" text-anchor="middle">trống</text>
-        <line x1="305" y1="52" x2="305" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
-        <line x1="405" y1="52" x2="405" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
-        <line x1="505" y1="52" x2="505" y2="215" stroke="var(--line)" stroke-dasharray="3 4"/>
-        <text class="sm" x="10" y="86">1 · POST /login</text>
-        <path class="ln" stroke="var(--cmd)" d="M180,82 L298,82" marker-end="url(#a-cmd)"/><circle cx="305" cy="82" r="5" fill="var(--cmd)"/>
-        <text class="sm" x="560" y="86" fill="var(--cmd)">✓ tạo session</text>
-        <text class="sm" x="10" y="126">2 · GET /orders/history</text>
-        <path class="ln" stroke="var(--peak)" d="M180,122 L398,122" marker-end="url(#a-peak)"/><circle cx="405" cy="122" r="5" fill="var(--peak)"/>
-        <text class="sm" x="560" y="126" fill="var(--peak)">✗ 401</text>
-        <text class="sm" x="10" y="166">3 · GET /cart</text>
-        <path class="ln" stroke="var(--peak)" d="M180,162 L498,162" marker-end="url(#a-peak)"/><circle cx="505" cy="162" r="5" fill="var(--peak)"/>
-        <text class="sm" x="560" y="166" fill="var(--peak)">✗ 401</text>
-        <text class="sm" x="10" y="206">4 · GET /orders/history</text>
-        <path class="ln" stroke="var(--cmd)" d="M180,202 L298,202" marker-end="url(#a-cmd)"/><circle cx="305" cy="202" r="5" fill="var(--cmd)"/>
-        <text class="sm" x="560" y="206" fill="var(--cmd)">✓ 200</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 370" role="img" aria-label="Bốn request liên tiếp chia round-robin cho ba instance"><g class="bb-node" transform="translate(30,20)"><rect width="170" height="84" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="68.0" y="6" width="34" height="34" style="color:#94a3b8"/><text x="85.0" y="60" text-anchor="middle" class="bb-l">LB</text><text x="85.0" y="78" text-anchor="middle" class="bb-s">round-robin</text></g><g class="bb-node" transform="translate(380,20)"><rect width="180" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="60" text-anchor="middle" class="bb-l">App A</text><text x="90.0" y="78" text-anchor="middle" class="bb-s" fill="#16a34a">có sid</text></g><g class="bb-node" transform="translate(620,20)"><rect width="180" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="60" text-anchor="middle" class="bb-l">App B</text><text x="90.0" y="78" text-anchor="middle" class="bb-s">trống</text></g><g class="bb-node" transform="translate(860,20)"><rect width="180" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="60" text-anchor="middle" class="bb-l">App C</text><text x="90.0" y="78" text-anchor="middle" class="bb-s">trống</text></g><path d="M115,108 V360" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><path d="M470,108 V360" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><path d="M710,108 V360" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><path d="M950,108 V360" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><path class="bb-ar" d="M119,150 H464" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><circle cx="470" cy="150" r="6" fill="#16a34a"/><g class="bb-badge" transform="translate(150,150)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><text x="332.5" y="141" text-anchor="middle" class="bb-a" fill="#16a34a">POST /login → ✓ tạo session</text><path class="bb-ar" d="M119,206 H704" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><circle cx="710" cy="206" r="6" fill="#dc2626"/><g class="bb-badge" transform="translate(150,206)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><text x="452.5" y="197" text-anchor="middle" class="bb-a" fill="#dc2626">GET /orders/history → ✗ 401</text><path class="bb-ar" d="M119,262 H944" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><circle cx="950" cy="262" r="6" fill="#dc2626"/><g class="bb-badge" transform="translate(150,262)"><circle r="13"/><text y="4.5" text-anchor="middle">3</text></g><text x="572.5" y="253" text-anchor="middle" class="bb-a" fill="#dc2626">GET /cart → ✗ 401</text><path class="bb-ar" d="M119,318 H464" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><circle cx="470" cy="318" r="6" fill="#16a34a"/><g class="bb-badge" transform="translate(150,318)"><circle r="13"/><text y="4.5" text-anchor="middle">4</text></g><text x="332.5" y="309" text-anchor="middle" class="bb-a" fill="#16a34a">GET /orders/history → ✓ 200</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Round-robin A → B → C: chỉ 1 trong 3 lượt rơi đúng instance giữ session (bước 1–2 theo bài, bước 3–4 minh hoạ thêm)</div>
     </div>
     <div class="bars">
@@ -243,21 +284,8 @@ Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
     <div class="tag">04. Cách sửa</div>
     <h2 class="c-cmd">Đưa session ra session store dùng chung để instance không còn giữ state</h2>
     <p class="desc"><b>Session store</b> là kho đặt ngoài process app (thường là Redis hoặc một bảng trong database) mà instance nào cũng đọc được. Request rơi vào instance nào thì instance đó cũng nhận ra người dùng; thêm hay bớt instance không còn làm ai bị đăng xuất.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 200" role="img" aria-label="Ba instance stateless cùng đọc session từ Redis">
-        <rect class="box" x="10" y="76" width="110" height="46" rx="8" stroke="var(--avg)"/>
-        <text class="sm" x="65" y="104" text-anchor="middle" fill="var(--avg)">LOAD BALANCER</text>
-        <path class="ln" d="M120,90 L178,40" marker-end="url(#a-dim)"/><path class="ln" d="M120,99 L178,99" marker-end="url(#a-dim)"/><path class="ln" d="M120,108 L178,158" marker-end="url(#a-dim)"/>
-        <rect class="box" x="182" y="18" width="140" height="42" rx="8"/><text class="sm" x="252" y="44" text-anchor="middle">App A (stateless)</text>
-        <rect class="box" x="182" y="78" width="140" height="42" rx="8"/><text class="sm" x="252" y="104" text-anchor="middle">App B (stateless)</text>
-        <rect class="box" x="182" y="138" width="140" height="42" rx="8"/><text class="sm" x="252" y="164" text-anchor="middle">App C (stateless)</text>
-        <path class="ln" stroke="var(--cmd)" d="M322,39 L440,58" marker-end="url(#a-cmd)"/><path class="ln" stroke="var(--cmd)" d="M322,99 L440,66" marker-end="url(#a-cmd)"/><path class="ln" stroke="var(--cmd)" d="M322,159 L440,74" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="444" y="40" width="180" height="46" rx="8" stroke="var(--cmd)"/>
-        <text class="sm" x="534" y="60" text-anchor="middle" fill="var(--cmd)">REDIS · session store</text><text class="sm" x="534" y="76" text-anchor="middle">giữ state</text>
-        <path class="ln" d="M322,105 L440,140" marker-end="url(#a-dim)"/>
-        <rect class="box" x="444" y="120" width="180" height="46" rx="8" stroke="var(--spec)"/>
-        <text class="sm" x="534" y="140" text-anchor="middle" fill="var(--spec)">POSTGRES</text><text class="sm" x="534" y="156" text-anchor="middle">giữ state</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#f1f5f9;border-color:#94a3b8"></i>Hạ tầng mạng</span><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>App instance</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Cache / session store</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Database</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 410" role="img" aria-label="Ba instance stateless cùng đọc session từ Redis"><g class="bb-node" transform="translate(40,170)"><rect width="180" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="73.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Load Balancer</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">round-robin</text></g><path class="bb-ar" d="M224,202 H300 V82 H396" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M224,218 H396" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M224,234 H300 V354 H396" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(400,40)"><rect width="200" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="60" text-anchor="middle" class="bb-l">App A</text><text x="100.0" y="78" text-anchor="middle" class="bb-s">stateless</text></g><g class="bb-node" transform="translate(400,176)"><rect width="200" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="60" text-anchor="middle" class="bb-l">App B</text><text x="100.0" y="78" text-anchor="middle" class="bb-s">stateless</text></g><g class="bb-node" transform="translate(400,312)"><rect width="200" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="60" text-anchor="middle" class="bb-l">App C</text><text x="100.0" y="78" text-anchor="middle" class="bb-s">stateless</text></g><path d="M604,82 H700 M604,218 H700 M604,354 H700 M700,82 V354" fill="none" stroke="#334155" stroke-width="2.2"/><path class="bb-ar" d="M700,108 H796" marker-end="url(#bb-ah)"/><text x="748" y="98" text-anchor="middle" class="bb-a">session</text><path class="bb-ar" d="M700,298 H796" marker-end="url(#bb-ah)"/><text x="748" y="288" text-anchor="middle" class="bb-a">dữ liệu</text><g class="bb-node" transform="translate(800,60)"><rect width="230" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-cache" x="98.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Redis</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">session store · giữ state</text></g><g class="bb-node" transform="translate(800,250)"><rect width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Postgres</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">giữ state</text></g></svg></div></div>
       <div class="fig-cap">Hình 3 — Ba instance bình đẳng; state chỉ còn ở Redis và Postgres</div>
     </div>
     <div class="example-box">
@@ -279,29 +307,8 @@ Tính toán : 300 req/s × 2/3 ≈ <span class="bad">200 req/s</span> trả 401
     <div class="tag">05. Phân loại</div>
     <h2 class="c-spec">Mất dữ liệu này thì kết quả sai, hay chỉ chậm hơn?</h2>
     <p class="desc">Stateless không có nghĩa là xoá mọi dữ liệu tạm khỏi code. Hệ thống luôn cần state; việc cần làm là dời state từ nơi không được giữ (RAM của process có thể bị tắt, nhân bản tuỳ ý) sang backing service chuyên dụng. The Twelve-Factor App (phần "Processes") gọi đây là process stateless, share-nothing.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 230" role="img" aria-label="Ba loại dữ liệu trong một app instance và hậu quả khi request sau không thấy chúng">
-        <rect x="8" y="8" width="684" height="214" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="5 5"/>
-        <text class="lb" x="24" y="30">TRONG RAM / ĐĨA CỦA MỘT APP INSTANCE</text>
-        <rect class="box" x="24" y="46" width="206" height="160" rx="10" stroke="var(--peak)"/>
-        <text x="127" y="72" text-anchor="middle" fill="var(--peak)">Session</text>
-        <text class="sm" x="127" y="98" text-anchor="middle">request sau không thấy</text>
-        <text x="127" y="128" text-anchor="middle" fill="var(--peak)" style="font-size:18px;font-weight:700">401</text>
-        <text class="sm" x="127" y="154" text-anchor="middle">kết quả sai</text>
-        <text class="sm" x="127" y="186" text-anchor="middle" fill="var(--peak)">→ dời ra session store</text>
-        <rect class="box" x="247" y="46" width="206" height="160" rx="10" stroke="var(--peak)"/>
-        <text x="350" y="72" text-anchor="middle" fill="var(--peak)">File upload</text>
-        <text class="sm" x="350" y="98" text-anchor="middle">request sau không thấy</text>
-        <text x="350" y="128" text-anchor="middle" fill="var(--peak)" style="font-size:18px;font-weight:700">404</text>
-        <text class="sm" x="350" y="154" text-anchor="middle">kết quả sai</text>
-        <text class="sm" x="350" y="186" text-anchor="middle" fill="var(--peak)">→ dời ra nơi lưu chung</text>
-        <rect class="box" x="470" y="46" width="206" height="160" rx="10" stroke="var(--cmd)"/>
-        <text x="573" y="72" text-anchor="middle" fill="var(--cmd)">In-process cache</text>
-        <text class="sm" x="573" y="98" text-anchor="middle">request sau không thấy</text>
-        <text x="573" y="128" text-anchor="middle" fill="var(--cmd)" style="font-size:18px;font-weight:700">+ vài ms</text>
-        <text class="sm" x="573" y="154" text-anchor="middle">đọc lại Postgres, vẫn đúng</text>
-        <text class="sm" x="573" y="186" text-anchor="middle" fill="var(--cmd)">→ giữ lại được</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" role="img" aria-label="Ba loại dữ liệu trong một app instance và hậu quả khi request sau không thấy chúng"><rect class="bb-grp" x="20" y="30" width="1060" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="320" height="24" rx="12" fill="#1e293b"/><text x="160.0" y="16.5" text-anchor="middle">TRONG RAM / ĐĨA CỦA MỘT APP INSTANCE</text></g><rect x="40" y="60" width="320" height="250" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><use href="#bi-lock" x="183" y="78" width="34" height="34" style="color:#dc2626"/><text x="200" y="136" text-anchor="middle" class="bb-l">Session</text><text x="200" y="160" text-anchor="middle" class="bb-s">request sau không thấy</text><text x="200" y="204" text-anchor="middle" fill="#dc2626" style="font-weight:800;font-size:26px">401</text><text x="200" y="234" text-anchor="middle" style="font-weight:600;font-size:13px">kết quả sai</text><text x="200" y="282" text-anchor="middle" fill="#dc2626" style="font-weight:700;font-size:13px">→ dời ra session store</text><rect x="390" y="60" width="320" height="250" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><use href="#bi-image" x="533" y="78" width="34" height="34" style="color:#dc2626"/><text x="550" y="136" text-anchor="middle" class="bb-l">File upload</text><text x="550" y="160" text-anchor="middle" class="bb-s">request sau không thấy</text><text x="550" y="204" text-anchor="middle" fill="#dc2626" style="font-weight:800;font-size:26px">404</text><text x="550" y="234" text-anchor="middle" style="font-weight:600;font-size:13px">kết quả sai</text><text x="550" y="282" text-anchor="middle" fill="#dc2626" style="font-weight:700;font-size:13px">→ dời ra nơi lưu chung</text><rect x="740" y="60" width="320" height="250" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><use href="#bi-cache" x="883" y="78" width="34" height="34" style="color:#16a34a"/><text x="900" y="136" text-anchor="middle" class="bb-l">In-process cache</text><text x="900" y="160" text-anchor="middle" class="bb-s">request sau không thấy</text><text x="900" y="204" text-anchor="middle" fill="#16a34a" style="font-weight:800;font-size:26px">+ vài ms</text><text x="900" y="234" text-anchor="middle" style="font-weight:600;font-size:13px">đọc lại Postgres, vẫn đúng</text><text x="900" y="282" text-anchor="middle" fill="#16a34a" style="font-weight:700;font-size:13px">→ giữ lại được</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Câu hỏi phân loại: thiếu nó thì kết quả sai, hay chỉ chậm hơn?</div>
     </div>
     <div class="card-grid">
