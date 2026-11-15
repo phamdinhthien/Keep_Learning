@@ -90,11 +90,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -108,25 +194,8 @@
   <h1>Bản ước lượng đúng từng phép nhân, vậy mà link chiến dịch đẩy p99 redirect từ <span class="a">12 ms</span> lên <span class="b">1,8 giây</span></h1>
   <div class="sub">Một vòng thiết kế đầy đủ: requirement → ước lượng → chỗ kiến trúc không chịu nổi khi một link bị share mạnh → thêm Redis → số liệu chứng minh. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 240" role="img" aria-label="Trước: mọi redirect SELECT Postgres. Sau: Redis đứng trước, chỉ miss mới xuống Postgres">
-      <text class="lb" x="10" y="18" fill="var(--peak)">20:00 · TRƯỚC</text>
-      <rect class="box" x="10" y="32" width="110" height="44" rx="8"/><text class="sm" x="65" y="52" text-anchor="middle">Khách bấm</text><text class="sm" x="65" y="68" text-anchor="middle" fill="var(--avg)">32.000/s</text>
-      <path class="ln" d="M120,54 L166,54" marker-end="url(#a-dim)"/>
-      <rect class="box" x="170" y="32" width="160" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="250" y="52" text-anchor="middle" fill="var(--avg)">LB → link-api × 4</text><text class="sm" x="250" y="68" text-anchor="middle">GET /:code → 302</text>
-      <path class="ln" stroke="var(--peak)" d="M330,54 L436,54" marker-end="url(#a-peak)"/><text class="sm" x="383" y="46" text-anchor="middle" fill="var(--peak)">32.000 SELECT/s</text>
-      <rect class="box" x="440" y="28" width="250" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="565" y="48" text-anchor="middle" fill="var(--spec)">Postgres · ngưỡng 15.000/s</text><text class="sm" x="565" y="66" text-anchor="middle" fill="var(--peak)">CPU 97% · p99 1,8 s · 5xx 4%</text>
-
-      <line x1="10" y1="98" x2="690" y2="98" stroke="var(--line)" stroke-dasharray="4 4"/>
-      <text class="lb" x="10" y="120" fill="var(--cmd)">SAU · CACHE-ASIDE</text>
-      <rect class="box" x="10" y="150" width="110" height="44" rx="8"/><text class="sm" x="65" y="170" text-anchor="middle">Khách bấm</text><text class="sm" x="65" y="186" text-anchor="middle" fill="var(--avg)">32.000/s</text>
-      <path class="ln" d="M120,172 L166,172" marker-end="url(#a-dim)"/>
-      <rect class="box" x="170" y="150" width="160" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="250" y="170" text-anchor="middle" fill="var(--avg)">LB → link-api × 4</text><text class="sm" x="250" y="186" text-anchor="middle">p99 8 ms</text>
-      <path class="ln" stroke="var(--cmd)" d="M330,162 L436,140" marker-end="url(#a-cmd)"/><text class="sm" x="383" y="138" text-anchor="middle" fill="var(--cmd)">tra trước</text>
-      <rect class="box" x="440" y="120" width="250" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="565" y="140" text-anchor="middle" fill="var(--cmd)">Redis · hit 95% · ~3 GB</text><text class="sm" x="565" y="156" text-anchor="middle">key link:&lt;code&gt;, TTL 24 giờ</text>
-      <path class="ln ln-d" d="M330,182 L436,204" marker-end="url(#a-dim)"/><text class="sm" x="383" y="222" text-anchor="middle">chỉ khi miss</text>
-      <rect class="box" x="440" y="182" width="250" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="565" y="202" text-anchor="middle" fill="var(--spec)">Postgres · ~1.720 truy vấn/s</text><text class="sm" x="565" y="218" text-anchor="middle" fill="var(--cmd)">≈ 11% ngưỡng</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 540" style="min-width:758px" role="img" aria-label="Trước: mọi redirect SELECT Postgres. Sau: Redis đứng trước, chỉ miss mới xuống Postgres"><rect class="bb-grp" x="20" y="30" width="1060" height="156" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="130" height="24" rx="12" fill="#1e293b"/><text x="65.0" y="16.5" text-anchor="middle">20:00 · TRƯỚC</text></g><g class="bb-node" transform="translate(40,62)"><rect width="170" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="68.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Khách bấm</text><text x="85.0" y="84" text-anchor="middle" class="bb-s" fill="#3b82f6" style="fill:#3b82f6">32.000/s</text></g><path class="bb-ar" d="M214,110 H256" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(260,62)"><rect x="10" y="-10" width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="108.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="125.0" y="66" text-anchor="middle" class="bb-l">LB → link-api × 4</text><text x="125.0" y="84" text-anchor="middle" class="bb-s">GET /:code → 302</text></g><path class="bb-ar" d="M524,110 H716" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="620" y="100" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">32.000 SELECT/s</text><g class="bb-node" transform="translate(720,62)"><rect width="340" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="153.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="170.0" y="66" text-anchor="middle" class="bb-l">Postgres · ngưỡng 15.000/s</text><text x="170.0" y="84" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">CPU 97% · p99 1,8 s · 5xx 4%</text></g><rect class="bb-grp" x="20" y="226" width="1060" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,214)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">SAU · CACHE-ASIDE</text></g><g class="bb-node" transform="translate(40,330)"><rect width="170" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="68.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Khách bấm</text><text x="85.0" y="84" text-anchor="middle" class="bb-s" fill="#3b82f6" style="fill:#3b82f6">32.000/s</text></g><path class="bb-ar" d="M214,378 H256" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(260,330)"><rect x="10" y="-10" width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="250" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="108.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="125.0" y="66" text-anchor="middle" class="bb-l">LB → link-api × 4</text><text x="125.0" y="84" text-anchor="middle" class="bb-s" fill="#0d9488" style="fill:#0d9488">p99 8 ms</text></g><path class="bb-ar" d="M524,362 H620 V298 H716" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(668,298)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><text x="668" y="280" text-anchor="middle" class="bb-a">tra trước</text><g class="bb-node" transform="translate(720,250)"><rect width="340" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-cache" x="153.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="170.0" y="66" text-anchor="middle" class="bb-l">Redis · hit 95% · ~3 GB</text><text x="170.0" y="84" text-anchor="middle" class="bb-s">key link:&lt;code&gt;, TTL 24 giờ</text></g><path class="bb-ar" d="M524,394 H620 V448 H716" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(668,448)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><text x="668" y="478" text-anchor="middle" class="bb-a">chỉ khi miss</text><g class="bb-node" transform="translate(720,400)"><rect width="340" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="153.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="170.0" y="66" text-anchor="middle" class="bb-l">Postgres · ~1.720 truy vấn/s</text><text x="170.0" y="84" text-anchor="middle" class="bb-s" fill="#0d9488" style="fill:#0d9488">≈ 11% ngưỡng</text></g></svg></div></div>
     <div class="fig-cap">Hình 1 — Chặng duy nhất khác đi là Redis đứng giữa link-api và Postgres</div>
   </div>
 
@@ -147,16 +216,8 @@
     <div class="tag">01. Vấn đề</div>
     <h2 class="c-peak">Mười phút đắt nhất của chiến dịch cũng là mười phút dịch vụ chậm nhất</h2>
     <p class="desc">20:00, một KOL đăng link rút gọn của chiến dịch. 20:03, riêng mã đó nhận khoảng <b>20.000 redirect/giây</b>. p99 redirect, nhiều tuần nằm yên quanh <b>12 ms</b>, dựng đứng lên <b>1,8 giây</b> — chậm gần 150 lần; cứ 100 lượt bấm có <b>4 lượt</b> nhận 5xx; CPU Postgres <b>97%</b>. Tình trạng kéo dài 20:00 → 20:10, đúng quãng marketing đã trả tiền thuê KOL. Hệ thống không được dựng vội: đã ước lượng, đã load test, và mở lại bản ước lượng thì không thấy phép tính nào sai.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="p99 redirect theo thời gian quanh 20:00">
-        <line x1="60" y1="140" x2="670" y2="140" stroke="var(--ink-dim)"/>
-        <line x1="60" y1="118" x2="670" y2="118" stroke="var(--cmd)" stroke-dasharray="5 4"/><text class="sm" x="668" y="112" text-anchor="end" fill="var(--cmd)">SLO p99 50 ms</text>
-        <rect x="200" y="20" width="300" height="120" fill="var(--peak)" opacity=".08"/>
-        <polyline points="60,135 200,135 215,30 485,30 500,135 670,135" fill="none" stroke="var(--peak)" stroke-width="2.5"/>
-        <text class="sm" x="350" y="22" text-anchor="middle" fill="var(--peak)">p99 1,8 s · 5xx 4% · CPU PG 97%</text>
-        <text class="sm" x="120" y="128" text-anchor="middle">~12 ms</text>
-        <text class="sm" x="200" y="158" text-anchor="middle">20:00</text><text class="sm" x="500" y="158" text-anchor="middle">20:10</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 250" style="min-width:758px" role="img" aria-label="p99 redirect theo thời gian quanh 20:00"><rect x="300" y="40" width="460" height="150" fill="#fee2e2"/><path d="M80,190 H1040" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M80,170 H1040" stroke="#0d9488" stroke-width="2.5" stroke-dasharray="8 5"/><text x="1040" y="162" text-anchor="end" class="bb-a" fill="#0d9488" style="fill:#0d9488">SLO p99 50 ms</text><polyline points="80,180 300,180 318,52 742,52 760,180 1040,180" fill="none" stroke="#dc2626" stroke-width="3.5"/><text x="530" y="30" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">p99 1,8 s · 5xx 4% · CPU PG 97%</text><text x="180" y="172" text-anchor="middle" class="bb-a">~12 ms</text><text x="300" y="214" text-anchor="middle" style="font-weight:700">20:00</text><text x="760" y="214" text-anchor="middle" style="font-weight:700">20:10</text><text x="1040" y="236" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:600">trục dọc không theo tỉ lệ</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Trục dọc không theo tỉ lệ: 12 ms và 1,8 giây chênh nhau gần 150 lần</div>
     </div>
     <div class="example-box">
@@ -216,16 +277,8 @@ Thành công  : ~30.700 lượt/giây vẫn redirect được, nhưng chậm</pr
     <div class="tag">04. Cơ chế</div>
     <h2 class="c-cmd">Đặt Redis trước Postgres để lượt bấm lặp lại không chạm tới database</h2>
     <p class="desc">Cache-aside: hit thì trả luôn, miss thì đọc Postgres rồi ghi vào Redis. Link mới <b>không cần ghi trước</b> vào Redis: lượt bấm đầu tiên chỉ là một cache miss, đọc thẳng Postgres, nên "link vừa tạo phải redirect được ngay" vẫn đạt. Redis cũng nằm trong constraint của team, nên ba người không phải học vận hành hệ thống mới. Hit ratio 95% đến từ việc <b>20.000 lượt/giây cùng hỏi một mã</b>: những lượt đẩy tổng tải vượt ngưỡng lại là những lượt dễ thành cache hit nhất.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 150" role="img" aria-label="Lượt đọc dồn vào ít link thì hit ratio cao">
-        <text class="lb" x="10" y="20" fill="var(--cmd)">LINK CHIẾN DỊCH · 20.000 LƯỢT/GIÂY CÙNG MỘT MÃ</text>
-        <circle cx="30" cy="50" r="7" fill="var(--peak)"/><text class="sm" x="30" y="76" text-anchor="middle" fill="var(--peak)">miss</text>
-        <g fill="var(--cmd)"><circle cx="60" cy="50" r="5"/><circle cx="80" cy="50" r="5"/><circle cx="100" cy="50" r="5"/><circle cx="120" cy="50" r="5"/><circle cx="140" cy="50" r="5"/><circle cx="160" cy="50" r="5"/><circle cx="180" cy="50" r="5"/><circle cx="200" cy="50" r="5"/><circle cx="220" cy="50" r="5"/><circle cx="240" cy="50" r="5"/><circle cx="260" cy="50" r="5"/><circle cx="280" cy="50" r="5"/><circle cx="300" cy="50" r="5"/><circle cx="320" cy="50" r="5"/></g>
-        <text class="sm" x="350" y="54" fill="var(--cmd)">… mọi lượt sau đều hit khi mã đã nằm trong Redis</text>
-        <text class="lb" x="10" y="108" fill="var(--avg)">LINK ÍT NGƯỜI BẤM</text>
-        <circle cx="30" cy="128" r="7" fill="var(--peak)"/><circle cx="160" cy="128" r="7" fill="var(--peak)"/><circle cx="300" cy="128" r="5" fill="var(--cmd)"/>
-        <text class="sm" x="350" y="132">→ bị cache miss nhiều hơn link viral</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#fee2e2;border-color:#dc2626"></i>miss</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>hit</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 250" style="min-width:758px" role="img" aria-label="Lượt đọc dồn vào ít link thì hit ratio cao"><rect class="bb-grp" x="20" y="30" width="1060" height="90" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="380" height="24" rx="12" fill="#1e293b"/><text x="190.0" y="16.5" text-anchor="middle">LINK CHIẾN DỊCH · 20.000 LƯỢT/GIÂY CÙNG MỘT MÃ</text></g><text x="60" y="82" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800">miss</text><circle cx="120" cy="78" r="7" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="142" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="164" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="186" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="208" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="230" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="252" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="274" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="296" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="318" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="340" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="362" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="384" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="406" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="428" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="450" cy="78" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><text x="490" y="82" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">… mọi lượt sau đều hit khi mã đã nằm trong Redis</text><rect class="bb-grp" x="20" y="156" width="1060" height="90" rx="18"/><g class="bb-gtag" transform="translate(38,144)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">LINK ÍT NGƯỜI BẤM</text></g><text x="60" y="208" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800">miss</text><circle cx="120" cy="204" r="7" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="330" cy="204" r="7" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="560" cy="204" r="7" fill="#16a34a" stroke="#fff" stroke-width="2"/><path d="M134,204 H316 M344,204 H546" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><text x="620" y="208" text-anchor="start" style="font-weight:700;font-size:13px">→ bị cache miss nhiều hơn link viral</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Hit ratio cao vì nhiều lượt đọc lặp lại cùng key, không phải vì một lệnh Redis nhanh hơn một câu SELECT</div>
     </div>
     <div class="example-box">
@@ -254,23 +307,8 @@ Redirect SELECT: 100%   → ~5%</pre>
     <div class="tag">05. Sinh mã</div>
     <h2 class="c-grow">Bộ đếm + base62 hay hash cắt ngắn: cách nào phải thử lại khi trùng mã?</h2>
     <p class="desc">Mã viết bằng <b>base62</b> (0-9, a-z, A-Z). <b>Bộ đếm</b>: lấy số kế tiếp từ sequence của Postgres rồi đổi sang base62 — mỗi số cấp một lần nên không bao giờ trùng; 120 link/giây không làm sequence thành bottleneck. <b>Hash cắt ngắn</b>: hash URL dài + chuỗi ngẫu nhiên (ví dụ SHA-256), lấy dư cho 62^7, đổi sang base62 rồi thêm số 0 bên trái cho đủ 7 ký tự — mã rải gần đều (cắt 7 ký tự đầu của base62 thông thường thì không đều vì ký tự đầu không bao giờ là 0).</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Hai cách sinh mã và bước thử lại khi trùng">
-        <text class="lb" x="10" y="20" fill="var(--avg)">BỘ ĐẾM + BASE62</text>
-        <rect class="box" x="10" y="30" width="150" height="40" rx="6"/><text class="sm" x="85" y="54" text-anchor="middle">sequence: 125.000</text>
-        <path class="ln" d="M160,50 L206,50" marker-end="url(#a-dim)"/>
-        <rect class="box" x="210" y="30" width="120" height="40" rx="6" stroke="var(--avg)"/><text class="sm" x="270" y="54" text-anchor="middle" fill="var(--avg)">đổi base62</text>
-        <path class="ln" d="M330,50 L376,50" marker-end="url(#a-dim)"/>
-        <rect class="box" x="380" y="30" width="160" height="40" rx="6" stroke="var(--cmd)"/><text class="sm" x="460" y="54" text-anchor="middle" fill="var(--cmd)">INSERT · luôn ok</text>
-        <text class="sm" x="556" y="54">0 lần thử lại</text>
-        <text class="lb" x="10" y="104" fill="var(--grow)">HASH CẮT NGẮN 7 KÝ TỰ</text>
-        <rect class="box" x="10" y="114" width="150" height="40" rx="6"/><text class="sm" x="85" y="138" text-anchor="middle">SHA-256(url + rand)</text>
-        <path class="ln" d="M160,134 L206,134" marker-end="url(#a-dim)"/>
-        <rect class="box" x="210" y="114" width="120" height="40" rx="6" stroke="var(--grow)"/><text class="sm" x="270" y="138" text-anchor="middle" fill="var(--grow)">mod 62^7</text>
-        <path class="ln" d="M330,134 L376,134" marker-end="url(#a-dim)"/>
-        <rect class="box" x="380" y="114" width="160" height="40" rx="6" stroke="var(--peak)"/><text class="sm" x="460" y="138" text-anchor="middle" fill="var(--peak)">UNIQUE từ chối?</text>
-        <path class="ln ln-d" stroke="var(--peak)" d="M460,154 L460,164 L85,164 L85,158" marker-end="url(#a-peak)"/><text class="sm" x="556" y="132" fill="var(--peak)">trùng → đổi rand,</text><text class="sm" x="556" y="148" fill="var(--peak)">hash lại</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 380" style="min-width:758px" role="img" aria-label="Hai cách sinh mã và bước thử lại khi trùng"><rect class="bb-grp" x="20" y="30" width="1060" height="140" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="160" height="24" rx="12" fill="#1e293b"/><text x="80.0" y="16.5" text-anchor="middle">BỘ ĐẾM + BASE62</text></g><g class="bb-node" transform="translate(40,64)"><rect width="230" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-list" x="98.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="115.0" y="66" text-anchor="middle" class="bb-l bb-m">sequence: 125.000</text></g><path class="bb-ar" d="M274,104 H316" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(320,64)"><rect width="200" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-gear" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">đổi base62</text></g><path class="bb-ar" d="M524,104 H566" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(570,64)"><rect width="230" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-check" x="98.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">INSERT · luôn ok</text></g><text x="830" y="108" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">0 lần thử lại</text><rect class="bb-grp" x="20" y="210" width="1060" height="160" rx="18"/><g class="bb-gtag" transform="translate(38,198)"><rect width="210" height="24" rx="12" fill="#1e293b"/><text x="105.0" y="16.5" text-anchor="middle">HASH CẮT NGẮN 7 KÝ TỰ</text></g><g class="bb-node" transform="translate(40,244)"><rect width="230" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-key" x="98.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="115.0" y="66" text-anchor="middle" class="bb-l bb-m">SHA-256(url + rand)</text></g><path class="bb-ar" d="M274,284 H316" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(320,244)"><rect width="200" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="83.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">mod 62^7</text></g><path class="bb-ar" d="M524,284 H566" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(570,244)"><rect width="230" height="80" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-x" x="98.0" y="12" width="34" height="34" style="color:#dc2626"/><text x="115.0" y="66" text-anchor="middle" class="bb-l" fill="#dc2626" style="fill:#dc2626">UNIQUE từ chối?</text></g><path class="bb-ar d" d="M685,328 V350 H155 V328" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="830" y="280" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">trùng → đổi rand,</text><text x="830" y="300" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">hash lại</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Số 125.000 chỉ là ví dụ minh hoạ; bảng links cần UNIQUE trên code (khóa chính đã bảo đảm)</div>
     </div>
     <div class="example-box">
@@ -296,15 +334,8 @@ Số lần trùng ≈ n² / (2N) = (1,2 tỉ)² / (2 × 3,52 nghìn tỉ) ≈ <s
     <div class="tag">06. Tradeoff</div>
     <h2 class="c-grow">Một link vừa bị khóa vẫn redirect tới trang lừa đảo, có thể tới 24 giờ</h2>
     <p class="desc">Một link vừa bị báo là lừa đảo, team khóa nó trong Postgres. Ba tradeoff của Redis hiện ra cùng lúc trên chính link này. Cache chỉ đỡ phần đọc: tối đa 120 INSERT/giây và 600 GB mỗi năm vẫn do Postgres gánh. Dịch vụ chỉ vài trăm redirect/giây thì Postgres xử lý thoải mái và Redis chưa cần; read replica, queue hay object storage cũng chưa cần vì chưa có triệu chứng nào đòi hỏi.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 130" role="img" aria-label="Link đã khóa vẫn redirect cho tới hết TTL">
-        <line x1="40" y1="60" x2="670" y2="60" stroke="var(--ink-dim)" stroke-width="1.5"/>
-        <circle cx="120" cy="60" r="6" fill="var(--spec)"/><text class="sm" x="120" y="38" text-anchor="middle" fill="var(--spec)">khóa link trong Postgres</text>
-        <rect x="120" y="70" width="460" height="18" rx="4" fill="var(--grow)" opacity=".55"/>
-        <text class="sm" x="350" y="108" text-anchor="middle" fill="var(--peak)">mã còn trong Redis → cache hit → vẫn redirect tới trang lừa đảo</text>
-        <circle cx="580" cy="60" r="6" fill="var(--cmd)"/><text class="sm" x="580" y="38" text-anchor="middle" fill="var(--cmd)">hết TTL → miss → 404</text>
-        <text class="sm" x="350" y="126" text-anchor="middle">tối đa 24 giờ — TTL là khoảng thời gian người dùng có thể thấy dữ liệu cũ</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 218" style="min-width:758px" role="img" aria-label="Link đã khóa vẫn redirect cho tới hết TTL"><rect x="220" y="110" width="600" height="30" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="220" y="110" width="600" height="30" rx="6" fill="url(#bb-hatch)" fill-opacity=".3"/><text x="520" y="170" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">mã còn trong Redis → cache hit → vẫn redirect tới trang lừa đảo</text><rect x="100" y="30" width="240" height="56" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="220" y="54" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">khóa link</text><text x="220" y="74" text-anchor="middle" style="font-weight:600">trong Postgres</text><path d="M220,86 V106" fill="none" stroke="#16a34a" stroke-width="2"/><circle cx="220" cy="125" r="8" fill="#16a34a" stroke="#fff" stroke-width="3"/><rect x="700" y="30" width="240" height="56" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="820" y="54" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">hết TTL</text><text x="820" y="74" text-anchor="middle" style="font-weight:600">→ miss → 404</text><path d="M820,86 V106" fill="none" stroke="#0d9488" stroke-width="2"/><circle cx="820" cy="125" r="8" fill="#0d9488" stroke="#fff" stroke-width="3"/><text x="520" y="202" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:13px">tối đa 24 giờ — TTL là khoảng thời gian người dùng có thể thấy dữ liệu cũ</text></svg></div></div>
       <div class="fig-cap">Hình 5 — Trục thời gian không theo tỉ lệ</div>
     </div>
     <div class="card-grid">
