@@ -260,5 +260,18 @@ window.LESSONS = [
     "title": "Lỗi ở một service phụ lan ra cả hệ thống như thế nào",
     "description": "Service gợi ý chậm 8 giây làm checkout trả 504: thread pool dùng chung, Little's Law, dependency bắt buộc, availability nối tiếp và dự phòng.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "nc-00",
+    "path": "system-design/neetcode-beginner/nc-00.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 0,
+    "title": "Kiến trúc máy tính: disk, RAM, CPU, cache",
+    "description": "Bốn thành phần của một máy tính, tốc độ của chúng, và vì sao một máy đơn lẻ có giới hạn (Moore's law).",
+    "readTime": "12 phút đọc"
   }
 ];
