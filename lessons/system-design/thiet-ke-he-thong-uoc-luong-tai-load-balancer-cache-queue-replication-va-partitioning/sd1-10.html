@@ -90,11 +90,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -108,34 +194,8 @@
   <h1>Đăng ký mất <span class="b">3,8 giây</span>, trong đó 3,4 giây là chờ một việc client <span class="a">không cần chờ</span></h1>
   <div class="sub">API chỉ ghi user, đẩy job vào queue rồi trả lời ngay; worker gửi email và tạo ảnh sau. Queue không làm email nhanh hơn, nó chuyển việc chờ ra khỏi request. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 250" role="img" aria-label="Trước: API chờ service email. Sau: API đẩy job vào queue, worker gọi service email">
-      <text class="lb" x="10" y="18" fill="var(--peak)">TRƯỚC</text>
-      <rect class="box" x="10" y="42" width="80" height="40" rx="8"/><text class="sm" x="50" y="66" text-anchor="middle">client</text>
-      <path class="ln" d="M90,62 L146,62" marker-end="url(#a-dim)"/>
-      <rect class="box" x="150" y="42" width="90" height="40" rx="8"/><text class="sm" x="195" y="66" text-anchor="middle">API</text>
-      <path class="ln" d="M240,54 L326,40" marker-end="url(#a-dim)"/>
-      <rect class="box" x="330" y="24" width="130" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="395" y="43" text-anchor="middle" fill="var(--spec)">Postgres · 0,05 s</text>
-      <path class="ln" stroke="var(--peak)" d="M240,70 L326,84" marker-end="url(#a-peak)"/>
-      <rect class="box" x="330" y="68" width="190" height="30" rx="6" stroke="var(--peak)"/><text class="sm" x="425" y="87" text-anchor="middle" fill="var(--peak)">service email · chờ 3,4 s</text>
-      <text class="sm" x="540" y="58" fill="var(--peak)">p99 POST /signup</text><text x="540" y="80" fill="var(--peak)" style="font-size:18px;font-weight:700">3,8 giây</text>
-
-      <line x1="10" y1="116" x2="690" y2="116" stroke="var(--line)" stroke-dasharray="4 4"/>
-      <text class="lb" x="10" y="138" fill="var(--cmd)">SAU</text>
-      <rect class="box" x="10" y="170" width="80" height="40" rx="8"/><text class="sm" x="50" y="194" text-anchor="middle">client</text>
-      <path class="ln" d="M90,190 L146,190" marker-end="url(#a-dim)"/>
-      <rect class="box" x="150" y="170" width="90" height="40" rx="8"/><text class="sm" x="195" y="194" text-anchor="middle">API</text>
-      <path class="ln" d="M240,182 L296,166" marker-end="url(#a-dim)"/>
-      <rect class="box" x="300" y="148" width="110" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="355" y="167" text-anchor="middle" fill="var(--spec)">Postgres</text>
-      <path class="ln" stroke="var(--cmd)" d="M240,198 L296,214" marker-end="url(#a-cmd)"/>
-      <rect class="box" x="300" y="200" width="110" height="30" rx="6" stroke="var(--cmd)"/><text class="sm" x="355" y="219" text-anchor="middle" fill="var(--cmd)">queue (job)</text>
-      <path class="ln" d="M410,215 L436,215" marker-end="url(#a-dim)"/>
-      <rect class="box" x="440" y="200" width="80" height="30" rx="6" stroke="var(--grow)"/><text class="sm" x="480" y="219" text-anchor="middle" fill="var(--grow)">worker</text>
-      <path class="ln" d="M520,215 L546,215" marker-end="url(#a-dim)"/>
-      <rect class="box" x="550" y="200" width="140" height="30" rx="6"/><text class="sm" x="620" y="219" text-anchor="middle">service email</text>
-      <path class="ln ln-d" d="M480,200 L480,163 L414,163" marker-end="url(#a-dim)"/><text class="sm" x="490" y="170">cập nhật avatar_url</text>
-      <text class="sm" x="540" y="140" fill="var(--cmd)">p99 ≈ 0,15 giây</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 595" style="min-width:758px" role="img" aria-label="Trước: API chờ service email. Sau: API đẩy job vào queue, worker gọi service email"><rect class="bb-grp" x="20" y="30" width="1060" height="230" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="80" height="24" rx="12" fill="#1e293b"/><text x="40.0" y="16.5" text-anchor="middle">TRƯỚC</text></g><g class="bb-node" transform="translate(40,96)"><rect width="150" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="58.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="75.0" y="74" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M194,144 H226" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(230,96)"><rect width="160" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="63.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="80.0" y="74" text-anchor="middle" class="bb-l">API</text></g><path class="bb-ar" d="M394,130 H436 V92 H476" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(480,50)"><rect width="250" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="108.0" y="6" width="34" height="34" style="color:#16a34a"/><text x="125.0" y="60" text-anchor="middle" class="bb-l">Postgres</text><text x="125.0" y="78" text-anchor="middle" class="bb-s">0,05 s</text></g><path class="bb-ar" d="M394,160 H436 V202 H476" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><g class="bb-node" transform="translate(480,160)"><rect width="250" height="84" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-doc" x="108.0" y="6" width="34" height="34" style="color:#db2777"/><text x="125.0" y="60" text-anchor="middle" class="bb-l">Service email</text><text x="125.0" y="78" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">chờ 3,4 s</text></g><rect x="790" y="104" width="270" height="80" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="925.0" y="141" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:22px">3,8 giây</text><text x="925.0" y="157" text-anchor="middle" class="bb-s">p99 POST /signup</text><rect class="bb-grp" x="20" y="300" width="1060" height="280" rx="18"/><g class="bb-gtag" transform="translate(38,288)"><rect width="60" height="24" rx="12" fill="#1e293b"/><text x="30.0" y="16.5" text-anchor="middle">SAU</text></g><g class="bb-node" transform="translate(40,380)"><rect width="150" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="58.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="75.0" y="74" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M194,428 H226" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(230,380)"><rect width="160" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="63.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="80.0" y="74" text-anchor="middle" class="bb-l">API</text></g><path class="bb-ar" d="M394,410 H436 V364 H476" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(480,326)"><rect width="200" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="83.0" y="10" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="64" text-anchor="middle" class="bb-l">Postgres</text></g><path class="bb-ar" d="M394,446 H436 V504 H476" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(480,466)"><rect width="200" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="83.0" y="10" width="34" height="34" style="color:#ca8a04"/><text x="100.0" y="64" text-anchor="middle" class="bb-l">Queue (job)</text></g><path class="bb-ar" d="M684,504 H716" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(720,466)"><rect width="140" height="76" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="53.0" y="10" width="34" height="34" style="color:#7c3aed"/><text x="70.0" y="64" text-anchor="middle" class="bb-l">Worker</text></g><path class="bb-ar" d="M864,504 H896" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(900,466)"><rect width="160" height="76" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-doc" x="63.0" y="10" width="34" height="34" style="color:#db2777"/><text x="80.0" y="64" text-anchor="middle" class="bb-l">Service email</text></g><path class="bb-ar d" d="M790,462 V364 H684" marker-end="url(#bb-ah)"/><text x="800" y="420" text-anchor="start" class="bb-a">cập nhật avatar_url</text><rect x="880" y="330" width="180" height="70" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="970.0" y="362" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:18px">≈ 0,15 giây</text><text x="970.0" y="378" text-anchor="middle" class="bb-s">p99 POST /signup</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Mũi tên sang service email giờ đi ra từ worker: service email chậm bao nhiêu cũng chỉ worker phải chờ</div>
   </div>
 
@@ -155,19 +215,8 @@
     <div class="tag">01. Vấn đề</div>
     <h2 class="c-peak">Latency của request bằng tổng các span chạy nối tiếp</h2>
     <p class="desc">Handler đăng ký có ba <code>await</code> nối tiếp: ghi <code>users</code>, gọi service email, tạo ảnh đại diện, rồi mới trả 201. Việc sau chỉ bắt đầu khi việc trước xong, nên latency = 0,05 + 3,40 + 0,30 + 0,05 = <b>3,80 giây</b>. Bình thường service email trả lời trong khoảng 0,5 giây; request này rơi đúng một lần nó chậm. p99 là SLI của endpoint, nên <b>1%</b> lượt đăng ký đang chờ từ 3,8 giây trở lên ở ngay bước đầu tiên với sản phẩm. Lúc bình thường có khoảng <b>10 lượt</b> đăng ký mỗi giây.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Trace của POST /signup trước khi sửa">
-        <text class="sm" x="10" y="34">db.insert users</text>
-        <text class="sm" x="10" y="64" fill="var(--peak)">http email-service /send</text>
-        <text class="sm" x="10" y="94">avatar.generate</text>
-        <text class="sm" x="10" y="124">other (validate…)</text>
-        <rect x="180" y="24" width="6.6" height="14" fill="var(--spec)"/><text class="sm" x="192" y="35">0,05 s</text>
-        <rect x="186.6" y="54" width="447" height="14" rx="2" fill="var(--peak)"/><text class="sm" x="410" y="50" text-anchor="middle" fill="var(--peak)">3,40 s — API đứng chờ</text>
-        <rect x="634" y="84" width="39.5" height="14" rx="2" fill="var(--grow)"/><text class="sm" x="628" y="95" text-anchor="end">0,30 s</text>
-        <rect x="673.5" y="114" width="6.6" height="14" fill="var(--ink-dim)"/><text class="sm" x="667" y="125" text-anchor="end">0,05 s</text>
-        <line x1="180" y1="140" x2="680" y2="140" stroke="var(--line)"/>
-        <text class="sm" x="180" y="158">0 s</text><text class="sm" x="311" y="158" text-anchor="middle">1</text><text class="sm" x="443" y="158" text-anchor="middle">2</text><text class="sm" x="575" y="158" text-anchor="middle">3</text><text class="sm" x="680" y="158" text-anchor="end">3,80 s</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 230" style="min-width:758px" role="img" aria-label="Trace của POST /signup"><text x="215" y="43" text-anchor="end" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700">db.insert users</text><rect x="230.0" y="26" width="11.1" height="24" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="251.05263157894737" y="43" text-anchor="start" style="font-weight:600">0,05 s</text><text x="215" y="83" text-anchor="end" class="bb-m" fill="#dc2626" style="fill:#dc2626;font-weight:700">http email-service /send</text><rect x="241.1" y="66" width="751.6" height="24" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="616.8421052631579" y="83" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">3,40 s — API đứng chờ</text><text x="215" y="123" text-anchor="end" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700">avatar.generate</text><rect x="992.6" y="106" width="66.3" height="24" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="982.6315789473684" y="123" text-anchor="end" style="font-weight:600">0,30 s</text><text x="215" y="163" text-anchor="end" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700">other (validate…)</text><rect x="1058.9" y="146" width="11.1" height="24" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="1048.9473684210525" y="163" text-anchor="end" style="font-weight:600">0,05 s</text><path d="M230,196 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="230.0" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">0 s</text><text x="451.0526315789474" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">1</text><text x="672.1052631578948" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">2</text><text x="893.1578947368421" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">3</text><text x="1070.0" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">3,80 s</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Span lớn nhất trong trace là một việc client không cần chờ</div>
     </div>
     <div class="example-box">
@@ -180,18 +229,8 @@
     <div class="tag">02. Cơ chế</div>
     <h2 class="c-cmd">API chỉ ghi user, đẩy job vào queue rồi trả lời ngay</h2>
     <p class="desc"><b>Queue</b> là nơi giữ những việc cần làm, nằm giữa API và phần xử lý. Mỗi việc được gói thành một <b>job</b> (ở đây: id của user vừa tạo). <b>Worker</b> là process riêng, lấy job ra theo tốc độ của chính nó: gửi email, tạo ảnh, cập nhật <code>avatar_url</code>. Một job mất trung bình <b>0,8 giây</b> (0,5 email + 0,3 ảnh). Bảng <code>users</code> vẫn là source of truth của tài khoản; queue chỉ giữ việc còn phải làm.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 120" role="img" aria-label="Trace sau khi sửa trên cùng thang thời gian">
-        <text class="sm" x="10" y="30">db.insert users</text>
-        <text class="sm" x="10" y="56" fill="var(--cmd)">queue.enqueue signup</text>
-        <text class="sm" x="10" y="82">other (validate…)</text>
-        <rect x="180" y="20" width="6.6" height="14" fill="var(--spec)"/><text class="sm" x="204" y="31">0,05 s</text>
-        <rect x="186.6" y="46" width="3" height="14" fill="var(--cmd)"/><text class="sm" x="204" y="57" fill="var(--cmd)">0,01 s</text>
-        <rect x="188" y="72" width="6.6" height="14" fill="var(--ink-dim)"/><text class="sm" x="204" y="83">0,05 s</text>
-        <line x1="180" y1="98" x2="680" y2="98" stroke="var(--line)"/>
-        <text class="sm" x="180" y="114">0 s</text><text class="sm" x="680" y="114" text-anchor="end">3,80 s (thang của trace cũ)</text>
-        <text x="440" y="60" text-anchor="middle" fill="var(--cmd)" style="font-size:18px;font-weight:700">tổng 0,11 s</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 190" style="min-width:758px" role="img" aria-label="Trace của POST /signup"><text x="215" y="43" text-anchor="end" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700">db.insert users</text><rect x="230.0" y="26" width="11.1" height="24" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="255.05263157894737" y="43" text-anchor="start" style="font-weight:600">0,05 s</text><text x="215" y="83" text-anchor="end" class="bb-m" fill="#ca8a04" style="fill:#ca8a04;font-weight:700">queue.enqueue signup</text><rect x="241.1" y="66" width="4.0" height="24" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="257.2631578947369" y="83" text-anchor="start" fill="#ca8a04" style="fill:#ca8a04;font-weight:700">0,01 s</text><text x="215" y="123" text-anchor="end" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700">other (validate…)</text><rect x="243.3" y="106" width="11.1" height="24" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="268.3157894736842" y="123" text-anchor="start" style="font-weight:600">0,05 s</text><path d="M230,156 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="230.0" y="176" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">0 s</text><text x="1070.0" y="176" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">3,80 s</text><text x="700" y="90" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:22px">tổng 0,11 s</text><text x="1060" y="40" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:600">cùng thang thời gian với trace cũ</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Cùng thang thời gian với Hình 2: trace mới chỉ còn một vệt mỏng ở đầu trục</div>
     </div>
     <div class="example-box">
@@ -218,31 +257,8 @@
       <tr><td class="k">Gửi email xác nhận</td><td><span class="hit">Không</span> → ra queue</td><td>Tới sau vài giây hay vài phút luồng đăng ký vẫn đúng; gửi lại thì 201 đã trả vẫn đúng</td></tr>
       <tr><td class="k">Tạo ảnh đại diện</td><td><span class="hit">Không</span> → ra queue</td><td>Có ảnh mặc định trong lúc chờ; ảnh thật hiện khi worker cập nhật <code>avatar_url</code></td></tr>
     </table></div>
-    <div class="fig">
-      <svg viewBox="0 0 700 190" role="img" aria-label="Sai: đẩy cả việc ghi users ra queue. Đúng: ghi users trong request">
-        <rect x="8" y="8" width="336" height="174" rx="10" fill="none" stroke="var(--peak)" stroke-dasharray="5 5"/>
-        <text class="lb" x="22" y="30" fill="var(--peak)">SAI · GHI USERS CŨNG RA QUEUE</text>
-        <rect class="box" x="22" y="44" width="70" height="34" rx="6"/><text class="sm" x="57" y="65" text-anchor="middle">client</text>
-        <path class="ln" d="M92,61 L118,61" marker-end="url(#a-dim)"/>
-        <rect class="box" x="122" y="44" width="60" height="34" rx="6"/><text class="sm" x="152" y="65" text-anchor="middle">API</text>
-        <path class="ln" stroke="var(--peak)" d="M182,61 L208,61" marker-end="url(#a-peak)"/>
-        <rect class="box" x="212" y="44" width="118" height="34" rx="6" stroke="var(--peak)"/><text class="sm" x="271" y="65" text-anchor="middle" fill="var(--peak)">queue: ghi users</text>
-        <text class="sm" x="22" y="104">← 201 "thành công", users chưa có dòng</text>
-        <text class="sm" x="22" y="128" fill="var(--peak)">✗ bấm đăng nhập ngay → thất bại</text>
-        <text class="sm" x="22" y="150" fill="var(--peak)">✗ email trùng → lỗi trong worker,</text>
-        <text class="sm" x="22" y="166" fill="var(--peak)">  không còn client nào chờ nhận</text>
-        <rect x="356" y="8" width="336" height="174" rx="10" fill="none" stroke="var(--cmd)" stroke-dasharray="5 5"/>
-        <text class="lb" x="370" y="30" fill="var(--cmd)">ĐÚNG · GHI USERS TRONG REQUEST</text>
-        <rect class="box" x="370" y="44" width="70" height="34" rx="6"/><text class="sm" x="405" y="65" text-anchor="middle">client</text>
-        <path class="ln" d="M440,61 L466,61" marker-end="url(#a-dim)"/>
-        <rect class="box" x="470" y="44" width="60" height="34" rx="6"/><text class="sm" x="500" y="65" text-anchor="middle">API</text>
-        <path class="ln" stroke="var(--cmd)" d="M530,61 L556,61" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="560" y="44" width="118" height="34" rx="6" stroke="var(--spec)"/><text class="sm" x="619" y="65" text-anchor="middle" fill="var(--spec)">INSERT users</text>
-        <text class="sm" x="370" y="104">← 201 kèm user, dòng users đã có</text>
-        <text class="sm" x="370" y="128" fill="var(--cmd)">✓ đăng nhập được ngay</text>
-        <text class="sm" x="370" y="150" fill="var(--cmd)">✓ email trùng → lỗi ngay trong request</text>
-        <text class="sm" x="370" y="166">queue chỉ giữ job email + ảnh</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 345" style="min-width:758px" role="img" aria-label="Sai: đẩy cả việc ghi users ra queue. Đúng: ghi users trong request"><rect class="bb-grp" x="20" y="40" width="510" height="290" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="252" height="24" rx="12" fill="#1e293b"/><text x="126.0" y="16.5" text-anchor="middle">SAI · GHI USERS CŨNG RA QUEUE</text></g><g class="bb-node" transform="translate(40,72)"><rect width="120" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="43.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="60.0" y="66" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M164,112 H186" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(190,72)"><rect width="110" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="38.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="55.0" y="66" text-anchor="middle" class="bb-l">API</text></g><path class="bb-ar" d="M304,112 H326" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(330,72)"><rect width="180" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="73.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Queue: ghi users</text></g><text x="44" y="190" text-anchor="start" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">← 201 “thành công”, users chưa có dòng</text><text x="44" y="216" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">✗ bấm đăng nhập ngay → thất bại</text><text x="44" y="242" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">✗ email trùng → lỗi trong worker,</text><text x="44" y="268" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">   không còn client nào chờ nhận</text><rect class="bb-grp" x="570" y="40" width="510" height="290" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="260" height="24" rx="12" fill="#1e293b"/><text x="130.0" y="16.5" text-anchor="middle">ĐÚNG · GHI USERS TRONG REQUEST</text></g><g class="bb-node" transform="translate(590,72)"><rect width="120" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="43.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="60.0" y="66" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M714,112 H736" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(740,72)"><rect width="110" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="38.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="55.0" y="66" text-anchor="middle" class="bb-l">API</text></g><path class="bb-ar" d="M854,112 H876" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,72)"><rect width="180" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="73.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="90.0" y="66" text-anchor="middle" class="bb-l bb-m">INSERT users</text></g><text x="594" y="190" text-anchor="start" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">← 201 kèm user, dòng users đã có</text><text x="594" y="216" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">✓ đăng nhập được ngay</text><text x="594" y="242" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">✓ email trùng → lỗi ngay trong request</text><text x="594" y="268" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:13px">queue chỉ giữ job email + ảnh</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Mọi việc mà response hoặc request kế tiếp dựa vào phải nằm trong request</div>
     </div>
     <div class="example-box">
@@ -255,21 +271,8 @@
     <div class="tag">04. Đỡ burst</div>
     <h2 class="c-grow">60 job/giây vào, 20 job/giây ra: phần chờ chuyển thành 10 phút email trễ</h2>
     <p class="desc"><b>Little's Law</b>: số việc đang xử lý cùng lúc = tốc độ vào × thời gian mỗi việc. Muốn xử lý 20 job/giây với 0,8 giây mỗi job cần 20 × 0,8 = <b>16 worker</b>. Bình thường 10 lượt/giây nên worker chạy nửa công suất, nửa kia là headroom. Rồi một đợt <b>burst</b>: 5 phút liền, 60 lượt đăng ký mỗi giây. API vẫn chỉ ghi <code>users</code> và đẩy job nên vẫn ~0,15 giây; tải dồn lại ở queue. Giả định: queue rỗng lúc burst bắt đầu, worker lấy job theo đúng thứ tự vào.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 230" role="img" aria-label="Queue depth và queue lag theo thời gian">
-        <line x1="60" y1="180" x2="670" y2="180" stroke="var(--ink-dim)"/>
-        <rect x="60" y="40" width="120" height="140" fill="var(--peak)" opacity=".10"/>
-        <text class="sm" x="120" y="34" text-anchor="middle" fill="var(--peak)">burst 60 job/s</text>
-        <polyline points="60,180 180,60 660,180" fill="none" stroke="var(--avg)" stroke-width="2"/>
-        <polyline points="60,180 420,60 660,180" fill="none" stroke="var(--grow)" stroke-width="2" stroke-dasharray="6 4"/>
-        <circle cx="180" cy="60" r="5" fill="var(--avg)"/><text class="sm" x="190" y="54" fill="var(--avg)">depth 12.000 job</text>
-        <circle cx="180" cy="140" r="5" fill="var(--grow)"/><text class="sm" x="190" y="152" fill="var(--grow)">lag 200 s</text>
-        <circle cx="420" cy="60" r="5" fill="var(--grow)"/><text class="sm" x="430" y="54" fill="var(--grow)">lag 600 s (cao nhất)</text>
-        <circle cx="420" cy="120" r="5" fill="var(--avg)"/><text class="sm" x="410" y="148" text-anchor="end" fill="var(--avg)">depth 6.000</text>
-        <line x1="420" y1="60" x2="420" y2="180" stroke="var(--line)" stroke-dasharray="3 4"/>
-        <text class="sm" x="60" y="198" text-anchor="middle">0</text><text class="sm" x="180" y="198" text-anchor="middle">300 s</text><text class="sm" x="420" y="198" text-anchor="middle">900 s</text><text class="sm" x="660" y="198" text-anchor="middle">1.500 s</text>
-        <text class="sm" x="60" y="222" fill="var(--avg)">— queue depth (số job chờ)</text><text class="sm" x="290" y="222" fill="var(--grow)">- - queue lag (job cũ nhất đã chờ)</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="lnk" style="border-color:#3b82f6"></i>queue depth (số job chờ)</span><span><i class="lnk d" style="border-color:#7c3aed"></i>queue lag (job cũ nhất đã chờ)</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 315" style="min-width:758px" role="img" aria-label="Queue depth và queue lag theo thời gian"><rect x="100" y="70" width="188" height="210" fill="#fee2e2"/><text x="194.0" y="62" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">burst 60 job/s</text><path d="M100,280 H1040" fill="none" stroke="#94a3b8" stroke-width="2"/><polyline points="100,280 288,80 1040,280" fill="none" stroke="#3b82f6" stroke-width="3.5"/><polyline points="100,280 664,80 1040,280" fill="none" stroke="#7c3aed" stroke-width="3.5" stroke-dasharray="9 6"/><circle cx="288" cy="80" r="7" fill="#3b82f6" stroke="#fff" stroke-width="2.5"/><circle cx="664" cy="80" r="7" fill="#7c3aed" stroke="#fff" stroke-width="2.5"/><circle cx="288" cy="213" r="7" fill="#7c3aed" stroke="#fff" stroke-width="2.5"/><circle cx="664" cy="180" r="7" fill="#3b82f6" stroke="#fff" stroke-width="2.5"/><text x="302.0" y="76" text-anchor="start" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">depth 12.000 job</text><text x="302.0" y="220" text-anchor="start" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">lag 200 s</text><text x="678.0" y="76" text-anchor="start" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">lag 600 s (cao nhất)</text><text x="650.0" y="172" text-anchor="end" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">depth 6.000</text><text x="100.0" y="302" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">0</text><text x="288.0" y="302" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">300 s</text><text x="664.0" y="302" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">900 s</text><text x="1040.0" y="302" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">1.500 s</text></svg></div></div>
       <div class="fig-cap">Hình 5 — Depth đạt đỉnh lúc burst kết thúc, lag đạt đỉnh 10 phút sau đó. Các mốc 300 s và 900 s theo bài; đoạn nối giữa các mốc suy ra từ cùng giả định</div>
     </div>
     <div class="example-box">
@@ -311,20 +314,8 @@ Queue tăng             : 25 − 20 = <span class="bad">5 job/giây</span>, khô
     <div class="tag">06. Theo dõi</div>
     <h2 class="c-avg">Queue lag cho biết worker còn theo kịp không, nhưng không phải thời gian người dùng chờ</h2>
     <p class="desc">Sau khi tách, latency của request không còn cho biết email có tới kịp hay không: suốt burst p99 vẫn 0,15 giây trong khi email trễ 10 phút. Ba đại lượng đo cùng một thời điểm nhưng lệch nhau xa. <b>Queue depth</b>: số job đang chờ. <b>Queue lag</b>: thời gian job cũ nhất đã nằm chờ. <b>Thời gian chờ của job vừa vào</b>: quãng nó phải đợi worker làm hết các job xếp trước.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Queue lúc burst vừa kết thúc">
-        <text class="lb" x="10" y="20">QUEUE LÚC BURST VỪA KẾT THÚC (GIÂY 300)</text>
-        <rect class="box" x="130" y="50" width="440" height="50" rx="8" stroke="var(--avg)"/>
-        <g fill="var(--avg)" opacity=".5"><rect x="140" y="60" width="26" height="30" rx="3"/><rect x="172" y="60" width="26" height="30" rx="3"/><rect x="204" y="60" width="26" height="30" rx="3"/><rect x="236" y="60" width="26" height="30" rx="3"/><rect x="268" y="60" width="26" height="30" rx="3"/><rect x="406" y="60" width="26" height="30" rx="3"/><rect x="438" y="60" width="26" height="30" rx="3"/><rect x="470" y="60" width="26" height="30" rx="3"/><rect x="502" y="60" width="26" height="30" rx="3"/></g>
-        <rect x="534" y="60" width="26" height="30" rx="3" fill="var(--grow)"/>
-        <rect x="140" y="60" width="26" height="30" rx="3" fill="none" stroke="var(--peak)" stroke-width="2"/>
-        <text class="sm" x="350" y="80" text-anchor="middle" fill="var(--avg)">12.000 job</text>
-        <path class="ln" d="M570,75 L606,75" marker-end="url(#a-dim)"/><text class="sm" x="612" y="71">worker</text><text class="sm" x="612" y="87">20 job/s</text>
-        <path class="ln" d="M84,75 L126,75" marker-end="url(#a-dim)"/><text class="sm" x="10" y="79">job mới</text>
-        <text class="sm" x="153" y="122" text-anchor="middle" fill="var(--peak)">job vừa vào</text><text class="sm" x="153" y="138" text-anchor="middle" fill="var(--peak)">sẽ chờ ~600 s</text>
-        <text class="sm" x="547" y="122" text-anchor="middle" fill="var(--grow)">job cũ nhất</text><text class="sm" x="547" y="138" text-anchor="middle" fill="var(--grow)">đã chờ 200 s = queue lag</text>
-        <text class="sm" x="350" y="160" text-anchor="middle">Đọc "lag 200 s" thành "người dùng chờ 200 s" là sai: người vừa đăng ký chờ khoảng 600 s</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Queue lúc burst vừa kết thúc"><text x="20" y="24" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">QUEUE LÚC BURST VỪA KẾT THÚC (GIÂY 300)</text><g class="bb-node" transform="translate(20,80)"><rect width="150" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="58.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="75.0" y="66" text-anchor="middle" class="bb-l">Job mới</text></g><path class="bb-ar" d="M174,120 H216" marker-end="url(#bb-ah)"/><rect x="220" y="60" width="600" height="120" rx="14" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="244" y="92" width="28" height="56" rx="5" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><rect x="279" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="314" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="349" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="384" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="419" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="454" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="503" y="128" text-anchor="middle" style="font-weight:800;font-size:18px">…</text><rect x="524" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="559" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="594" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="629" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="664" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="699" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="734" y="92" width="28" height="56" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="769" y="92" width="28" height="56" rx="5" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="520" y="80" text-anchor="middle" class="bb-a" fill="#ca8a04" style="fill:#ca8a04">12.000 job</text><path class="bb-ar" d="M824,120 H876" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,80)"><rect width="180" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="73.0" y="4" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="58" text-anchor="middle" class="bb-l">Worker</text><text x="90.0" y="76" text-anchor="middle" class="bb-s">20 job/s</text></g><text x="258" y="206" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">job vừa vào</text><text x="258" y="224" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700">sẽ chờ ~600 s</text><text x="783" y="206" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">job cũ nhất</text><text x="783" y="224" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700">đã chờ 200 s = queue lag</text><text x="550" y="278" text-anchor="middle" style="font-weight:700;font-size:13px">Đọc “lag 200 s” thành “người dùng chờ 200 s” là sai: người vừa đăng ký chờ khoảng 600 s</text></svg></div></div>
       <div class="fig-cap">Hình 6 — Cùng một thời điểm: 12.000 job, 200 giây và 600 giây</div>
     </div>
     <div class="example-box">
