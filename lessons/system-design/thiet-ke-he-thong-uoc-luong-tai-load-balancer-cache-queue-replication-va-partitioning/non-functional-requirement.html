@@ -132,11 +132,96 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -152,53 +237,8 @@
   <h1><span class="g">12/12 test xanh</span> lúc 17:00,<br>request <span class="r">bị cắt lúc 23:55</span></h1>
   <div class="sub">Tính năng "Xuất hóa đơn tháng" làm đúng cả sáu dòng requirement, code không đổi một ký tự — vậy mà vẫn hỏng đêm cuối tháng. Lý do: bản requirement chỉ nói tính năng <b>làm gì</b>, không nói nó phải làm <b>tốt tới mức nào</b>. Mọi con số trong trang là số minh hoạ của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 250" role="img" aria-label="Dòng thời gian ngày cuối tháng: 17:00 test xanh, 21:00 xuất thử 5 giây, 23:40 cao điểm, 23:50 p99 40 giây, 23:55 load balancer cắt request, 23:57 ticket, 23:58 log không có exception">
-      <line x1="30" y1="125" x2="250" y2="125" stroke="var(--ok)" stroke-width="2"/>
-      <text x="268" y="130" text-anchor="middle" fill="var(--ink-dim)">≈</text>
-      <line x1="286" y1="125" x2="400" y2="125" stroke="var(--load)" stroke-width="2"/>
-      <line x1="400" y1="125" x2="680" y2="125" stroke="var(--err)" stroke-width="2"/>
-      <text class="lb" x="30" y="20" fill="var(--ink-dim)">NGÀY CUỐI THÁNG · CODE KHÔNG ĐỔI MỘT KÝ TỰ</text>
-
-      <!-- 17:00 -->
-      <circle cx="60" cy="125" r="6" fill="var(--ok)"/>
-      <line class="grid" x1="60" y1="70" x2="60" y2="118"/>
-      <text x="60" y="48" text-anchor="middle" fill="var(--ok)">17:00</text>
-      <text class="sm" x="22" y="64">12/12 pass · deploy</text>
-      <!-- 21:00 -->
-      <circle cx="200" cy="125" r="6" fill="var(--ok)"/>
-      <line class="grid" x1="200" y1="132" x2="200" y2="168"/>
-      <text x="200" y="186" text-anchor="middle" fill="var(--ok)">21:00</text>
-      <text class="sm" x="200" y="202" text-anchor="middle">vài chục cửa hàng thử</text>
-      <text class="sm" x="200" y="216" text-anchor="middle">~5 s / file</text>
-      <!-- 23:40 -->
-      <circle cx="320" cy="125" r="6" fill="var(--load)"/>
-      <line class="grid" x1="320" y1="70" x2="320" y2="118"/>
-      <text x="320" y="48" text-anchor="middle" fill="var(--load)">23:40</text>
-      <text class="sm" x="320" y="64" text-anchor="middle">bắt đầu chốt sổ</text>
-      <!-- 23:50 -->
-      <circle cx="420" cy="125" r="6" fill="var(--load)"/>
-      <line class="grid" x1="420" y1="132" x2="420" y2="168"/>
-      <text x="420" y="186" text-anchor="middle" fill="var(--load)">23:50</text>
-      <text class="sm" x="420" y="202" text-anchor="middle">p99 = 40 giây</text>
-      <!-- 23:55 -->
-      <circle cx="520" cy="125" r="7" fill="var(--err)"/>
-      <line class="grid" x1="520" y1="70" x2="520" y2="117"/>
-      <text x="520" y="48" text-anchor="middle" fill="var(--err)">23:55</text>
-      <text class="sm" x="520" y="64" text-anchor="middle">LB cắt ở 60 s</text>
-      <!-- 23:57 -->
-      <circle cx="600" cy="125" r="6" fill="var(--err)"/>
-      <line class="grid" x1="600" y1="132" x2="600" y2="168"/>
-      <text x="600" y="186" text-anchor="middle" fill="var(--err)">23:57</text>
-      <text class="sm" x="600" y="202" text-anchor="middle">ticket: "chờ cả phút</text>
-      <text class="sm" x="600" y="216" text-anchor="middle">rồi báo lỗi"</text>
-      <!-- 23:58 -->
-      <circle cx="666" cy="125" r="6" fill="var(--err)"/>
-      <line class="grid" x1="666" y1="70" x2="666" y2="118"/>
-      <text x="666" y="48" text-anchor="end" fill="var(--err)">23:58</text>
-      <text class="sm" x="680" y="64" text-anchor="end">log: 0 exception</text>
-      <text class="sm" x="350" y="244" text-anchor="middle">File nào render xong cũng đúng · chạy lại 12 test vẫn xanh · tháng sau lặp lại y hệt</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Dòng thời gian ngày cuối tháng từ 17:00 test xanh tới 23:58 log không có exception"><text x="40" y="24" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">NGÀY CUỐI THÁNG · CODE KHÔNG ĐỔI MỘT KÝ TỰ</text><path d="M40,160 H360" stroke="#16a34a" stroke-width="4"/><text x="380" y="166" text-anchor="middle" style="font-weight:800;font-size:18px">≈</text><path d="M400,160 H660" stroke="#ea580c" stroke-width="4"/><path d="M660,160 H1060" stroke="#dc2626" stroke-width="4"/><path d="M90,104 V152" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="10" y="40" width="160" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="90" y="64" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">17:00</text><text x="90" y="88" text-anchor="middle" style="font-weight:600">12/12 pass · deploy</text><circle cx="90" cy="160" r="8" fill="#16a34a" stroke="#fff" stroke-width="3"/><path d="M300,168 V206" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="215" y="206" width="170" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="300" y="228" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">21:00</text><text x="300" y="248" text-anchor="middle" style="font-weight:600">vài chục cửa hàng thử</text><text x="300" y="264" text-anchor="middle" style="font-weight:600">~5 s / file</text><circle cx="300" cy="160" r="8" fill="#16a34a" stroke="#fff" stroke-width="3"/><path d="M480,104 V152" fill="none" stroke="#ea580c" stroke-width="2"/><rect x="400" y="40" width="160" height="64" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="480" y="64" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:14px">23:40</text><text x="480" y="88" text-anchor="middle" style="font-weight:600">bắt đầu chốt sổ</text><circle cx="480" cy="160" r="8" fill="#ea580c" stroke="#fff" stroke-width="3"/><path d="M620,168 V206" fill="none" stroke="#ea580c" stroke-width="2"/><rect x="535" y="206" width="170" height="56" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="620" y="228" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:14px">23:50</text><text x="620" y="248" text-anchor="middle" style="font-weight:600">p99 = 40 giây</text><circle cx="620" cy="160" r="8" fill="#ea580c" stroke="#fff" stroke-width="3"/><path d="M760,104 V152" fill="none" stroke="#dc2626" stroke-width="2"/><rect x="680" y="40" width="160" height="64" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="760" y="64" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">23:55</text><text x="760" y="88" text-anchor="middle" style="font-weight:600">LB cắt ở 60 s</text><circle cx="760" cy="160" r="8" fill="#dc2626" stroke="#fff" stroke-width="3"/><path d="M900,168 V206" fill="none" stroke="#dc2626" stroke-width="2"/><rect x="815" y="206" width="170" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="900" y="228" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">23:57</text><text x="900" y="248" text-anchor="middle" style="font-weight:600">ticket: “chờ cả phút</text><text x="900" y="264" text-anchor="middle" style="font-weight:600">rồi báo lỗi”</text><circle cx="900" cy="160" r="8" fill="#dc2626" stroke="#fff" stroke-width="3"/><path d="M990,104 V152" fill="none" stroke="#dc2626" stroke-width="2"/><rect x="910" y="40" width="160" height="64" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="990" y="64" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">23:58</text><text x="990" y="88" text-anchor="middle" style="font-weight:600">log: 0 exception</text><circle cx="990" cy="160" r="8" fill="#dc2626" stroke="#fff" stroke-width="3"/><text x="550" y="306" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">File nào render xong cũng đúng · chạy lại 12 test vẫn xanh · tháng sau lặp lại y hệt</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Lỗi không test nào bắt được, chỉ lộ ra mỗi tháng một lần, đúng lúc đông người dùng nhất</div>
   </div>
 
@@ -220,30 +260,8 @@
     <h2><span class="c-fn">Functional</span> nói hệ thống làm gì — <span class="c-nfr">Non-functional</span> nói làm tốt tới mức nào, trong điều kiện nào</h2>
     <p class="desc"><b>Functional requirement</b>: hệ thống làm gì, nhận gì, trả gì, theo luật nghiệp vụ nào. <b>Non-functional requirement</b> (tài liệu thiết kế còn gọi là <b>quality attribute</b>): hệ thống làm việc đó tốt tới mức nào, trong điều kiện nào. Test chức năng chạy trên máy CI với <b>một request</b>, nên chỉ trả lời được loại câu đầu. Phần lớn non-functional requirement chỉ kiểm tra được <b>dưới tải thật, theo thời gian, hoặc khi có sự cố</b> — vì vậy bộ test xanh không cho bạn biết gì về chúng. Mười hai test bám đúng requirement; lỗi nằm ở chỗ requirement chỉ có một loại câu.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 200" role="img" aria-label="Đường đi của request theo bản requirement ban đầu: trang quản trị, load balancer timeout 60 giây, app render PDF ngay trong request, Postgres bảng invoices">
-        <rect class="box" x="10" y="60" width="130" height="56" rx="8"/>
-        <text class="sm" x="75" y="84" text-anchor="middle" fill="var(--ink)">Trang quản trị</text>
-        <text class="sm" x="75" y="102" text-anchor="middle">bấm "Xuất"</text>
-        <path class="ln" d="M140,88 L176,88" marker-end="url(#a-dim)"/>
-        <rect class="box" x="180" y="60" width="150" height="56" rx="8" stroke="var(--err)"/>
-        <text class="sm" x="255" y="84" text-anchor="middle" fill="var(--err)">LOAD BALANCER</text>
-        <text class="sm" x="255" y="102" text-anchor="middle">timeout 60 giây</text>
-        <path class="ln" d="M330,88 L366,88" marker-end="url(#a-dim)"/>
-        <rect class="box" x="370" y="44" width="170" height="88" rx="8" stroke="var(--load)"/>
-        <text class="sm" x="455" y="66" text-anchor="middle" fill="var(--load)">APP</text>
-        <text class="sm" x="455" y="84" text-anchor="middle" fill="var(--ink)">render PDF ngay</text>
-        <text class="sm" x="455" y="100" text-anchor="middle" fill="var(--ink)">trong request</text>
-        <text class="sm" x="455" y="120" text-anchor="middle">2 instance × 4 worker</text>
-        <path class="ln" d="M540,88 L576,88" marker-end="url(#a-dim)"/>
-        <rect class="box" x="580" y="60" width="110" height="56" rx="8" stroke="var(--fn)"/>
-        <text class="sm" x="635" y="84" text-anchor="middle" fill="var(--fn)">POSTGRES</text>
-        <text class="sm" x="635" y="102" text-anchor="middle">bảng invoices</text>
-
-        <path class="ln ln-d" stroke="var(--err)" d="M255,116 L255,160 L455,160 L455,132"/>
-        <text class="sm" x="355" y="180" text-anchor="middle" fill="var(--err)">request nằm lại ở ô app suốt thời gian render — LB chỉ chờ tối đa 60 s</text>
-        <text class="sm" x="455" y="30" text-anchor="middle" fill="var(--load)">tối đa 8 file render cùng lúc</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Đường đi của request theo bản requirement ban đầu"><g class="bb-node" transform="translate(30,90)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Trang quản trị</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">bấm “Xuất”</text></g><path class="bb-ar" d="M234,138 H306" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(310,90)"><rect width="200" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="83.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Load Balancer</text><text x="100.0" y="84" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">timeout 60 giây</text></g><path class="bb-ar" d="M514,138 H576" marker-end="url(#bb-ah)"/><text x="690" y="50" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:13px">tối đa 8 file render cùng lúc</text><g class="bb-node" transform="translate(580,83)"><rect x="10" y="-10" width="230" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="230" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="230" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="11" width="34" height="34" style="color:#7c3aed"/><text x="115.0" y="65" text-anchor="middle" class="bb-l">App</text><text x="115.0" y="83" text-anchor="middle" class="bb-s">render PDF ngay trong request</text><text x="115.0" y="99" text-anchor="middle" class="bb-s">2 instance × 4 worker</text></g><path class="bb-ar" d="M824,138 H886" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(890,90)"><rect width="180" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="73.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Postgres</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">bảng invoices</text></g><path d="M410,190 V236 H690 V197" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-dasharray="7 5"/><text x="550" y="270" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">request nằm lại ở ô app suốt thời gian render — LB chỉ chờ tối đa 60 s</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Sơ đồ "rất bình thường": chỉ hỏng khi request phải chờ lâu hơn thời gian render của chính nó</div>
     </div>
 
@@ -288,36 +306,8 @@
     <h2 class="c-load">Chỉ thiếu 0,1 lượt/giây — đủ để thời gian chờ vượt 60 giây sau 15 phút</h2>
     <p class="desc">Hệ thống render được <b>8 file / 5 giây = 1,6 file/giây</b>. Đêm cuối tháng có <b>2.040 lượt</b> trong 20 phút = <b>1,7 lượt/giây</b>. Tốc độ render đạt ~<b>94%</b> mức cần — khoảng hụt nhỏ, nhưng mỗi phút có thêm <b>6 lượt</b> xếp hàng, và hàng chờ không bao giờ kịp ngắn lại trong 20 phút đó. Vì vậy người bấm sau luôn chờ lâu hơn người bấm trước. Chỗ hỏng không nằm ở code render (vẫn đúng 5 giây/file) mà ở hai câu chưa ai hỏi: <b>chờ được bao lâu</b> và <b>bao nhiêu cửa hàng xuất cùng lúc</b>.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 280" role="img" aria-label="Thời gian chờ ước lượng của một request mới tăng tuyến tính từ 5 giây lúc 23:40 lên 42,5 giây lúc 23:50 và 61 giây lúc 23:55, vượt mốc timeout 60 giây">
-        <line class="grid" x1="80" y1="230" x2="650" y2="230"/>
-        <line class="grid" x1="80" y1="50" x2="80" y2="230"/>
-        <text class="sm" x="72" y="234" text-anchor="end">0 s</text>
-        <text class="sm" x="72" y="140" text-anchor="end">40 s</text>
-        <line class="grid" x1="80" y1="140" x2="650" y2="140" stroke-dasharray="2 4"/>
-        <text class="sm" x="72" y="54" text-anchor="end">80 s</text>
-        <!-- 60s timeout line -->
-        <line x1="80" y1="95" x2="650" y2="95" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="6 4"/>
-        <text class="sm" x="84" y="88" fill="var(--err)">timeout load balancer · 60 s</text>
-        <!-- danger zone -->
-        <rect x="491" y="50" width="149" height="180" fill="var(--err)" fill-opacity=".06"/>
-        <!-- wait line -->
-        <path d="M80,218.75 L640,50" stroke="var(--load)" stroke-width="2.5" fill="none"/>
-        <circle cx="80" cy="218.75" r="5" fill="var(--ok)"/>
-        <circle cx="360" cy="134.4" r="5" fill="var(--load)"/>
-        <circle cx="500" cy="92.75" r="6" fill="var(--err)"/>
-        <text class="sm" x="100" y="226" fill="var(--ok)">5 s (chỉ render)</text>
-        <text class="sm" x="372" y="158" fill="var(--load)">~60 đang chờ → 42,5 s</text>
-        <text class="sm" x="512" y="118" fill="var(--err)">~90 đang chờ → 61 s</text>
-        <text class="sm" x="566" y="150" text-anchor="middle" fill="var(--err)">vùng bị cắt</text>
-        <!-- x labels -->
-        <text class="sm" x="80" y="250" text-anchor="middle">23:40</text>
-        <text class="sm" x="360" y="250" text-anchor="middle">23:50</text>
-        <text class="sm" x="500" y="250" text-anchor="middle">23:55</text>
-        <text class="sm" x="640" y="250" text-anchor="middle">24:00</text>
-        <text class="sm" x="360" y="272" text-anchor="middle">hàng chờ dài thêm 6 lượt mỗi phút → thời gian chờ của request mới tăng đều</text>
-        <text class="lb" x="80" y="30" fill="var(--ink-dim)">THỜI GIAN CHỜ ƯỚC LƯỢNG CỦA MỘT REQUEST MỚI GỬI TỚI</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 325" style="min-width:758px" role="img" aria-label="Thời gian chờ ước lượng tăng tuyến tính, vượt mốc timeout 60 giây lúc 23:55"><text x="120" y="30" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">THỜI GIAN CHỜ ƯỚC LƯỢNG CỦA MỘT REQUEST MỚI GỬI TỚI</text><rect x="795" y="60" width="245" height="200" fill="url(#bb-hatch)" fill-opacity=".35"/><path d="M120,260 H1040" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M120,60 V260" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="110" y="264.0" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:600">0 s</text><text x="110" y="164.0" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:600">40 s</text><text x="110" y="64.0" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:600">80 s</text><path d="M120,160.0 H1040" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><path d="M120,110.0 H1040" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="8 5"/><text x="130" y="102.0" text-anchor="start" class="bb-a" fill="#dc2626" style="fill:#dc2626">timeout load balancer · 60 s</text><path d="M120,247.5 L1040,60.0" stroke="#ea580c" stroke-width="3.5" fill="none"/><circle cx="120" cy="247.5" r="7" fill="#16a34a" stroke="#fff" stroke-width="2.5"/><text x="134" y="229.5" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">5 s (chỉ render)</text><circle cx="580" cy="153.75" r="7" fill="#ea580c" stroke="#fff" stroke-width="2.5"/><text x="594" y="175.75" text-anchor="start" class="bb-a" fill="#ea580c" style="fill:#ea580c">~60 đang chờ → 42,5 s</text><circle cx="810" cy="107.5" r="7" fill="#dc2626" stroke="#fff" stroke-width="2.5"/><text x="824" y="131.5" text-anchor="start" class="bb-a" fill="#dc2626" style="fill:#dc2626">~90 đang chờ → 61 s</text><text x="940" y="200" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">vùng bị cắt</text><text x="120" y="282" text-anchor="middle" style="font-weight:700">23:40</text><text x="580" y="282" text-anchor="middle" style="font-weight:700">23:50</text><text x="810" y="282" text-anchor="middle" style="font-weight:700">23:55</text><text x="1040" y="282" text-anchor="middle" style="font-weight:700">24:00</text><text x="580" y="312" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">hàng chờ dài thêm 6 lượt mỗi phút → thời gian chờ của request mới tăng đều</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Ước lượng với giả định lượt bấm tới đều; thực tế còn tệ hơn vì lượt dồn về sát 24:00 và người bị cắt bấm lại</div>
     </div>
 
@@ -384,34 +374,8 @@ Thời gian chờ của một request mới:
     <h2>Functional quyết định <span class="c-fn">cần thành phần nào</span> — NFR + constraint quyết định <span class="c-nfr">ghép chúng theo cách nào</span></h2>
     <p class="desc">Hai cách dưới đây cùng làm đúng sáu dòng functional, cùng qua đủ 12 test. Nhìn danh sách tính năng thì không có lý do gì để chọn cách này bỏ cách kia. Thứ phân biệt chúng nằm ở ba dòng NFR: <b>latency</b> (30 phút cho phép không đứng chờ file), <b>throughput</b> (cách 1 phải theo kịp phút đông nhất, không thì chạm mốc 60 s) và <b>cost</b> (cách 1 cần thêm máy, mà máy cố định đã bị loại). <b>Constraint</b> — ngân sách, số người và kỹ năng team, công nghệ và hạ tầng sẵn có — cũng là đầu vào thiết kế, nhưng người thiết kế <b>không tự thương lượng được</b>.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 330" role="img" aria-label="So sánh cách 1 render PDF trong request với cách 2 nhận yêu cầu trả đã nhận trong 2 giây rồi render sau và người dùng tải file khi sẵn sàng">
-        <text class="lb" x="20" y="20" fill="var(--err)">CÁCH 1 — RENDER PDF NGAY TRONG REQUEST (đang chạy)</text>
-        <rect class="box" x="20" y="34" width="110" height="46" rx="8"/><text class="sm" x="75" y="61" text-anchor="middle" fill="var(--ink)">Bấm "Xuất"</text>
-        <path class="ln" d="M130,57 L166,57" marker-end="url(#a-dim)"/>
-        <rect class="box" x="170" y="34" width="110" height="46" rx="8" stroke="var(--err)"/><text class="sm" x="225" y="54" text-anchor="middle" fill="var(--err)">LB</text><text class="sm" x="225" y="70" text-anchor="middle">≤ 60 s</text>
-        <path class="ln" d="M280,57 L316,57" marker-end="url(#a-dim)"/>
-        <rect class="box" x="320" y="34" width="210" height="46" rx="8" stroke="var(--load)"/><text class="sm" x="425" y="54" text-anchor="middle" fill="var(--load)">chờ worker + render 5 s</text><text class="sm" x="425" y="70" text-anchor="middle">request vẫn mở</text>
-        <path class="ln" d="M530,57 L566,57" marker-end="url(#a-dim)"/>
-        <rect class="box" x="570" y="34" width="110" height="46" rx="8"/><text class="sm" x="625" y="61" text-anchor="middle" fill="var(--ink)">trả file PDF</text>
-        <path class="ln ln-d" stroke="var(--err)" d="M75,80 L75,104 L625,104 L625,80"/>
-        <text class="sm" x="350" y="122" text-anchor="middle" fill="var(--err)">người dùng đứng chờ suốt chặng này · hàng chờ dài → vượt 60 s → bị cắt</text>
-
-        <line class="grid" x1="20" y1="146" x2="680" y2="146"/>
-
-        <text class="lb" x="20" y="174" fill="var(--nfr)">CÁCH 2 — NHẬN YÊU CẦU RỒI RENDER SAU</text>
-        <rect class="box" x="20" y="188" width="110" height="46" rx="8"/><text class="sm" x="75" y="215" text-anchor="middle" fill="var(--ink)">Bấm "Xuất"</text>
-        <path class="ln" stroke="var(--nfr)" d="M130,211 L166,211" marker-end="url(#a-nfr)"/>
-        <rect class="box" x="170" y="188" width="150" height="46" rx="8" stroke="var(--nfr)"/><text class="sm" x="245" y="208" text-anchor="middle" fill="var(--nfr)">App ghi nhận</text><text class="sm" x="245" y="224" text-anchor="middle">trả "đã nhận" ≤ 2 s</text>
-        <path class="ln" stroke="var(--load)" d="M320,211 L356,211" marker-end="url(#a-load)"/>
-        <rect class="box" x="360" y="188" width="150" height="46" rx="8" stroke="var(--load)"/><text class="sm" x="435" y="208" text-anchor="middle" fill="var(--load)">8 worker hiện có</text><text class="sm" x="435" y="224" text-anchor="middle">render dần, ≤ 30 phút</text>
-        <path class="ln" stroke="var(--nfr)" d="M510,211 L546,211" marker-end="url(#a-nfr)"/>
-        <rect class="box" x="550" y="188" width="130" height="46" rx="8" stroke="var(--nfr)"/><text class="sm" x="615" y="208" text-anchor="middle" fill="var(--nfr)">file lưu lại</text><text class="sm" x="615" y="224" text-anchor="middle">giữ 12 tháng</text>
-        <path class="ln ln-d" stroke="var(--nfr)" d="M615,234 L615,270 L75,270 L75,238" marker-end="url(#a-nfr)"/>
-        <text class="sm" x="345" y="262" text-anchor="middle" fill="var(--nfr)">chủ cửa hàng tải file khi đã sẵn sàng (link không đoán được)</text>
-        <text class="sm" x="350" y="300" text-anchor="middle">request đóng sau ≤ 2 s → không còn chạm mốc 60 s của load balancer</text>
-        <text class="sm" x="350" y="318" text-anchor="middle" fill="var(--ink-dim)">(sơ đồ phác ý tưởng — cách đưa render ra khỏi request là một chủ đề có phần trình bày riêng)</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 540" style="min-width:758px" role="img" aria-label="So sánh cách 1 render PDF trong request với cách 2 nhận yêu cầu rồi render sau"><rect class="bb-grp" x="20" y="30" width="1060" height="200" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="400" height="24" rx="12" fill="#1e293b"/><text x="200.0" y="16.5" text-anchor="middle">CÁCH 1 — RENDER PDF NGAY TRONG REQUEST (đang chạy)</text></g><g class="bb-node" transform="translate(40,60)"><rect width="190" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="78.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="95.0" y="68" text-anchor="middle" class="bb-l">Bấm “Xuất”</text></g><path class="bb-ar" d="M234,102 H296" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(300,60)"><rect width="190" height="84" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="78.0" y="6" width="34" height="34" style="color:#94a3b8"/><text x="95.0" y="60" text-anchor="middle" class="bb-l">LB</text><text x="95.0" y="78" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">≤ 60 s</text></g><path class="bb-ar" d="M494,102 H556" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(560,60)"><rect width="250" height="84" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-clock" x="108.0" y="6" width="34" height="34" style="color:#dc2626"/><text x="125.0" y="60" text-anchor="middle" class="bb-l">Chờ worker + render 5 s</text><text x="125.0" y="78" text-anchor="middle" class="bb-s">request vẫn mở</text></g><path class="bb-ar" d="M814,102 H866" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(870,60)"><rect width="190" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-doc" x="78.0" y="14" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="68" text-anchor="middle" class="bb-l">Trả file PDF</text></g><path d="M135,148 V172 H965 V148" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-dasharray="7 5"/><text x="550" y="202" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">người dùng đứng chờ suốt chặng này · hàng chờ dài → vượt 60 s → bị cắt</text><rect class="bb-grp" x="20" y="270" width="1060" height="210" rx="18"/><g class="bb-gtag" transform="translate(38,258)"><rect width="300" height="24" rx="12" fill="#1e293b"/><text x="150.0" y="16.5" text-anchor="middle">CÁCH 2 — NHẬN YÊU CẦU RỒI RENDER SAU</text></g><g class="bb-node" transform="translate(40,300)"><rect width="190" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="78.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="95.0" y="68" text-anchor="middle" class="bb-l">Bấm “Xuất”</text></g><path class="bb-ar" d="M234,342 H296" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(300,300)"><rect width="190" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="95.0" y="60" text-anchor="middle" class="bb-l">App ghi nhận</text><text x="95.0" y="78" text-anchor="middle" class="bb-s" fill="#16a34a" style="fill:#16a34a">trả “đã nhận” ≤ 2 s</text></g><path class="bb-ar" d="M494,342 H556" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(560,300)"><rect x="10" y="-10" width="250" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="250" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="250" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="108.0" y="6" width="34" height="34" style="color:#7c3aed"/><text x="125.0" y="60" text-anchor="middle" class="bb-l">8 worker hiện có</text><text x="125.0" y="78" text-anchor="middle" class="bb-s">render dần, ≤ 30 phút</text></g><path class="bb-ar" d="M824,342 H866" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(870,300)"><rect width="190" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-disk" x="78.0" y="6" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="60" text-anchor="middle" class="bb-l">File lưu lại</text><text x="95.0" y="78" text-anchor="middle" class="bb-s">giữ 12 tháng</text></g><path class="bb-ar d" d="M965,388 V424 H135 V388" marker-end="url(#bb-ah)"/><text x="550" y="428" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">chủ cửa hàng tải file khi đã sẵn sàng (link không đoán được)</text><text x="550" y="462" text-anchor="middle" style="font-weight:700;font-size:13px">request đóng sau ≤ 2 s → không còn chạm mốc 60 s của load balancer</text><text x="550" y="516" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:500">(sơ đồ phác ý tưởng — cách đưa render ra khỏi request là một chủ đề có phần trình bày riêng)</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Cùng sáu dòng functional, cùng 12 test xanh — chỉ NFR mới loại được một trong hai cách</div>
     </div>
 
@@ -426,23 +390,8 @@ Thời gian chờ của một request mới:
 
     <div class="example-box">
       <div class="example-label">▸ Ví dụ — dòng 8 cho biết 8 worker còn dư sức tới đâu</div>
-      <div class="fig" style="margin:6px 0 10px">
-        <svg viewBox="0 0 660 170" role="img" aria-label="Thời gian render hết: 2040 lượt 21 phút, 4080 lượt tới đều 22,5 phút, 4080 lượt dồn cùng lúc 42,5 phút so với mốc 30 phút">
-          <!-- scale: 0..45 min over x 190..640 → 10px/min -->
-          <line class="grid" x1="190" y1="20" x2="190" y2="140"/>
-          <line x1="490" y1="14" x2="490" y2="146" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="5 4"/>
-          <text class="sm" x="494" y="160" fill="var(--err)">mốc 30 phút (dòng 7)</text>
-          <text class="sm" x="182" y="40" text-anchor="end" fill="var(--ink)">2.040 lượt, hiện tại</text>
-          <rect x="190" y="28" width="212.5" height="18" rx="3" fill="var(--ok)" fill-opacity=".55"/>
-          <text class="sm" x="396" y="41" text-anchor="end" style="fill:#0d0d0f;font-weight:600">~21 phút ✓</text>
-          <text class="sm" x="182" y="80" text-anchor="end" fill="var(--ink)">4.080 lượt, tới đều</text>
-          <rect x="190" y="68" width="225" height="18" rx="3" fill="var(--load)" fill-opacity=".55"/>
-          <text class="sm" x="409" y="81" text-anchor="end" style="fill:#0d0d0f;font-weight:600">22,5 phút ✓</text>
-          <text class="sm" x="182" y="120" text-anchor="end" fill="var(--ink)">4.080 lượt, dồn cùng lúc</text>
-          <rect x="190" y="108" width="425" height="18" rx="3" fill="var(--err)" fill-opacity=".55"/>
-          <text class="sm" x="606" y="121" text-anchor="end" style="fill:#0d0d0f;font-weight:600">42,5 phút ✗</text>
-          <text class="sm" x="190" y="160" text-anchor="middle">0</text>
-        </svg>
+      <div class="fig bbg" style="margin:6px 0 10px">
+        <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 760 235" style="min-width:524px" role="img" aria-label="Thời gian render hết: 2.040 lượt 21 phút, 4.080 lượt tới đều 22,5 phút, dồn cùng lúc 42,5 phút so với mốc 30 phút"><text x="218" y="52" text-anchor="end" style="font-weight:700;font-size:13px">2.040 lượt, hiện tại</text><rect x="230" y="30" width="231" height="32" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="449" y="51" text-anchor="end" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">~21 phút ✓</text><text x="218" y="108" text-anchor="end" style="font-weight:700;font-size:13px">4.080 lượt, tới đều</text><rect x="230" y="86" width="247.5" height="32" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="465.5" y="107" text-anchor="end" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:13px">22,5 phút ✓</text><text x="218" y="164" text-anchor="end" style="font-weight:700;font-size:13px">4.080 lượt, dồn cùng lúc</text><rect x="230" y="142" width="467.5" height="32" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="685.5" y="163" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">42,5 phút ✗</text><path d="M230,20 V200" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="230" y="220" text-anchor="middle" fill="#64748b" style="fill:#64748b">0</text><path d="M560,16 V204" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="8 5"/><text x="560" y="222" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700">mốc 30 phút (dòng 7)</text></svg></div></div>
       </div>
       <pre>4.080 lượt / 1,6 file/giây ≈ <span class="val">2.550 giây</span>
 Tới đều trong 20 phút: lượt cuối (gửi gần 24:00) chờ ≈ 2.550 − 1.200 = 1.350 s ≈ <span class="good">22,5 phút</span>

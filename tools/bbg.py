@@ -21,6 +21,7 @@ CSS = """<!-- bbg:css -->
 <style>
   /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
   .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
   .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
   .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
   .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
@@ -177,7 +178,7 @@ def group(x, y, w, h, tag, tw=None):
 
 
 def svg(w, h, aria, body, y0=0):
-    return (f'<svg class="bbg-svg" viewBox="0 {y0} {w} {h}" role="img" aria-label="{_e(aria)}">{body}</svg>')
+    return (f'<svg class="bbg-svg" viewBox="0 {y0} {w} {h}" style="min-width:{int(w * 0.69)}px" role="img" aria-label="{_e(aria)}">{body}</svg>')
 
 
 def legend(items):
@@ -203,7 +204,7 @@ def ensure_assets(s):
 def fig_spans(s):
     """(start, end) of the svg inside each top-level .fig div, in document order"""
     out = []
-    for m in re.finditer(r'<div class="fig(?: bbg)?">', s):
+    for m in re.finditer(r'<div class="fig(?: bbg)?"(?: style="[^"]*")?>', s):
         a = s.index("<svg", m.end())
         depth, i = 0, a
         while True:
@@ -227,11 +228,12 @@ def replace_figs(path, figs):
         ds, de, a, b = spans[idx - 1]
         body, leg = figs[idx]
         # if already converted, the svg sits inside bbg wrappers: replace whole wrapper
+        tag = s[ds:de].replace('class="fig"', 'class="fig bbg"')
         inner_start = s.rfind('<div class="bbg-card">', de, a)
         if inner_start != -1:
             close = s.index("</div></div>", b) + len("</div></div>")
-            s = s[:ds] + '<div class="fig bbg">' + s[de:inner_start] + f'<div class="bbg-card">{leg}<div class="bbg-scroll">{body}</div></div>' + s[close:]
+            s = s[:ds] + tag + s[de:inner_start] + f'<div class="bbg-card">{leg}<div class="bbg-scroll">{body}</div></div>' + s[close:]
         else:
-            s = s[:ds] + '<div class="fig bbg">' + s[de:a] + f'<div class="bbg-card">{leg}<div class="bbg-scroll">{body}</div></div>' + s[b:]
+            s = s[:ds] + tag + s[de:a] + f'<div class="bbg-card">{leg}<div class="bbg-scroll">{body}</div></div>' + s[b:]
     p.write_text(s, encoding="utf-8")
     return len(spans)
