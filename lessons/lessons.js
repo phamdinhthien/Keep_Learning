@@ -338,5 +338,18 @@ window.LESSONS = [
     "title": "DNS: từ domain tới IP",
     "description": "DNS như danh bạ, nslookup, ICANN và registrar, A record, cache IP, server là gì và cấu trúc một URL.",
     "readTime": "11 phút đọc"
+  },
+  {
+    "id": "nc-06",
+    "path": "system-design/neetcode-beginner/nc-06.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 6,
+    "title": "HTTP: request–response, method, status code, HTTPS",
+    "description": "Client–server, RPC, cấu trúc HTTP request qua DevTools, route và endpoint, GET/POST/PUT/DELETE, status code và SSL/TLS.",
+    "readTime": "18 phút đọc"
   }
 ];

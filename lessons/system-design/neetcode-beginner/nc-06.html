@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTTP — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-06">
+  <meta name="lesson:title" content="HTTP: request–response, method, status code, HTTPS">
+  <meta name="lesson:description" content="Client–server, RPC, cấu trúc HTTP request qua DevTools, route và endpoint, GET/POST/PUT/DELETE, status code và SSL/TLS.">
+  <meta name="lesson:order" content="6">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="18 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:HTTP — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 6</div>
+  <h1><span class="a">HTTP</span> là giao thức request–response chạy trên TCP; thêm <span class="b">TLS</span> thành HTTPS để chống nghe lén</h1>
+  <div class="sub">Với developer, HTTP là cách chạy code trên máy khác và nhận kết quả, như gọi một hàm trong chính codebase của mình.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 330" style="min-width:758px" role="img" aria-label="HTTP là request–response: client gửi request gồm header và body, server trả response"><g class="bb-node" transform="translate(20,110)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Client</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">trình duyệt / server khác</text></g><rect x="260" y="30" width="360" height="130" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="280" y="56" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">REQUEST</text><text x="280" y="82" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">GET /results?search_query=neetcode</text><text x="280" y="102" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">Host: youtube.com · User-Agent: Chrome</text><text x="280" y="122" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">Accept: text/html …</text><text x="280" y="142" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">(GET: không có body)</text><path class="bb-ar" d="M224,140 H256" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M624,95 H836" marker-end="url(#bb-ah)"/><rect x="260" y="180" width="360" height="120" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="280" y="206" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">RESPONSE</text><text x="280" y="232" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">200 OK</text><text x="280" y="252" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">Content-Type: text/html</text><text x="280" y="272" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">&lt;!DOCTYPE html&gt; …  (body)</text><path class="bb-ar d" d="M836,240 H624" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M256,240 H224" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(840,110)"><rect width="230" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Server</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">chạy code, trả kết quả</text></g><text x="730" y="320" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">chạy trên TCP (có handshake) · không giữ state giữa các request</text></svg></div></div><div class="fig-cap">Hình 1 — Một HTTP request và response, lấy từ demo trên YouTube</div></div>
+  <div class="toc">
+    <span>01 <b>Client–server</b></span><span>02 <b>RPC</b></span><span>03 <b>HTTP</b></span><span>04 <b>Demo DevTools</b></span><span>05 <b>Route &amp; endpoint</b></span><span>06 <b>Method</b></span><span>07 <b>Status code</b></span><span>08 <b>SSL/TLS</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Client–server <span class="t">~00:00–03:00</span></div>
+    <h2 class="c-avg">"Client" chỉ là bên khởi tạo request — có thể là trình duyệt, cũng có thể là một server khác</h2>
+    <p class="desc">Bài này đi qua mô hình client–server, <b>RPC</b>, rồi các giao thức tầng ứng dụng, chủ yếu là <b>HTTP</b> và một chút <b>WebSockets</b> — hữu ích nhất cho phỏng vấn system design. Giả định quen thuộc: client là người dùng cuối, dùng trình duyệt trên desktop hay laptop, gửi request tới server như google.com và nhận response.</p>
+    <p class="desc">Nhưng client <b>không cần</b> là người dùng, trình duyệt hay điện thoại. Client là thuật ngữ chung cho <b>bên khởi tạo request</b>. Server thường là máy trong một nhà kho hay <b>data center</b>, nhiệm vụ là nhận và thực hiện request. Server cũng gọi nhau: khi đó một server đóng vai client.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — google.com gọi dịch vụ bên thứ ba</div>
+      <p>google.com dùng một dịch vụ bên thứ ba, cũng là một server. Lúc gọi dịch vụ đó, server của Google là <b>client</b>, còn dịch vụ kia là <b>server</b>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. RPC <span class="t">~03:00–06:30</span></div>
+    <h2 class="c-cmd">RPC là gọi một "hàm" nằm trên máy khác qua network; gần như mọi giao thức ứng dụng về bản chất đều là RPC</h2>
+    <p class="desc"><b>RPC</b> là <b>remote procedure call</b>. <b>Remote</b> nghĩa là hai máy cách nhau bởi network; procedure call giống như gọi hàm. Code JavaScript trong trình duyệt được tổ chức thành class, hàm, và ta gọi hàm được. Còn code nằm trên server thì sao?</p>
+    <p class="desc">Ta gọi một dòng code trông như local ở client, nhưng bên dưới là một <b>network call</b>; server chạy code và trả kết quả. Người nói thấy đây là thuật ngữ <b>khá lỗi thời và mơ hồ</b> — gần như mọi network call đều khớp định nghĩa — nhưng nhắc tới vì các giao thức tầng ứng dụng về cốt lõi đều là RPC. Khóa học tập trung vào những thứ được định nghĩa rõ như HTTP.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 260" style="min-width:758px" role="img" aria-label="RPC: gọi hàm trông như local nhưng code chạy trên server"><rect class="bb-grp" x="20" y="30" width="470" height="210" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="300" height="24" rx="12" fill="#1e293b"/><text x="150.0" y="16.5" text-anchor="middle">CLIENT · TRÌNH DUYỆT (JavaScript)</text></g><rect x="50" y="80" width="410" height="70" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="255" y="122" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:17px">videos = listVideos()</text><text x="255" y="186" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">trông như gọi hàm local</text><path class="bb-ar" d="M494,115 H606" marker-end="url(#bb-ah)"/><text x="550" y="105" text-anchor="middle" class="bb-a">network call</text><path class="bb-ar d" d="M606,175 H494" marker-end="url(#bb-ah)"/><text x="550" y="197" text-anchor="middle" class="bb-a">danh sách video</text><rect class="bb-grp" x="610" y="30" width="470" height="210" rx="18"/><g class="bb-gtag" transform="translate(628,18)"><rect width="280" height="24" rx="12" fill="#1e293b"/><text x="140.0" y="16.5" text-anchor="middle">SERVER CỦA GOOGLE (YouTube)</text></g><rect x="640" y="80" width="410" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="845" y="122" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:17px">def listVideos(): …</text><text x="845" y="186" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">code tạo feed nằm ở đây, client không có</text></svg></div></div><div class="fig-cap">Hình 2 — listVideos() trông như hàm local, nhưng code thật ở server</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — feed của YouTube</div>
+      <p>Đang ở youtube.com, muốn liệt kê video trong feed. Code tạo feed nằm trên <b>server của Google</b>, trình duyệt không có. Ta gọi kiểu <code>listVideos()</code>, server chạy code và trả về danh sách video.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. HTTP <span class="t">~06:30–09:00</span></div>
+    <h2 class="c-spec">HTTP chạy trên IP và TCP, theo mô hình request–response, và không giữ state giữa client với server</h2>
+    <p class="desc">IP chuyển dữ liệu giữa các máy, TCP làm việc đó đáng tin cậy — đó là hạ tầng tối thiểu. <b>HTTP</b> là giao thức tầng ứng dụng xây trên IP và TCP, và là thứ developer thật sự kiểm soát. Chỉ cần nắm ý lớn, chi tiết nhỏ không đáng học thuộc.</p>
+    <p class="desc">Điều lớn nhất: HTTP là <b>request–response</b>. Client gửi request (<b>req</b>) mô tả code nào trên server cần chạy; server chạy rồi trả <b>response</b> (<b>res</b>), có thể là thứ ta muốn hoặc một lỗi. Bên dưới vẫn có TCP connection, handshake và mọi chi phí đi kèm, nhưng developer không thấy. Không có <b>state</b> giữa client và server: mọi thứ cần thiết nằm trong request và response.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai mảnh của một lần giao tiếp</div>
+      <div class="ba">
+        <div><b>Request</b>Client khởi tạo: muốn chạy gì trên server.</div>
+        <div><b>Response</b>Server trả kết quả, hoặc báo lỗi đã xảy ra.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Demo DevTools <span class="t">~09:00–15:00</span></div>
+    <h2 class="c-grow">Tab Network của DevTools cho thấy mỗi request có general header, request header, response header và body</h2>
+    <p class="desc">HTTP có mặt mỗi lần bạn tìm kiếm hay mở một trang. Trang thường dùng <b>HTTPS</b>, biến thể an toàn hơn; xoá chữ S rồi Enter thì YouTube <b>redirect</b> về HTTPS, đa số website làm vậy. Chuột phải → <b>Inspect</b> mở DevTools, tab <b>Network</b> hiện mọi request; lọc được theo name, status, type, initiator. Bật cột protocol thấy <b>h3</b>, tức <b>HTTP/3</b>, phiên bản mới nhất.</p>
+    <p class="desc">Mỗi request có hai phần: <b>header</b> và <b>body</b>. Header chia ba nhóm. <b>General header</b>: URL, path, <b>request method</b> (ở đây là GET; phổ biến nhất là GET, POST, PUT, DELETE) và <b>status code</b> (200, màu xanh, thành công). <b>Request header</b> do client đặt: authority (base URL), method, path, <b>user-agent</b> (người nói dùng Chrome), <b>accept</b> (định dạng chấp nhận). <b>Response header</b> do server đặt, ví dụ <b>content-type</b> thực tế trả về là <b>text/html</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tìm "neetcode" trên YouTube</div>
+      <pre><span class="cm">// general</span>
+URL:      https://www.youtube.com/results?search_query=neetcode
+Method:   <span class="val">GET</span>      Status: <span class="val">200</span>      Protocol: <span class="val">h3</span>
+<span class="cm">// request header (client đặt)</span>
+:authority  www.youtube.com    user-agent  …Chrome…    accept  text/html,…
+<span class="cm">// response header (server đặt)</span>
+content-type  <span class="val">text/html</span>   <span class="cm">// body bắt đầu bằng &lt;!DOCTYPE html&gt;</span></pre>
+      <p>Tên trường đúng theo video; giá trị đầy đủ được viết lại để dễ đọc.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Route &amp; endpoint <span class="t">~15:00–17:00</span></div>
+    <h2 class="c-avg">Một URL là một route; mỗi cặp route + method là một endpoint riêng với chức năng riêng</h2>
+    <p class="desc">Mọi request đi tới một URL. Nếu đó là API, URL gọi là <b>API route</b>. Một route phục vụ được nhiều HTTP method; route kết hợp một method là một <b>endpoint</b>. GET tới youtube.com là một endpoint; POST tới chính URL đó là endpoint khác với chức năng khác.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 260" style="min-width:758px" role="img" aria-label="Một route youtube.com có hai endpoint theo hai method"><g class="bb-node" transform="translate(30,80)"><rect width="170" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="68.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="74" text-anchor="middle" class="bb-l">Client</text></g><rect x="260" y="90" width="260" height="76" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="390" y="124" text-anchor="middle" class="bb-m" style="font-weight:800;font-size:17px">youtube.com</text><text x="390" y="148" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">route</text><path class="bb-ar" d="M204,128 H256" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M524,110 H580 V68 H646" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M524,146 H580 V190 H646" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(650,30)"><rect width="420" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-doc" x="198.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="210.0" y="51" text-anchor="middle" class="bb-l">GET endpoint</text><text x="210.0" y="69" text-anchor="middle" class="bb-s">trả trang HTML của YouTube</text></g><g class="bb-node" transform="translate(650,152)"><rect width="420" height="76" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-user" x="198.0" y="7" width="24" height="24" style="color:#ea580c"/><text x="210.0" y="51" text-anchor="middle" class="bb-l">POST endpoint</text><text x="210.0" y="69" text-anchor="middle" class="bb-s">vd tạo tài khoản (minh hoạ của nguồn)</text></g></svg></div></div><div class="fig-cap">Hình 3 — Cùng route, hai method, hai endpoint</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — youtube.com</div>
+      <p>GET youtube.com → server trả trang HTML của YouTube. POST youtube.com → "tôi không biết, có thể tạo tài khoản" (ví dụ giả định của người nói). Cùng URL, khác method, khác endpoint.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. HTTP method <span class="t">~17:00–22:00</span></div>
+    <h2 class="c-cmd">GET để đọc và không có body; POST để tạo; PUT để cập nhật; DELETE để xoá — tương ứng CRUD</h2>
+    <p class="desc"><b>GET</b> dùng để lấy thông tin: trang chủ YouTube, danh sách video khi tìm "neetcode". Về lý thuyết GET cũng tạo được dữ liệu, ví dụ nhét username và password vào URL để tạo tài khoản — nhưng không an toàn, ai nhìn URL cũng thấy mật khẩu. GET request <b>không có body</b>, chỉ có header, nên mọi thông tin thêm phải nằm trong URL.</p>
+    <p class="desc"><b>POST</b> dùng để <b>tạo</b>: tài khoản, comment, upload video. POST và các method còn lại có body chứa dữ liệu tuỳ ý: loại tài khoản, nội dung comment, mọi kiểu form. <b>PUT</b> giống POST nhưng là <b>cập nhật</b>. Gom lại thành <b>CRUD</b>: create (POST), read (GET), update (PUT), delete (DELETE).</p>
+    <p class="desc">Khác biệt nữa liên quan tới <b>caching</b>. GET đọc tài nguyên, không làm nó thay đổi, nên <b>idempotent</b> và dễ cache. POST tạo tài nguyên, mỗi lần gọi lại làm thêm một hành động, nên <b>không idempotent</b>, không cache được. DELETE thường idempotent. Người nói cho rằng phần này không quá quan trọng.</p>
+    <div class="tbl-scroll"><table>
+      <tr><th>Method</th><th>CRUD</th><th>Body</th><th>Idempotent / cache</th></tr>
+      <tr><td class="k">GET</td><td>Read</td><td>Không — thông tin trong URL</td><td>Idempotent, dễ cache</td></tr>
+      <tr><td class="k">POST</td><td>Create</td><td>Có</td><td>Không idempotent, không cache</td></tr>
+      <tr><td class="k">PUT</td><td>Update</td><td>Có</td><td>—</td></tr>
+      <tr><td class="k">DELETE</td><td>Delete</td><td>Có thể</td><td>Thường idempotent</td></tr>
+    </table></div>
+    <div class="note">Về kỹ thuật, đặc tả HTTP không cấm GET có body, nhưng body đó không có ý nghĩa và hầu như không được dùng; cách nói "GET không có body" của video là đúng trong thực tế.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — POST trong tab Network</div>
+      <p>Một POST request ngẫu nhiên của YouTube tới <code>api/stats/…</code> (có vẻ là dữ liệu analytics). Tab <b>Payload</b> là body: nhiều tham số và dữ liệu, không dễ đọc, nhưng cho thấy body chứa được dữ liệu bất kỳ.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Status code <span class="t">~22:00–26:00</span></div>
+    <h2 class="c-peak">Status code cho client biết request thành công, lỗi do mình hay lỗi do server</h2>
+    <p class="desc">Server gặp sự cố không xử lý được, hay client gửi request không hợp lệ — client cần biết <b>lỗi của ai</b>, hoặc mọi thứ ổn. Đó là việc của <b>status code</b>, một phần của giao thức HTTP. TCP không cần thứ này, nhưng ở mức HTTP thì rất hữu ích. Không bắt buộc dùng đúng: có người trả status code vô nghĩa, nhưng đó là thiết kế API tệ. Không cần học thuộc từng mã.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 290" style="min-width:758px" role="img" aria-label="Các status code được nhắc trong video"><rect x="20" y="20" width="343" height="250" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="192" y="52" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:15px">2xx · thành công</text><rect x="40" y="74" width="303" height="50" rx="8" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="60" y="106" text-anchor="start" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:18px">200</text><text x="120" y="105" text-anchor="start" style="font-weight:700;font-size:13px">OK</text><rect x="40" y="136" width="303" height="50" rx="8" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="60" y="168" text-anchor="start" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:18px">201</text><text x="120" y="167" text-anchor="start" style="font-weight:700;font-size:13px">Created</text><rect x="377" y="20" width="343" height="250" rx="14" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="549" y="52" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:15px">4xx · lỗi phía client</text><rect x="397" y="74" width="303" height="50" rx="8" fill="#fff" stroke="#ea580c" stroke-width="2"/><text x="417" y="106" text-anchor="start" class="bb-m" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:18px">400</text><text x="477" y="105" text-anchor="start" style="font-weight:700;font-size:13px">Bad Request</text><rect x="397" y="136" width="303" height="50" rx="8" fill="#fff" stroke="#ea580c" stroke-width="2"/><text x="417" y="168" text-anchor="start" class="bb-m" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:18px">401</text><text x="477" y="167" text-anchor="start" style="font-weight:700;font-size:13px">Unauthorized</text><rect x="397" y="198" width="303" height="50" rx="8" fill="#fff" stroke="#ea580c" stroke-width="2"/><text x="417" y="230" text-anchor="start" class="bb-m" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:18px">404</text><text x="477" y="229" text-anchor="start" style="font-weight:700;font-size:13px">Not Found</text><rect x="734" y="20" width="343" height="250" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="906" y="52" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:15px">5xx · lỗi phía server</text><rect x="754" y="74" width="303" height="50" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/><text x="774" y="106" text-anchor="start" class="bb-m" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:18px">500</text><text x="834" y="105" text-anchor="start" style="font-weight:700;font-size:13px">Internal Server Error</text><rect x="754" y="136" width="303" height="50" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/><text x="774" y="168" text-anchor="start" class="bb-m" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:18px">502</text><text x="834" y="167" text-anchor="start" style="font-weight:700;font-size:13px">Bad Gateway</text><rect x="754" y="198" width="303" height="50" rx="8" fill="#fff" stroke="#dc2626" stroke-width="2"/><text x="774" y="230" text-anchor="start" class="bb-m" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:18px">503</text><text x="834" y="229" text-anchor="start" style="font-weight:700;font-size:13px">Service Unavailable</text></svg></div></div><div class="fig-cap">Hình 4 — Các status code được nhắc trong video, theo ba nhóm</div></div>
+    <div class="note"><b>Đính chính nguồn:</b> 500 là <b>Internal Server Error</b> (video nói "internal service error"). Với ví dụ xoá video của người khác, mã thường dùng hơn là <b>403 Forbidden</b> (đã đăng nhập nhưng không có quyền); 401 hợp hơn khi chưa xác thực.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — mỗi mã một tình huống</div>
+      <ul class="plain">
+        <li><b>200</b>: request OK, trang tải với danh sách video.</li>
+        <li><b>201</b>: tài nguyên đã được tạo, ví dụ thêm comment — thường đi với POST.</li>
+        <li><b>400</b>: bad request, ví dụ chuỗi tìm kiếm có ký tự đặc biệt như dấu * mà server từ chối parse.</li>
+        <li><b>401</b>: unauthorized, ví dụ xoá video không phải của mình.</li>
+        <li><b>404</b>: không tìm thấy tài nguyên.</li>
+        <li><b>500 / 502 / 503</b>: lỗi server, bad gateway, service unavailable — hiếm gặp hơn.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. SSL/TLS &amp; HTTPS <span class="t">~26:00–30:00</span></div>
+    <h2 class="c-spec">HTTPS là HTTP cộng TLS: mã hoá dữ liệu để kẻ đứng giữa không đọc được, chống man-in-the-middle</h2>
+    <p class="desc">HTTP là <b>hypertext transfer protocol</b>; chữ S là <b>secure</b>, hay HTTP với SSL. <b>SSL</b> (secure socket layer) có trước; người ta vẫn nói SSL dù đã lỗi thời. <b>TLS</b> (transport layer security) được dùng rộng rãi hơn nhiều. Chỉ cần mức cao vì không quá quan trọng cho system design.</p>
+    <p class="desc">HTTP không tự chống <b>man-in-the-middle attack (MITM)</b>. Gửi dữ liệu như gửi đồ trong <b>thùng carton trong suốt</b> có túi tiền bên trong: ai thấy thùng trên đường cũng thấy và lấy được. Network không đáng tin cũng không an toàn: ngồi quán cà phê dùng <b>Wi-Fi công cộng</b>, request có thể bị theo dõi. TLS mã hoá: mật khẩu <b>1234</b> thành chuỗi như <b>XYZ</b>; server giải mã ra 1234; dữ liệu gửi về cũng được mã hoá.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="TLS mã hoá dữ liệu nên kẻ nghe lén ở giữa chỉ thấy chuỗi đã mã hoá"><g class="bb-node" transform="translate(20,90)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Client</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">mật khẩu: 1234</text></g><path class="bb-ar" d="M224,138 H846" marker-end="url(#bb-ah)"/><rect x="420" y="112" width="140" height="50" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="490" y="143" text-anchor="middle" class="bb-m" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:18px">XYZ</text><text x="330" y="128" text-anchor="middle" class="bb-a" fill="#ea580c" style="fill:#ea580c">mã hoá</text><text x="690" y="128" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">giải mã ra 1234</text><g class="bb-node" transform="translate(850,90)"><rect width="230" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Server</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">đọc được 1234</text></g><g class="bb-node" transform="translate(400,200)"><rect width="300" height="84" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-user" x="138.0" y="11" width="24" height="24" style="color:#dc2626"/><text x="150.0" y="55" text-anchor="middle" class="bb-l">Man-in-the-middle</text><text x="150.0" y="73" text-anchor="middle" class="bb-s">vd Wi-Fi công cộng ở quán cà phê</text></g><path class="bb-ar d" d="M490,196 V166" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="800" y="250" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">không có TLS: thấy rõ “1234”</text><text x="200" y="250" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">có TLS: chỉ thấy “XYZ”</text></svg></div></div><div class="fig-cap">Hình 5 — Có TLS, kẻ nghe lén chỉ thấy chuỗi đã mã hoá</div></div>
+    <p class="desc">Vào trang như <b>neverssl</b>, góc trên trình duyệt báo <b>"not secure"</b>. Không có nghĩa là sẽ nhiễm virus, chỉ là mọi dữ liệu bạn gửi — như mật khẩu — có thể bị người nghe lén thấy. Sau tất cả các bài về networking, HTTPS là đích đến: tin cậy, dễ dùng, an toàn, và gọi như hàm local dù chạy trên máy khác qua network.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — mật khẩu 1234</div>
+      <div class="ba">
+        <div><b>HTTP</b>Kẻ nghe lén trên Wi-Fi quán cà phê thấy rõ "1234".</div>
+        <div><b>HTTPS</b>Trên đường truyền chỉ là "XYZ"; server giải mã ra 1234.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Client luôn là người dùng với trình duyệt.</div><div><span class="v">✓</span> Client là bên khởi tạo request, có thể là một server (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> HTTP thay thế TCP.</div><div><span class="v">✓</span> HTTP chạy trên TCP và IP, kèm cả chi phí handshake (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Gửi mật khẩu qua GET trong URL cũng được.</div><div><span class="v">✓</span> Ai xem URL cũng thấy; dữ liệu tạo mới nên đi trong body của POST (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Một URL chỉ làm được một việc.</div><div><span class="v">✓</span> Mỗi method trên cùng route là một endpoint riêng (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> "Not secure" nghĩa là trang có virus.</div><div><span class="v">✓</span> Nghĩa là dữ liệu gửi đi không được mã hoá, có thể bị nghe lén (→ 08).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Sáu câu hỏi</h2>
+    <details><summary>RPC là gì, và vì sao người nói coi nó là thuật ngữ mơ hồ?</summary><p>Remote procedure call: gọi code trên máy khác qua network như gọi hàm local. Mơ hồ vì gần như mọi network call đều khớp định nghĩa. (→ 02)</p></details>
+    <details><summary>Ba nhóm header trong DevTools là gì, ai đặt mỗi nhóm?</summary><p>General header (URL, method, status), request header do client đặt (user-agent, accept…), response header do server đặt (content-type…). (→ 04)</p></details>
+    <details><summary>Route và endpoint khác nhau thế nào?</summary><p>Route là URL; endpoint là route kết hợp một HTTP method, mỗi endpoint một chức năng. (→ 05)</p></details>
+    <details><summary>Vì sao GET dễ cache còn POST thì không?</summary><p>GET chỉ đọc, gọi lại không đổi tài nguyên (idempotent). POST tạo tài nguyên, mỗi lần gọi lại làm thêm hành động. (→ 06)</p></details>
+    <details><summary>Người dùng gõ chuỗi tìm kiếm không hợp lệ. Server nên trả mã nhóm nào? Server sập thì sao?</summary><p>4xx, cụ thể 400 Bad Request — lỗi của client. Server sập: 5xx như 500, 502, 503. (→ 07)</p></details>
+    <details><summary>TLS chống được loại tấn công nào, bằng cách nào?</summary><p>Man-in-the-middle: mã hoá dữ liệu (1234 → XYZ) nên kẻ nghe lén không đọc được; server giải mã. (→ 08)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">client · server</td><td>Bên khởi tạo request · bên phục vụ request</td><td>01</td></tr>
+      <tr><td class="k">RPC</td><td>Remote procedure call: gọi code trên máy khác</td><td>02</td></tr>
+      <tr><td class="k">HTTP · HTTP/3 (h3)</td><td>Hypertext transfer protocol · phiên bản mới nhất</td><td>03, 04</td></tr>
+      <tr><td class="k">header · body</td><td>Metadata của request/response · dữ liệu chính</td><td>04</td></tr>
+      <tr><td class="k">user-agent · accept · content-type</td><td>Trình duyệt gửi · định dạng chấp nhận · định dạng trả về</td><td>04</td></tr>
+      <tr><td class="k">route · endpoint</td><td>URL · URL + method</td><td>05</td></tr>
+      <tr><td class="k">CRUD</td><td>Create, read, update, delete ↔ POST, GET, PUT, DELETE</td><td>06</td></tr>
+      <tr><td class="k">idempotent</td><td>Gọi lại nhiều lần cho cùng kết quả</td><td>06</td></tr>
+      <tr><td class="k">payload</td><td>Body của request trong DevTools</td><td>06</td></tr>
+      <tr><td class="k">status code</td><td>Mã kết quả: 2xx, 4xx, 5xx</td><td>07</td></tr>
+      <tr><td class="k">SSL · TLS</td><td>Secure socket layer (cũ) · transport layer security</td><td>08</td></tr>
+      <tr><td class="k">MITM</td><td>Man-in-the-middle: kẻ nghe lén giữa client và server</td><td>08</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “6 - HTTP” (<a href="https://drive.google.com/file/d/1b5Eu0ZzhOs3VZZ7gcLS2H8MeE7rAbx5q/view">drive.google.com/file/d/1b5Eu0ZzhOs3VZZ7gcLS2H8MeE7rAbx5q</a>) · khoảng 30 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình. Phần WebSockets được hứa ở đầu video nằm ở bài 7.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-06.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
