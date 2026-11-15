@@ -90,11 +90,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -108,28 +194,8 @@
   <h1>Ảnh chiếm <span class="b">90% database</span>; CDN hit 95% theo byte chỉ giảm băng thông <span class="a">~28%</span></h1>
   <div class="sub">Object storage lo việc lưu file, CDN lo việc phục vụ file. Database và backup nhỏ lại hẳn, còn phần lớn chi phí băng thông chỉ đổi chỗ sang hóa đơn CDN. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 260" role="img" aria-label="Trước: ảnh trong Postgres đi qua app. Sau: ảnh trong bucket, trình duyệt tải qua CDN">
-      <text class="lb" x="10" y="18" fill="var(--peak)">TRƯỚC</text>
-      <rect class="box" x="10" y="34" width="110" height="44" rx="8"/><text class="sm" x="65" y="60" text-anchor="middle">Trình duyệt</text>
-      <path class="ln" stroke="var(--peak)" d="M254,56 L124,56" marker-end="url(#a-peak)"/><text class="sm" x="189" y="48" text-anchor="middle" fill="var(--peak)">byte ảnh</text>
-      <rect class="box" x="258" y="34" width="90" height="44" rx="8"/><text class="sm" x="303" y="60" text-anchor="middle">App</text>
-      <path class="ln" stroke="var(--peak)" d="M444,56 L352,56" marker-end="url(#a-peak)"/>
-      <rect class="box" x="448" y="28" width="240" height="56" rx="8" stroke="var(--spec)"/><text class="sm" x="568" y="50" text-anchor="middle" fill="var(--spec)">Postgres 600 GB</text><text class="sm" x="568" y="68" text-anchor="middle" fill="var(--peak)">ảnh 540 GB (cột data bytea)</text>
-      <text class="sm" x="10" y="100" fill="var(--peak)">egress 4.860 USD/tháng · backup 5 giờ · p99 tải ảnh ~1,4 s</text>
-
-      <line x1="10" y1="114" x2="690" y2="114" stroke="var(--line)" stroke-dasharray="4 4"/>
-      <text class="lb" x="10" y="136" fill="var(--cmd)">SAU</text>
-      <rect class="box" x="10" y="160" width="110" height="44" rx="8"/><text class="sm" x="65" y="186" text-anchor="middle">Trình duyệt</text>
-      <path class="ln" d="M120,170 L254,150" marker-end="url(#a-dim)"/><text class="sm" x="186" y="148" text-anchor="middle">HTML / JSON</text>
-      <rect class="box" x="258" y="128" width="90" height="40" rx="8"/><text class="sm" x="303" y="152" text-anchor="middle">App</text>
-      <path class="ln" d="M348,148 L444,148" marker-end="url(#a-dim)"/>
-      <rect class="box" x="448" y="128" width="240" height="40" rx="8" stroke="var(--spec)"/><text class="sm" x="568" y="152" text-anchor="middle" fill="var(--spec)">Postgres 60 GB · object_key</text>
-      <path class="ln" stroke="var(--cmd)" d="M120,194 L254,214" marker-end="url(#a-cmd)"/><text class="sm" x="186" y="226" text-anchor="middle" fill="var(--cmd)">tải ảnh</text>
-      <rect class="box" x="258" y="196" width="150" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="333" y="216" text-anchor="middle" fill="var(--cmd)">CDN (edge)</text><text class="sm" x="333" y="232" text-anchor="middle">hit 95% theo byte</text>
-      <path class="ln ln-d" stroke="var(--avg)" d="M408,218 L512,218" marker-end="url(#a-dim)"/><text class="sm" x="460" y="210" text-anchor="middle" fill="var(--avg)">chỉ khi miss</text>
-      <rect class="box" x="516" y="196" width="172" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="602" y="216" text-anchor="middle" fill="var(--avg)">Object storage</text><text class="sm" x="602" y="232" text-anchor="middle">bucket 540 GB ảnh</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 600" style="min-width:758px" role="img" aria-label="Trước: ảnh trong Postgres đi qua app. Sau: ảnh trong bucket, trình duyệt tải qua CDN"><rect class="bb-grp" x="20" y="30" width="1060" height="200" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="80" height="24" rx="12" fill="#1e293b"/><text x="40.0" y="16.5" text-anchor="middle">TRƯỚC</text></g><g class="bb-node" transform="translate(40,62)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="83.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="74" text-anchor="middle" class="bb-l">Trình duyệt</text></g><path class="bb-ar" d="M376,110 H244" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="310" y="100" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">byte ảnh</text><g class="bb-node" transform="translate(380,62)"><rect width="180" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="74" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M716,110 H564" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="640" y="100" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">byte ảnh</text><g class="bb-node" transform="translate(720,62)"><rect width="330" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="148.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="165.0" y="66" text-anchor="middle" class="bb-l">Postgres 600 GB</text><text x="165.0" y="84" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">ảnh 540 GB (cột data bytea)</text></g><text x="550" y="202" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">egress 4.860 USD/tháng · backup 5 giờ · p99 tải ảnh ~1,4 s</text><rect class="bb-grp" x="20" y="270" width="1060" height="316" rx="18"/><g class="bb-gtag" transform="translate(38,258)"><rect width="60" height="24" rx="12" fill="#1e293b"/><text x="30.0" y="16.5" text-anchor="middle">SAU</text></g><g class="bb-node" transform="translate(40,380)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="83.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="74" text-anchor="middle" class="bb-l">Trình duyệt</text></g><path class="bb-ar" d="M244,412 H300 V338 H376" marker-end="url(#bb-ah)"/><text x="310" y="328" text-anchor="middle" class="bb-a">HTML / JSON</text><g class="bb-node" transform="translate(380,300)"><rect width="180" height="76" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="10" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="64" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M564,338 H716" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(720,300)"><rect width="330" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="153.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="165.0" y="51" text-anchor="middle" class="bb-l">Postgres 60 GB</text><text x="165.0" y="69" text-anchor="middle" class="bb-s">object_key</text></g><path class="bb-ar" d="M244,444 H300 V508 H376" marker-end="url(#bb-ah-pink)" style="stroke:#db2777"/><text x="310" y="536" text-anchor="middle" class="bb-a" fill="#db2777" style="fill:#db2777">tải ảnh</text><g class="bb-node" transform="translate(380,460)"><rect width="220" height="96" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-cloud" x="93.0" y="12" width="34" height="34" style="color:#db2777"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">CDN (edge)</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">hit 95% theo byte</text></g><path class="bb-ar d" d="M604,508 H716" marker-end="url(#bb-ah)"/><text x="660" y="498" text-anchor="middle" class="bb-a">chỉ khi miss</text><g class="bb-node" transform="translate(720,460)"><rect width="330" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-box" x="148.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="165.0" y="66" text-anchor="middle" class="bb-l">Object storage</text><text x="165.0" y="84" text-anchor="middle" class="bb-s">bucket 540 GB ảnh</text></g></svg></div></div>
     <div class="fig-cap">Hình 1 — Đường đi của ảnh không còn ngang qua app hay Postgres; app chỉ chạm bucket lúc người bán upload</div>
   </div>
 
@@ -149,14 +215,8 @@
     <div class="tag">01. Vấn đề</div>
     <h2 class="c-peak">Hóa đơn 7.000 USD mà băng thông chiếm 4.860 USD</h2>
     <p class="desc"><b>Egress</b> là lượng dữ liệu từ hạ tầng của bạn gửi ra internet cho người dùng. App chạy vài instance stateless nên không ai lưu file trên đĩa local; ngày đầu làm tính năng ảnh, cách nhanh nhất để mọi instance cùng đọc được ảnh là cất thẳng vào Postgres: bảng <code>product_images</code> có cột <code>data bytea</code>. Trình duyệt gọi <code>GET /images/:id</code>, app đọc cột <code>data</code> rồi trả nguyên các byte đó. Job backup chạy <code>pg_basebackup</code> mỗi đêm, chép nguyên file dữ liệu của Postgres (physical backup), nên số GB nó chép bằng dung lượng database.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 110" role="img" aria-label="Cơ cấu hóa đơn cloud tháng 9">
-        <rect x="10" y="30" width="467" height="40" fill="var(--peak)" opacity=".85"/><text class="sm" x="243" y="55" text-anchor="middle" fill="#0d0d0f">Egress 4.860 USD (69%)</text>
-        <rect x="477" y="30" width="133" height="40" fill="var(--ink-dim)" opacity=".45"/><text class="sm" x="543" y="55" text-anchor="middle">App 1.380</text>
-        <rect x="610" y="30" width="73" height="40" fill="var(--spec)" opacity=".7"/><text class="sm" x="646" y="55" text-anchor="middle" fill="#0d0d0f">PG 760</text>
-        <text class="sm" x="10" y="20">0</text><text class="sm" x="683" y="20" text-anchor="end">7.000 USD</text>
-        <text class="sm" x="10" y="96">Dòng lớn nhất không phải máy chủ app, cũng không phải Postgres</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 132" style="min-width:758px" role="img" aria-label="Cơ cấu hóa đơn cloud tháng 9"><rect x="60" y="40" width="680.4000000000001" height="46" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="400.20000000000005" y="68" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">Egress 4.860 USD (69%)</text><rect x="740.4000000000001" y="40" width="193.20000000000002" height="46" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="837.0000000000001" y="68" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">App 1.380</text><rect x="933.6000000000001" y="40" width="106.4" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="986.8000000000001" y="68" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">PG 760</text><text x="60" y="28" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">0</text><text x="1040" y="28" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:700">7.000 USD</text><text x="60" y="118" text-anchor="start" style="font-weight:700;font-size:13px">Dòng lớn nhất không phải máy chủ app, cũng không phải Postgres</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Gần 69% hóa đơn là byte gửi ra internet</div>
     </div>
     <div class="example-box">
@@ -178,15 +238,8 @@ backup-job  07:01:12  done  copied=<span class="bad">600 GB</span>  elapsed=<spa
     <div class="tag">02. Nguyên nhân</div>
     <h2 class="c-spec">Ảnh chiếm 540 trong 600 GB, và đêm nào backup cũng chép lại chúng</h2>
     <p class="desc"><code>pg_total_relation_size('product_images')</code> trả về <b>540 GB</b> = 1.200.000 ảnh × 450 KB. Toàn bộ dữ liệu nghiệp vụ (đơn hàng, khách hàng, sản phẩm, tồn kho) chỉ còn <b>60 GB</b>. Ảnh hiếm khi đổi, nên đêm nào job backup cũng chép lại đúng những byte nó đã chép đêm trước. Ban ngày, mỗi lượt tải ảnh đi qua Postgres rồi qua app; byte đó rời hệ thống từ app nên hiện lên thành dòng egress.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 140" role="img" aria-label="Thành phần database và thời gian backup">
-        <text class="lb" x="10" y="20">DATABASE 600 GB</text>
-        <rect x="10" y="30" width="603" height="34" fill="var(--peak)" opacity=".75"/><text class="sm" x="311" y="52" text-anchor="middle" fill="#0d0d0f">ảnh 540 GB (90%)</text>
-        <rect x="613" y="30" width="67" height="34" fill="var(--spec)"/><text class="sm" x="646" y="52" text-anchor="middle" fill="#0d0d0f">60</text>
-        <text class="lb" x="10" y="92">BACKUP 02:00 → 07:00 (~33 MB/giây)</text>
-        <rect x="10" y="102" width="603" height="20" fill="var(--peak)" opacity=".45"/><text class="sm" x="311" y="116" text-anchor="middle">~4 giờ rưỡi chép ảnh</text>
-        <rect x="613" y="102" width="67" height="20" fill="var(--spec)" opacity=".7"/><text class="sm" x="646" y="116" text-anchor="middle" fill="#0d0d0f">~30'</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 166" style="min-width:758px" role="img" aria-label="Thành phần database và thời gian backup"><text x="60" y="26" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:800">DATABASE 600 GB</text><rect x="60" y="36" width="882.0" height="40" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="501.0" y="61" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">ảnh 540 GB (90%)</text><rect x="942.0" y="36" width="98.0" height="40" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="991.0" y="61" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">60</text><text x="60" y="112" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:800">BACKUP 02:00 → 07:00 (~33 MB/giây)</text><rect x="60" y="122" width="882.0" height="30" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="501.0" y="142" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">~4 giờ rưỡi chép ảnh</text><rect x="942.0" y="122" width="98.0" height="30" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="991.0" y="142" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">~30&#x27;</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Cùng tỉ lệ 90/10 cho cả dung lượng lẫn thời gian backup</div>
     </div>
     <div class="example-box">
@@ -211,21 +264,8 @@ p99 tải ảnh cao điểm ≈ <span class="bad">1,4 giây</span></pre>
     <div class="tag">03. Cơ chế</div>
     <h2 class="c-cmd">Ảnh vào object storage, Postgres giữ key, trình duyệt tải qua CDN</h2>
     <p class="desc"><b>Object storage</b> cất mỗi file thành một <b>object</b> (dữ liệu + ít metadata) trong một <b>bucket</b>; mỗi object có một <b>key</b> như <code>products/8812/3f9a.jpg</code>, đọc ghi qua HTTP API (Amazon S3 là ví dụ quen thuộc). Nó không truy vấn theo nội dung được, chỉ lấy được khi đã biết key; đổi lại giá mỗi GB rẻ hơn nhiều lần đĩa của database. <b>CDN</b> là cache đặt trước <b>origin</b> (ở đây là bucket), có nhiều máy chủ <b>edge</b> gần người dùng: có bản sao còn dùng được thì trả luôn (<b>hit</b>), không có thì hỏi bucket rồi giữ lại bản sao (<b>miss</b>). Bản sao ở edge là dữ liệu dẫn xuất; ảnh gốc vẫn nằm nguyên trong bucket.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Upload và tải ảnh sau khi đổi kiến trúc">
-        <text class="lb" x="10" y="20" fill="var(--avg)">NGƯỜI BÁN UPLOAD</text>
-        <rect class="box" x="10" y="30" width="90" height="36" rx="6"/><text class="sm" x="55" y="53" text-anchor="middle">App</text>
-        <path class="ln" stroke="var(--avg)" d="M100,48 L196,48" marker-end="url(#a-dim)"/><text class="sm" x="148" y="40" text-anchor="middle" fill="var(--avg)">① ghi file</text>
-        <rect class="box" x="200" y="30" width="110" height="36" rx="6" stroke="var(--avg)"/><text class="sm" x="255" y="53" text-anchor="middle" fill="var(--avg)">bucket</text>
-        <path class="ln" stroke="var(--spec)" d="M310,48 L406,48" marker-end="url(#a-dim)"/><text class="sm" x="358" y="40" text-anchor="middle" fill="var(--spec)">② ghi dòng</text>
-        <rect class="box" x="410" y="30" width="280" height="36" rx="6" stroke="var(--spec)"/><text class="sm" x="550" y="53" text-anchor="middle" fill="var(--spec)">product_images (object_key …)</text>
-        <text class="lb" x="10" y="100" fill="var(--cmd)">KHÁCH TẢI ẢNH THEO URL CDN</text>
-        <rect class="box" x="10" y="112" width="110" height="40" rx="6"/><text class="sm" x="65" y="137" text-anchor="middle">Trình duyệt</text>
-        <path class="ln" stroke="var(--cmd)" d="M120,132 L246,132" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="250" y="110" width="160" height="44" rx="6" stroke="var(--cmd)"/><text class="sm" x="330" y="130" text-anchor="middle" fill="var(--cmd)">edge có bản sao?</text><text class="sm" x="330" y="146" text-anchor="middle">có → HIT, trả luôn</text>
-        <path class="ln ln-d" stroke="var(--peak)" d="M410,132 L516,132" marker-end="url(#a-peak)"/><text class="sm" x="463" y="124" text-anchor="middle" fill="var(--peak)">MISS</text>
-        <rect class="box" x="520" y="112" width="170" height="40" rx="6" stroke="var(--avg)"/><text class="sm" x="605" y="130" text-anchor="middle" fill="var(--avg)">bucket (origin)</text><text class="sm" x="605" y="145" text-anchor="middle">edge giữ lại bản sao</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 400" style="min-width:758px" role="img" aria-label="Upload và tải ảnh sau khi đổi kiến trúc"><rect class="bb-grp" x="20" y="30" width="1060" height="150" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">NGƯỜI BÁN UPLOAD</text></g><g class="bb-node" transform="translate(40,62)"><rect width="180" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="17" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="71" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M224,107 H366" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(295,107)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><text x="295" y="87" text-anchor="middle" class="bb-a">ghi file</text><g class="bb-node" transform="translate(370,62)"><rect width="200" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-box" x="83.0" y="17" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="71" text-anchor="middle" class="bb-l">Bucket</text></g><path class="bb-ar" d="M574,107 H716" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(645,107)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><text x="645" y="87" text-anchor="middle" class="bb-a">ghi dòng</text><g class="bb-node" transform="translate(720,62)"><rect width="340" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="158.0" y="14" width="24" height="24" style="color:#16a34a"/><text x="170.0" y="58" text-anchor="middle" class="bb-l bb-m">product_images</text><text x="170.0" y="76" text-anchor="middle" class="bb-s">(object_key …)</text></g><rect class="bb-grp" x="20" y="220" width="1060" height="165" rx="18"/><g class="bb-gtag" transform="translate(38,208)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">KHÁCH TẢI ẢNH THEO URL CDN</text></g><g class="bb-node" transform="translate(40,256)"><rect width="180" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="73.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="90.0" y="74" text-anchor="middle" class="bb-l">Trình duyệt</text></g><path class="bb-ar" d="M224,304 H366" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(370,256)"><rect width="260" height="96" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-cloud" x="113.0" y="12" width="34" height="34" style="color:#db2777"/><text x="130.0" y="66" text-anchor="middle" class="bb-l">Edge có bản sao?</text><text x="130.0" y="84" text-anchor="middle" class="bb-s" fill="#16a34a" style="fill:#16a34a">có → HIT, trả luôn</text></g><path class="bb-ar" d="M634,304 H716" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="675" y="294" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">MISS</text><g class="bb-node" transform="translate(720,256)"><rect width="340" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-box" x="153.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="170.0" y="66" text-anchor="middle" class="bb-l">Bucket (origin)</text><text x="170.0" y="84" text-anchor="middle" class="bb-s">edge giữ lại bản sao</text></g></svg></div></div>
       <div class="fig-cap">Hình 4 — Postgres vẫn là source of truth cho quan hệ sản phẩm–ảnh; bucket chỉ giữ phần byte</div>
     </div>
     <div class="example-box">
@@ -250,18 +290,8 @@ Lưu ảnh    : 540 GB × 0,023 USD/GB-tháng ≈ <span class="val">12 USD</span
     <div class="tag">04. Băng thông</div>
     <h2 class="c-grow">CDN phục vụ 95% số byte, chi phí băng thông chỉ giảm khoảng 28%</h2>
     <p class="desc">Cách tính nhanh hay gặp là 4.860 × 5% ≈ 243 USD. Con số 243 có trong phép tính, nhưng chỉ là phí truyền 5% số byte từ bucket sang CDN. <b>54.000 GB ảnh vẫn phải tới trình duyệt của khách</b>, chỉ là CDN gửi đi với đơn giá thấp hơn. Hit ratio của CDN đo được <b>theo request hoặc theo byte</b>: file nhỏ hay có sẵn ở edge còn file lớn hay về bucket thì hit theo request trông rất đẹp trong khi phần lớn byte vẫn về origin. Chi phí và tải về origin đều tính theo byte, nên đánh giá bằng <b>hit ratio theo byte</b>.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 150" role="img" aria-label="So sánh chi phí băng thông trước và sau">
-        <text class="sm" x="10" y="44">Trước</text>
-        <rect x="90" y="26" width="590" height="28" fill="var(--peak)" opacity=".85"/><text class="sm" x="385" y="45" text-anchor="middle" fill="#0d0d0f">egress từ app · 4.860 USD</text>
-        <text class="sm" x="10" y="94">Sau</text>
-        <rect x="90" y="76" width="393" height="28" fill="var(--cmd)" opacity=".8"/><text class="sm" x="286" y="95" text-anchor="middle" fill="#0d0d0f">CDN gửi tới khách · 3.240</text>
-        <rect x="483" y="76" width="30" height="28" fill="var(--avg)"/>
-        <text class="sm" x="520" y="95" fill="var(--avg)">bucket→CDN 243</text>
-        <line x1="513" y1="66" x2="513" y2="114" stroke="var(--ink-dim)" stroke-dasharray="3 3"/>
-        <text class="sm" x="513" y="132" text-anchor="middle">3.483 USD</text>
-        <text class="sm" x="597" y="132" text-anchor="middle" fill="var(--cmd)">−1.377 (~28%)</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 210" style="min-width:758px" role="img" aria-label="So sánh chi phí băng thông trước và sau"><text x="40" y="56" text-anchor="start" style="font-weight:800;font-size:14px">Trước</text><rect x="130" y="32" width="900.0" height="40" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="580" y="57" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">egress từ app · 4.860 USD</text><text x="40" y="122" text-anchor="start" style="font-weight:800;font-size:14px">Sau</text><rect x="130" y="98" width="600.0" height="40" rx="6" fill="#fce7f3" stroke="#db2777" stroke-width="2"/><text x="430" y="123" text-anchor="middle" fill="#db2777" style="fill:#db2777;font-weight:800;font-size:13px">CDN gửi tới khách · 3.240</text><rect x="730.0" y="98" width="45.0" height="40" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="785.0" y="123" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">bucket→CDN 243</text><text x="775.0" y="170" text-anchor="end" style="font-weight:800;font-size:14px">3.483 USD</text><text x="795.0" y="170" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">−1.377 (~28%)</text><path d="M775,144 V156" stroke="#1e293b" stroke-width="2"/></svg></div></div>
       <div class="fig-cap">Hình 5 — Phần lớn chi phí chỉ chuyển từ dòng egress của app sang hóa đơn CDN</div>
     </div>
     <div class="example-box">
@@ -302,20 +332,8 @@ p99 tải ảnh cao điểm       : ≈ <span class="val">180 ms</span> khi CDN 
     <div class="tag">06. Tradeoff</div>
     <h2 class="c-grow">Hai thành phần mới, ảnh mồ côi và ảnh cũ trên CDN</h2>
     <p class="desc">Phần lợi phụ thuộc vào việc <b>cùng một ảnh được tải lại nhiều lần</b> trước khi bản sao hết hạn, đúng như ảnh của sản phẩm đang được xem nhiều. File chỉ có một hai lượt tải thì hit ratio thấp và phần lợi nhỏ. Ai có URL CDN cũng tải được ảnh: hợp với ảnh sản phẩm, không hợp với file riêng tư như hóa đơn hay giấy tờ tùy thân — những file đó cần cách phân quyền riêng.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 150" role="img" aria-label="Ảnh mồ côi khi ghi dòng product_images lỗi">
-        <rect class="box" x="10" y="40" width="90" height="40" rx="6"/><text class="sm" x="55" y="64" text-anchor="middle">App</text>
-        <path class="ln" stroke="var(--avg)" d="M100,52 L206,30" marker-end="url(#a-dim)"/><text class="sm" x="150" y="28" text-anchor="middle" fill="var(--avg)">① ghi file ✓</text>
-        <rect class="box" x="210" y="10" width="206" height="40" rx="6" stroke="var(--avg)"/><text class="sm" x="313" y="34" text-anchor="middle" fill="var(--avg)">bucket: products/…/new.jpg</text>
-        <path class="ln" stroke="var(--peak)" d="M100,70 L206,92" marker-end="url(#a-peak)"/><text class="sm" x="150" y="106" text-anchor="middle" fill="var(--peak)">② ghi dòng ✗</text>
-        <rect class="box" x="210" y="74" width="206" height="40" rx="6" stroke="var(--peak)" stroke-dasharray="4 3"/><text class="sm" x="313" y="98" text-anchor="middle" fill="var(--peak)">product_images: không có dòng</text>
-        <rect class="box" x="430" y="10" width="260" height="104" rx="8" stroke="var(--grow)"/>
-        <text class="sm" x="560" y="38" text-anchor="middle" fill="var(--grow)">ẢNH MỒ CÔI</text>
-        <text class="sm" x="560" y="62" text-anchor="middle">object không có dòng nào trỏ tới</text>
-        <text class="sm" x="560" y="86" text-anchor="middle">triệu chứng: dung lượng bucket</text>
-        <text class="sm" x="560" y="102" text-anchor="middle">tăng nhanh hơn số dòng</text>
-        <text class="sm" x="350" y="140" text-anchor="middle">File và metadata nằm ở hai nơi, không chung transaction</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 280" style="min-width:758px" role="img" aria-label="Ảnh mồ côi khi ghi dòng product_images lỗi"><g class="bb-node" transform="translate(20,80)"><rect width="170" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="74" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M194,112 H240 V66 H326" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><g class="bb-badge" transform="translate(270,66)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><text x="270" y="46" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">ghi file ✓</text><g class="bb-node" transform="translate(330,26)"><rect width="300" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-box" x="138.0" y="9" width="24" height="24" style="color:#16a34a"/><text x="150.0" y="53" text-anchor="middle" class="bb-l">bucket</text><text x="150.0" y="71" text-anchor="middle" class="bb-s">products/…/new.jpg</text></g><path class="bb-ar" d="M194,144 H240 V194 H326" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><g class="bb-badge" transform="translate(270,194)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><text x="270" y="224" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">ghi dòng ✗</text><g class="bb-node" transform="translate(330,154)"><rect width="300" height="80" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-db" x="138.0" y="9" width="24" height="24" style="color:#dc2626"/><text x="150.0" y="53" text-anchor="middle" class="bb-l bb-m">product_images</text><text x="150.0" y="71" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">không có dòng</text></g><rect x="680" y="26" width="390" height="208" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><use href="#bi-alert" x="700" y="44" width="30" height="30" style="color:#7c3aed"/><text x="742" y="66" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:16px">ẢNH MỒ CÔI</text><text x="704" y="110" text-anchor="start" style="font-weight:600;font-size:13px">object không có dòng nào trỏ tới</text><text x="704" y="150" text-anchor="start" style="font-weight:600;font-size:13px">triệu chứng: dung lượng bucket</text><text x="704" y="172" text-anchor="start" style="font-weight:600;font-size:13px">tăng nhanh hơn số dòng</text><path class="bb-ar d" d="M634,66 H676" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="550" y="266" text-anchor="middle" style="font-weight:700;font-size:13px">File và metadata nằm ở hai nơi, không chung transaction</text></svg></div></div>
       <div class="fig-cap">Hình 6 — App ghi bucket trước rồi mới ghi Postgres; bước sau lỗi thì object bị bỏ lại</div>
     </div>
     <div class="card-grid">

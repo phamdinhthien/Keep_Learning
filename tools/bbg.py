@@ -121,9 +121,10 @@ def node(x, y, color, icon, label, sub=None, w=180, h=96, stack=False, dash=Fals
     cx = w / 2
     lines = 1 + (sub is not None) + (sub2 is not None)
     if icon:
-        top = (h - 34 - 22 - 16 * (lines - 1)) / 2
-        r += f'<use href="#bi-{icon}" x="{cx - 17}" y="{top:.0f}" width="34" height="34" style="color:{s}"/>'
-        ly = top + 34 + 20
+        isz = 34 if h - 16 * (lines - 1) >= 76 else 24
+        top = (h - isz - 22 - 16 * (lines - 1)) / 2
+        r += f'<use href="#bi-{icon}" x="{cx - isz / 2}" y="{top:.0f}" width="{isz}" height="{isz}" style="color:{s}"/>'
+        ly = top + isz + 20
     else:
         ly = (h - 16 * (lines - 1)) / 2 + 6
     r += t(cx, f"{ly:.0f}", label, "bb-l" + (" bb-m" if mono else ""), fill=lfill)
