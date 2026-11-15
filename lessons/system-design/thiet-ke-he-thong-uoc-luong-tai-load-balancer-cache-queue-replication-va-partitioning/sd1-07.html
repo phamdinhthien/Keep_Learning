@@ -91,11 +91,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -109,28 +195,8 @@
   <h1>Bốn nơi, bốn kết quả: bản nào <span class="a">là gốc</span>, bản nào <span class="b">dựng lại được</span>?</h1>
   <div class="sub">Mỗi loại dữ liệu có đúng một source of truth; cache, search index, bảng báo cáo chỉ là bản dẫn xuất và phải dựng lại được từ đó. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 -22 700 262" role="img" aria-label="Luồng ghi dữ liệu trước khi sửa">
-      <rect class="box" x="10" y="96" width="80" height="46" rx="8" stroke="var(--cmd)"/>
-      <text class="sm" x="50" y="124" text-anchor="middle" fill="var(--cmd)">APP</text>
-      <path class="ln" d="M90,108 L176,40" marker-end="url(#a-dim)"/><text class="sm" x="70" y="40">giá, tồn kho</text>
-      <path class="ln" d="M90,132 L176,198" marker-end="url(#a-dim)"/><text class="sm" x="104" y="184">đơn hàng</text>
-      <rect class="box" x="180" y="18" width="130" height="44" rx="8" stroke="var(--spec)"/>
-      <text class="sm" x="245" y="45" text-anchor="middle" fill="var(--spec)">products</text>
-      <rect class="box" x="180" y="176" width="130" height="44" rx="8" stroke="var(--spec)"/>
-      <text class="sm" x="245" y="203" text-anchor="middle" fill="var(--spec)">orders</text>
-      <path class="ln" d="M310,40 L366,104" marker-end="url(#a-dim)"/><path class="ln" d="M310,198 L366,136" marker-end="url(#a-dim)"/>
-      <rect class="box" x="370" y="98" width="120" height="42" rx="8"/>
-      <text class="sm" x="430" y="124" text-anchor="middle">worker đồng bộ</text>
-      <path class="ln" d="M490,110 L556,44" marker-end="url(#a-dim)"/>
-      <path class="ln" stroke="var(--peak)" d="M490,128 L556,194" marker-end="url(#a-peak)"/><text class="sm" x="534" y="148" fill="var(--peak)">total + amount</text>
-      <rect class="box" x="560" y="18" width="130" height="44" rx="8" stroke="var(--avg)"/>
-      <text class="sm" x="625" y="45" text-anchor="middle" fill="var(--avg)">search index</text>
-      <rect class="box" x="560" y="176" width="130" height="44" rx="8" stroke="var(--avg)"/>
-      <text class="sm" x="625" y="203" text-anchor="middle" fill="var(--avg)">daily_revenue</text>
-      <path class="ln" stroke="var(--peak)" d="M50,96 L50,6 L625,6 L625,14" marker-end="url(#a-peak)"/>
-      <text class="sm" x="340" y="-6" text-anchor="middle" fill="var(--peak)">app ghi thẳng 1.200 nhãn khuyến mãi vào index</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>App / worker</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Source of truth</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Bản dẫn xuất</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 -16 1100 356" style="min-width:758px" role="img" aria-label="Luồng ghi dữ liệu trước khi sửa"><g class="bb-node" transform="translate(20,140)"><rect width="150" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="58.0" y="17" width="34" height="34" style="color:#7c3aed"/><text x="75.0" y="71" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M174,170 H215 V80 H256" marker-end="url(#bb-ah)"/><text x="222" y="128" text-anchor="start" class="bb-a">giá, tồn kho</text><path class="bb-ar" d="M174,200 H215 V290 H256" marker-end="url(#bb-ah)"/><text x="222" y="250" text-anchor="start" class="bb-a">đơn hàng</text><g class="bb-node" transform="translate(260,40)"><rect width="200" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="83.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">products</text></g><g class="bb-node" transform="translate(260,250)"><rect width="200" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="83.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">orders</text></g><path class="bb-ar" d="M464,80 H500 V170 H536" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M464,290 H500 V200 H536" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(540,140)"><rect width="200" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="83.0" y="17" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="71" text-anchor="middle" class="bb-l">worker đồng bộ</text></g><path class="bb-ar" d="M744,170 H810 V80 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M744,200 H810 V290 H876" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><g class="bb-node" transform="translate(880,40)"><rect width="200" height="80" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-search" x="83.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">search index</text></g><g class="bb-node" transform="translate(880,250)"><rect width="200" height="80" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-chart" x="83.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">daily_revenue</text></g><text x="818" y="250" text-anchor="start" class="bb-a" fill="#dc2626" style="fill:#dc2626">total + amount</text><path class="bb-ar" d="M95,136 V14 H980 V36" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="540" y="8" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">app ghi thẳng 1.200 nhãn khuyến mãi vào index</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Hai mũi tên đỏ là chỗ gây chuyện: index nhận dữ liệu không đi qua Postgres, daily_revenue chỉ biết cộng dồn</div>
   </div>
 
@@ -172,21 +238,8 @@
     <div class="tag">02. Nguyên nhân</div>
     <h2 class="c-avg">Dựng lại index từ Postgres? Sẽ mất sạch 1.200 nhãn khuyến mãi</h2>
     <p class="desc">Cách nghĩ đầu tiên: Postgres là database chính, xoá index rồi dựng lại. Nhưng trang admin ghi nhãn "Giảm 20%", "Freeship" thẳng vào index, Postgres không có bản nào. Index không còn là bản chép, nó đã thành <b>nguồn thứ hai không ai đặt tên</b>.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 210" role="img" aria-label="Dòng thời gian sự cố ngày hôm đó">
-        <line x1="40" y1="100" x2="670" y2="100" stroke="var(--ink-dim)" stroke-width="1.5"/>
-        <rect x="40" y="112" width="160" height="18" rx="4" fill="var(--avg)" opacity=".75"/>
-        <rect x="200" y="112" width="140" height="18" rx="4" fill="var(--peak)" opacity=".55"/>
-        <rect x="340" y="112" width="280" height="18" rx="4" fill="var(--peak)" opacity=".85"/>
-        <text class="sm" x="120" y="150" text-anchor="middle" fill="var(--avg)">25 đơn đã cộng</text>
-        <text class="sm" x="270" y="150" text-anchor="middle" fill="var(--peak)">5 đơn thiếu</text>
-        <text class="sm" x="480" y="150" text-anchor="middle" fill="var(--peak)">17 đơn thiếu (giá mới)</text>
-        <text class="sm" x="40" y="178">daily_revenue so với orders · trục thời gian không theo tỉ lệ</text>
-        <circle cx="200" cy="100" r="6" fill="var(--peak)"/><text class="sm" x="200" y="40" text-anchor="middle" fill="var(--peak)">14:10</text><text class="sm" x="200" y="56" text-anchor="middle">worker ngừng</text><line x1="200" y1="62" x2="200" y2="94" stroke="var(--line)"/>
-        <circle cx="340" cy="100" r="6" fill="var(--spec)"/><text class="sm" x="340" y="40" text-anchor="middle" fill="var(--spec)">14:30</text><text class="sm" x="340" y="56" text-anchor="middle">đổi giá 3.140 sp</text><line x1="340" y1="62" x2="340" y2="94" stroke="var(--line)"/>
-        <circle cx="440" cy="100" r="6" fill="none" stroke="var(--cmd)" stroke-width="2"/><text class="sm" x="440" y="16" text-anchor="middle" fill="var(--cmd)">~14:40</text><text class="sm" x="440" y="30" text-anchor="middle" fill="var(--cmd)">cảnh báo nếu có</text><text class="sm" x="440" y="44" text-anchor="middle" fill="var(--cmd)">job đối chiếu</text><line x1="440" y1="50" x2="440" y2="94" stroke="var(--cmd)" stroke-dasharray="3 3"/>
-        <circle cx="620" cy="100" r="6" fill="var(--peak)"/><text class="sm" x="620" y="40" text-anchor="middle" fill="var(--peak)">16:40</text><text class="sm" x="620" y="56" text-anchor="middle">phát hiện</text><line x1="620" y1="62" x2="620" y2="94" stroke="var(--line)"/>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 245" style="min-width:758px" role="img" aria-label="Dòng thời gian sự cố ngày hôm đó"><rect x="40" y="140" width="300" height="30" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="340" y="140" width="220" height="30" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><rect x="560" y="140" width="480" height="30" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><rect x="560" y="140" width="480" height="30" rx="6" fill="url(#bb-hatch)" fill-opacity=".35"/><text x="190" y="196" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:13px">25 đơn đã cộng</text><text x="450" y="196" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">5 đơn thiếu</text><text x="800" y="196" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">17 đơn thiếu (giá mới)</text><rect x="265.0" y="48" width="150" height="58" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="340" y="68" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">14:10</text><text x="340" y="86" text-anchor="middle" style="font-weight:600">worker ngừng</text><path d="M340,106 V134" fill="none" stroke="#dc2626" stroke-width="2"/><circle cx="340" cy="155" r="7" fill="#dc2626" stroke="#fff" stroke-width="2.5"/><rect x="455.0" y="48" width="170" height="58" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="540" y="68" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:800;font-size:14px">14:30</text><text x="540" y="86" text-anchor="middle" style="font-weight:600">đổi giá 3.140 sp</text><path d="M540,106 V120 H560 V134" fill="none" stroke="#ca8a04" stroke-width="2"/><circle cx="560" cy="155" r="7" fill="#ca8a04" stroke="#fff" stroke-width="2.5"/><rect x="660.0" y="30" width="200" height="76" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2" stroke-dasharray="7 5"/><text x="760" y="50" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">~14:40</text><text x="760" y="68" text-anchor="middle" style="font-weight:600">cảnh báo nếu có</text><text x="760" y="84" text-anchor="middle" style="font-weight:600">job đối chiếu</text><path d="M760,106 V120 H700 V134" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><circle cx="700" cy="155" r="7" fill="#0d9488" stroke="#fff" stroke-width="2.5"/><rect x="930.0" y="48" width="140" height="58" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="1000" y="68" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">16:40</text><text x="1000" y="86" text-anchor="middle" style="font-weight:600">phát hiện</text><path d="M1000,106 V120 H1040 V134" fill="none" stroke="#dc2626" stroke-width="2"/><circle cx="1040" cy="155" r="7" fill="#dc2626" stroke="#fff" stroke-width="2.5"/><text x="40" y="230" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600">daily_revenue so với orders · trục thời gian không theo tỉ lệ</text></svg></div></div>
       <div class="fig-cap">Hình 2 — 2,5 giờ worker ngừng: daily_revenue thiếu hai đợt đơn với hai mức giá</div>
     </div>
     <div class="tbl-scroll"><table>
@@ -216,20 +269,8 @@ Index còn giá cũ : 3.140 / 200.000 = <span class="bad">1,57%</span> document<
     <div class="tag">03. Nguyên tắc</div>
     <h2 class="c-spec">Mỗi loại dữ liệu chỉ có một nơi giữ bản gốc</h2>
     <p class="desc"><b>Source of truth</b> (DDIA gọi là <b>system of record</b>) là nơi giữ bản được coi là đúng; khi hai nơi lệch, bản ở đây thắng. <b>Dữ liệu dẫn xuất</b> (cache, search index, bảng báo cáo, view tổng hợp) là phần trùng lặp có chủ đích để đọc nhanh hơn hoặc đọc theo kiểu khác, và vì sinh ra từ bản gốc nên mất đi vẫn dựng lại được. Source of truth chọn <b>theo từng loại dữ liệu</b>: <code>daily_revenue</code> nằm ngay trong Postgres nhưng vẫn là bản dẫn xuất, vì gốc của doanh thu là từng đơn trong <code>orders</code>.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 200" role="img" aria-label="Luồng ghi sau khi sửa">
-        <rect class="box" x="10" y="78" width="80" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="50" y="105" text-anchor="middle" fill="var(--cmd)">APP</text>
-        <path class="ln" d="M90,90 L176,40" marker-end="url(#a-dim)"/><text class="sm" x="12" y="66">giá, tồn, nhãn</text>
-        <path class="ln" d="M90,110 L176,160" marker-end="url(#a-dim)"/>
-        <rect class="box" x="180" y="18" width="150" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="255" y="38" text-anchor="middle" fill="var(--spec)">products</text><text class="sm" x="255" y="54" text-anchor="middle">+ cột promo_label</text>
-        <rect class="box" x="180" y="138" width="150" height="44" rx="8" stroke="var(--spec)"/><text class="sm" x="255" y="165" text-anchor="middle" fill="var(--spec)">orders</text>
-        <path class="ln" d="M330,40 L376,88" marker-end="url(#a-dim)"/><path class="ln" d="M330,160 L376,112" marker-end="url(#a-dim)"/>
-        <rect class="box" x="380" y="80" width="120" height="40" rx="8"/><text class="sm" x="440" y="105" text-anchor="middle">worker</text>
-        <path class="ln" stroke="var(--cmd)" d="M500,92 L556,44" marker-end="url(#a-cmd)"/><text class="sm" x="440" y="70" text-anchor="middle" fill="var(--cmd)">đẩy + dựng lại ↗</text>
-        <path class="ln" stroke="var(--cmd)" d="M500,108 L556,156" marker-end="url(#a-cmd)"/><text class="sm" x="440" y="140" text-anchor="middle" fill="var(--cmd)">tính lại GROUP BY ↘</text>
-        <rect class="box" x="560" y="18" width="130" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="625" y="45" text-anchor="middle" fill="var(--avg)">search index</text>
-        <rect class="box" x="560" y="138" width="130" height="44" rx="8" stroke="var(--avg)"/><text class="sm" x="625" y="165" text-anchor="middle" fill="var(--avg)">daily_revenue</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>App / worker</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Source of truth</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Bản dẫn xuất</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Luồng ghi sau khi sửa"><g class="bb-node" transform="translate(20,140)"><rect width="150" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="58.0" y="17" width="34" height="34" style="color:#7c3aed"/><text x="75.0" y="71" text-anchor="middle" class="bb-l">App</text></g><path class="bb-ar" d="M174,170 H215 V80 H256" marker-end="url(#bb-ah)"/><text x="222" y="150" text-anchor="start" class="bb-a">giá, tồn, nhãn</text><path class="bb-ar" d="M174,200 H215 V290 H256" marker-end="url(#bb-ah)"/><text x="222" y="250" text-anchor="start" class="bb-a">đơn hàng</text><g class="bb-node" transform="translate(260,32)"><rect width="200" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="83.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">products</text><text x="100.0" y="84" text-anchor="middle" class="bb-s" fill="#0d9488" style="fill:#0d9488">+ cột promo_label</text></g><g class="bb-node" transform="translate(260,250)"><rect width="200" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="83.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">orders</text></g><path class="bb-ar" d="M464,80 H500 V170 H536" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M464,290 H500 V200 H536" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(540,140)"><rect width="200" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="83.0" y="17" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="71" text-anchor="middle" class="bb-l">worker</text></g><path class="bb-ar" d="M744,170 H810 V80 H876" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><path class="bb-ar" d="M744,200 H810 V290 H876" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><g class="bb-node" transform="translate(880,40)"><rect width="200" height="80" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-search" x="83.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">search index</text></g><g class="bb-node" transform="translate(880,250)"><rect width="200" height="80" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-chart" x="83.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="66" text-anchor="middle" class="bb-l bb-m">daily_revenue</text></g><text x="818" y="128" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">đẩy + dựng lại</text><text x="818" y="250" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">tính lại GROUP BY</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Mũi tên app → index biến mất; daily_revenue được tính lại thay vì cộng dồn</div>
     </div>
     <div class="card-grid">
@@ -257,23 +298,8 @@ Index còn giá cũ : 3.140 / 200.000 = <span class="bad">1,57%</span> document<
     <div class="tag">04. Phép thử</div>
     <h2 class="c-cmd">Xoá trắng bản dẫn xuất ngay bây giờ, có dựng lại được bằng một lệnh có sẵn không?</h2>
     <p class="desc">Chạy phép thử với thiết kế mới trên chính dữ liệu của sự cố. Lệnh dựng lại đọc toàn bộ <code>products</code> với tốc độ khoảng 2.000 document/giây.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 190" role="img" aria-label="Phép thử xoá rồi dựng lại hai bản dẫn xuất">
-        <text class="lb" x="10" y="20" fill="var(--avg)">SEARCH INDEX</text>
-        <rect class="box" x="10" y="30" width="140" height="52" rx="8" stroke="var(--peak)"/><text class="sm" x="80" y="52" text-anchor="middle" fill="var(--peak)">xoá trắng</text><text class="sm" x="80" y="68" text-anchor="middle">index</text>
-        <path class="ln" d="M150,56 L180,56" marker-end="url(#a-dim)"/>
-        <rect class="box" x="184" y="30" width="190" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="279" y="52" text-anchor="middle" fill="var(--spec)">đọc 200.000 dòng products</text><text class="sm" x="279" y="68" text-anchor="middle">~2.000 document/giây</text>
-        <path class="ln" d="M374,56 L404,56" marker-end="url(#a-dim)"/>
-        <rect class="box" x="408" y="30" width="90" height="52" rx="8"/><text x="453" y="61" text-anchor="middle" style="font-weight:700">~100 s</text>
-        <path class="ln" stroke="var(--cmd)" d="M498,56 L528,56" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="532" y="30" width="158" height="52" rx="8" stroke="var(--cmd)"/><text class="sm" x="611" y="52" text-anchor="middle" fill="var(--cmd)">0 / 200.000 lệch</text><text class="sm" x="611" y="68" text-anchor="middle">1.200 nhãn còn nguyên</text>
-        <text class="lb" x="10" y="116" fill="var(--avg)">DAILY_REVENUE</text>
-        <rect class="box" x="10" y="126" width="140" height="52" rx="8" stroke="var(--peak)"/><text class="sm" x="80" y="148" text-anchor="middle" fill="var(--peak)">DELETE</text><text class="sm" x="80" y="164" text-anchor="middle">số của ngày</text>
-        <path class="ln" d="M150,152 L180,152" marker-end="url(#a-dim)"/>
-        <rect class="box" x="184" y="126" width="314" height="52" rx="8" stroke="var(--spec)"/><text class="sm" x="341" y="148" text-anchor="middle" fill="var(--spec)">INSERT … SELECT COUNT(*), SUM(amount)</text><text class="sm" x="341" y="164" text-anchor="middle">FROM orders GROUP BY product_id</text>
-        <path class="ln" stroke="var(--cmd)" d="M498,152 L528,152" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="532" y="126" width="158" height="52" rx="8" stroke="var(--cmd)"/><text class="sm" x="611" y="148" text-anchor="middle" fill="var(--cmd)">47 đơn</text><text class="sm" x="611" y="164" text-anchor="middle">23.250.000 đ · khớp</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 390" style="min-width:758px" role="img" aria-label="Phép thử xoá rồi dựng lại hai bản dẫn xuất"><rect class="bb-grp" x="20" y="30" width="1060" height="150" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="130" height="24" rx="12" fill="#1e293b"/><text x="65.0" y="16.5" text-anchor="middle">SEARCH INDEX</text></g><g class="bb-node" transform="translate(40,60)"><rect width="200" height="90" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-x" x="83.0" y="9" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="63" text-anchor="middle" class="bb-l">Xoá trắng</text><text x="100.0" y="81" text-anchor="middle" class="bb-s">index</text></g><path class="bb-ar" d="M244,105 H266" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(270,60)"><rect width="260" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="113.0" y="9" width="34" height="34" style="color:#16a34a"/><text x="130.0" y="63" text-anchor="middle" class="bb-l">Đọc 200.000 dòng</text><text x="130.0" y="81" text-anchor="middle" class="bb-s">products · ~2.000 document/giây</text></g><path class="bb-ar" d="M534,105 H556" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(560,60)"><rect width="160" height="90" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-clock" x="63.0" y="17" width="34" height="34" style="color:#94a3b8"/><text x="80.0" y="71" text-anchor="middle" class="bb-l">~100 s</text></g><path class="bb-ar" d="M724,105 H746" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(750,60)"><rect width="310" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-check" x="138.0" y="9" width="34" height="34" style="color:#0d9488"/><text x="155.0" y="63" text-anchor="middle" class="bb-l">0 / 200.000 lệch</text><text x="155.0" y="81" text-anchor="middle" class="bb-s">1.200 nhãn còn nguyên</text></g><rect class="bb-grp" x="20" y="220" width="1060" height="150" rx="18"/><g class="bb-gtag" transform="translate(38,208)"><rect width="140" height="24" rx="12" fill="#1e293b"/><text x="70.0" y="16.5" text-anchor="middle">DAILY_REVENUE</text></g><g class="bb-node" transform="translate(40,250)"><rect width="200" height="90" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-x" x="83.0" y="9" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="63" text-anchor="middle" class="bb-l bb-m">DELETE</text><text x="100.0" y="81" text-anchor="middle" class="bb-s">số của ngày</text></g><path class="bb-ar" d="M244,295 H266" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(270,250)"><rect width="450" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="208.0" y="9" width="34" height="34" style="color:#16a34a"/><text x="225.0" y="63" text-anchor="middle" class="bb-l bb-m">INSERT … SELECT COUNT(*), SUM(amount)</text><text x="225.0" y="81" text-anchor="middle" class="bb-s">FROM orders GROUP BY product_id</text></g><path class="bb-ar" d="M724,295 H746" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(750,250)"><rect width="310" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-check" x="138.0" y="9" width="34" height="34" style="color:#0d9488"/><text x="155.0" y="63" text-anchor="middle" class="bb-l">47 đơn</text><text x="155.0" y="81" text-anchor="middle" class="bb-s">23.250.000 đ · khớp</text></g></svg></div></div>
       <div class="fig-cap">Hình 4 — Sau khi sửa, cả hai bản dẫn xuất xoá đi vẫn dựng lại được từ source of truth</div>
     </div>
     <div class="tbl-scroll"><table>
