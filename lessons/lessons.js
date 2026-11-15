@@ -247,5 +247,18 @@ window.LESSONS = [
     "title": "Thêm instance mà throughput không tăng thì bottleneck nằm ở đâu",
     "description": "Gấp đôi app mà p99 tăng 180 → 650 ms; USE method từng chặng, mức trần CPU primary, chuyển đọc sang replica và bottleneck chuyển chỗ.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "sd1-17",
+    "path": "system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-17.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning",
+    "lopSlug": "thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning",
+    "lopOrder": 1,
+    "order": 18,
+    "title": "Lỗi ở một service phụ lan ra cả hệ thống như thế nào",
+    "description": "Service gợi ý chậm 8 giây làm checkout trả 504: thread pool dùng chung, Little's Law, dependency bắt buộc, availability nối tiếp và dự phòng.",
+    "readTime": "13 phút đọc"
   }
 ];

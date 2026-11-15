@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lỗi dây chuyền — Bản chi tiết</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="sd1-17">
+  <meta name="lesson:title" content="Lỗi ở một service phụ lan ra cả hệ thống như thế nào">
+  <meta name="lesson:description" content="Service gợi ý chậm 8 giây làm checkout trả 504: thread pool dùng chung, Little&#x27;s Law, dependency bắt buộc, availability nối tiếp và dự phòng.">
+  <meta name="lesson:order" content="18">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<header>
+  <div class="eyebrow">System Design · Lỗi dây chuyền · Bản chi tiết có sơ đồ &amp; ví dụ</div>
+  <h1>Checkout không gọi service gợi ý, vậy mà <span class="b">94% trả 504</span> khi service gợi ý chậm <span class="a">8 giây</span></h1>
+  <div class="sub">Lỗi lan ra qua những thread và connection đang bị giữ để chờ một dependency; availability của chuỗi bắt buộc bằng tích của từng chặng. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 230" role="img" aria-label="Thread pool dùng chung bị trang chi tiết chiếm hết">
+      <rect class="box" x="10" y="90" width="100" height="50" rx="8"/><text class="sm" x="60" y="112" text-anchor="middle">Load</text><text class="sm" x="60" y="128" text-anchor="middle">balancer</text>
+      <path class="ln" d="M110,115 L146,115" marker-end="url(#a-dim)"/>
+      <rect x="150" y="14" width="320" height="202" rx="12" fill="none" stroke="var(--avg)" stroke-dasharray="5 5"/>
+      <text class="lb" x="166" y="36" fill="var(--avg)">APP · THREAD POOL 2 × 100 = 200</text>
+      <g fill="var(--peak)" opacity=".75">
+        <rect x="166" y="48" width="14" height="14" rx="2"/><rect x="184" y="48" width="14" height="14" rx="2"/><rect x="202" y="48" width="14" height="14" rx="2"/><rect x="220" y="48" width="14" height="14" rx="2"/><rect x="238" y="48" width="14" height="14" rx="2"/><rect x="256" y="48" width="14" height="14" rx="2"/><rect x="274" y="48" width="14" height="14" rx="2"/><rect x="292" y="48" width="14" height="14" rx="2"/><rect x="310" y="48" width="14" height="14" rx="2"/><rect x="328" y="48" width="14" height="14" rx="2"/><rect x="346" y="48" width="14" height="14" rx="2"/><rect x="364" y="48" width="14" height="14" rx="2"/><rect x="382" y="48" width="14" height="14" rx="2"/><rect x="400" y="48" width="14" height="14" rx="2"/><rect x="418" y="48" width="14" height="14" rx="2"/><rect x="436" y="48" width="14" height="14" rx="2"/>
+        <rect x="166" y="66" width="14" height="14" rx="2"/><rect x="184" y="66" width="14" height="14" rx="2"/><rect x="202" y="66" width="14" height="14" rx="2"/><rect x="220" y="66" width="14" height="14" rx="2"/><rect x="238" y="66" width="14" height="14" rx="2"/><rect x="256" y="66" width="14" height="14" rx="2"/><rect x="274" y="66" width="14" height="14" rx="2"/><rect x="292" y="66" width="14" height="14" rx="2"/><rect x="310" y="66" width="14" height="14" rx="2"/><rect x="328" y="66" width="14" height="14" rx="2"/><rect x="346" y="66" width="14" height="14" rx="2"/><rect x="364" y="66" width="14" height="14" rx="2"/><rect x="382" y="66" width="14" height="14" rx="2"/><rect x="400" y="66" width="14" height="14" rx="2"/><rect x="418" y="66" width="14" height="14" rx="2"/><rect x="436" y="66" width="14" height="14" rx="2"/>
+      </g>
+      <text class="sm" x="310" y="100" text-anchor="middle" fill="var(--peak)">200/200 thread chờ recommendation:8080</text>
+      <text class="sm" x="310" y="118" text-anchor="middle">CPU app 15%: thread chỉ đứng chờ</text>
+      <rect class="box" x="166" y="134" width="288" height="34" rx="6" stroke="var(--peak)" stroke-dasharray="4 3"/><text class="sm" x="310" y="155" text-anchor="middle" fill="var(--peak)">checkout xếp hàng chờ thread</text>
+      <text class="sm" x="310" y="196" text-anchor="middle" fill="var(--peak)">checkout p99 300 ms → 30.000 ms · 504: 0% → 94%</text>
+      <path class="ln" stroke="var(--peak)" d="M470,70 L546,70" marker-end="url(#a-peak)"/>
+      <rect class="box" x="550" y="44" width="140" height="56" rx="8" stroke="var(--grow)"/><text class="sm" x="620" y="66" text-anchor="middle" fill="var(--grow)">Service gợi ý</text><text class="sm" x="620" y="84" text-anchor="middle" fill="var(--peak)">40 ms → ~8 giây</text>
+      <path class="ln" d="M470,170 L546,170" marker-end="url(#a-dim)"/>
+      <rect class="box" x="550" y="146" width="140" height="48" rx="8" stroke="var(--spec)"/><text class="sm" x="620" y="175" text-anchor="middle" fill="var(--spec)">Postgres</text>
+    </svg>
+    <div class="fig-cap">Hình 1 — Không có mũi tên nào nối checkout với service gợi ý; đường lây là thread pool dùng chung</div>
+  </div>
+
+  <div class="toc">
+    <span>01 <b>504 khi CPU 15%</b></span>
+    <span>02 <b>Lúc bình thường</b></span>
+    <span>03 <b>Pool đầy sau 1,2 giây</b></span>
+    <span>04 <b>Thôi chờ phần gợi ý</b></span>
+    <span>05 <b>Hai đường lây</b></span>
+    <span>06 <b>Nối tiếp &amp; dự phòng</b></span>
+    <span>07 <b>Tradeoff &amp; tín hiệu</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vấn đề</div>
+    <h2 class="c-peak">Checkout trả 504 trong khi CPU mới 15%</h2>
+    <p class="desc">21:05, giờ cao điểm, kênh cảnh báo liên tục báo checkout trả 504. CPU app <b>15%</b>, vậy mà khách bấm thanh toán chờ <b>30 giây</b> rồi nhận trang lỗi. <b>Thread dump</b> là ảnh chụp trạng thái mọi thread trong process tại một thời điểm: thread nào đang chạy dòng code nào, thread nào đang đứng chờ cái gì. Dashboard của service gợi ý cho thấy thời gian trả lời trung bình đã tăng từ <b>40 ms</b> lên khoảng <b>8 giây</b>. Checkout không có dòng code nào chạm tới <code>recommendation:8080</code>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Dashboard + thread dump rút gọn lúc 21:05 (số minh hoạ của bài)</div>
+      <pre>Dashboard
+  checkout POST /checkout   p99: 300 ms -&gt; <span class="bad">30.000 ms</span>   tỉ lệ 504: 0% -&gt; <span class="bad">94%</span>
+  app CPU: <span class="val">15%</span>              thread pool: <span class="bad">200/200</span> thread bận
+
+Thread dump (instance app-1)
+  "http-exec-17" WAITING
+      at java.net.SocketInputStream.read
+      at RecommendationClient.fetch  (recommendation:8080)
+      at ProductDetailHandler.handle
+  "http-exec-18" WAITING
+      at ... RecommendationClient.fetch  (recommendation:8080)
+  ... 98 thread còn lại giống hệt
+
+Cả hai instance: <span class="bad">200/200 thread đang chờ response từ recommendation:8080</span></pre>
+      <p>Không thread nào đang xử lý checkout, không thread nào đang tính toán. Một tính năng phụ — thứ khách có thể không để ý nếu nó biến mất — đang làm hỏng đúng endpoint mang lại doanh thu.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Lúc bình thường</div>
+    <h2 class="c-avg">Service gợi ý chỉ tốn 40 ms mỗi lần gọi</h2>
+    <p class="desc">App chạy <b>2 instance</b>, mỗi instance <b>thread pool 100 thread</b>: mỗi request mượn một thread, giữ tới khi trả response xong thì trả lại; hết thread trống thì request mới phải xếp hàng. <b>Gọi đồng bộ</b> nghĩa là thread gửi request sang service khác rồi đứng chờ response, trong lúc chờ không làm việc gì khác.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Hai loại request lúc bình thường">
+        <rect class="box" x="10" y="20" width="230" height="50" rx="8" stroke="var(--avg)"/><text class="sm" x="125" y="40" text-anchor="middle" fill="var(--avg)">GET /products/:id</text><text class="sm" x="125" y="58" text-anchor="middle">150 request/giây</text>
+        <path class="ln" d="M240,36 L386,26" marker-end="url(#a-dim)"/><text class="sm" x="312" y="22" text-anchor="middle">đọc 60 ms</text>
+        <rect class="box" x="390" y="8" width="140" height="38" rx="6" stroke="var(--spec)"/><text class="sm" x="460" y="32" text-anchor="middle" fill="var(--spec)">Postgres</text>
+        <path class="ln" stroke="var(--grow)" d="M240,56 L546,56" marker-end="url(#a-grow)"/><text class="sm" x="620" y="94" text-anchor="middle" fill="var(--grow)">gọi đồng bộ 40 ms</text>
+        <rect class="box" x="550" y="38" width="140" height="38" rx="6" stroke="var(--grow)"/><text class="sm" x="620" y="62" text-anchor="middle" fill="var(--grow)">Service gợi ý</text>
+        <rect class="box" x="10" y="94" width="230" height="50" rx="8" stroke="var(--avg)"/><text class="sm" x="125" y="114" text-anchor="middle" fill="var(--avg)">POST /checkout</text><text class="sm" x="125" y="132" text-anchor="middle">20 request/giây</text>
+        <path class="ln" d="M240,118 L456,48" marker-end="url(#a-dim)"/><text class="sm" x="360" y="112" text-anchor="middle">ghi 300 ms</text>
+      </svg>
+      <div class="fig-cap">Hình 2 — Checkout chỉ đi tới Postgres; trên sơ đồ nó và service gợi ý không liên quan gì nhau</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — số thread bận lúc bình thường</div>
+      <pre>Số thread bận trung bình = request/giây × số giây giữ thread   <span class="cm"># Little's Law</span>
+
+Trang chi tiết : 150 × (0,06 + 0,04 = 0,1 giây) = 15 thread
+Checkout       :  20 × 0,3 giây                 =  6 thread
+Tổng           :                                  <span class="val">21 / 200</span> thread</pre>
+      <p>Với trang chi tiết, 40 ms chờ service gợi ý gần như không đáng kể. Một service mỗi lần gọi chỉ tốn 40 ms trông hoàn toàn vô hại.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Cơ chế</div>
+    <h2 class="c-peak">Cần 1.215 thread mà pool chỉ có 200 — đầy sau khoảng 1,2 giây</h2>
+    <p class="desc"><b>Little's Law</b>: số request đang xử lý trung bình = request/giây × số giây mỗi request nằm trong hệ thống. Mỗi request đang xử lý giữ một thread, nên số thread bận = request/giây × số giây giữ thread. Dùng <b>8 giây trung bình</b> (Little's Law cần số trung bình, không phải p99). Khi pool đã đầy, app phục vụ được ~28 request/giây trong khi 170 request/giây đổ tới: hàng chờ dài ra mãi. Checkout tới sau xếp vào đúng hàng đó vì <b>thread pool là của cả app</b>, chờ tới khi load balancer cắt kết nối ở giây 30 và trả 504.</p>
+    <div class="bars">
+      <div class="bar-row"><span class="bar-label">Pool có</span><div class="bar-bg"><div class="bar-fill" style="width:16.5%;background:var(--avg)"></div></div><span class="bar-val">200 thread</span></div>
+      <div class="bar-row"><span class="bar-label">Bình thường cần</span><div class="bar-bg"><div class="bar-fill" style="width:1.7%;background:var(--cmd)"></div></div><span class="bar-val">21 thread</span></div>
+      <div class="bar-row"><span class="bar-label">Gợi ý chậm 8 s cần</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--peak)"></div></div><span class="bar-val">~1.215 thread</span></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — lúc service gợi ý trả lời sau 8 giây</div>
+      <pre>Trang chi tiết giữ thread : 0,06 + 8                    ≈ 8,1 giây
+Thread cần                : 150 × 8,1                   ≈ <span class="bad">1.215</span> thread  (pool có 200)
+179 thread trống hết sau  : 179 / 150                   ≈ <span class="bad">1,2 giây</span>
+
+Pool đã đầy, request tới theo tỉ lệ 150 : 20
+  giữ thread trung bình   : (150 × 8,1 + 20 × 0,3) / 170 ≈ 7,18 giây
+  phục vụ tối đa          : 200 / 7,18                  ≈ <span class="bad">28</span> request/giây
+  request đổ tới          :                                170 request/giây</pre>
+      <p>Little's Law ở đây cho số trung bình với giả định tải tới đều; tải dồn từng đợt thì số thread bận còn vọt cao hơn. App chạy trên event loop như Node.js thì thứ bị giữ là connection và số slot xử lý đồng thời thay vì thread — phép tính vẫn như trên.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Cách sửa</div>
+    <h2 class="c-cmd">Bỏ service gợi ý khỏi chuỗi dependency bắt buộc của trang chi tiết</h2>
+    <p class="desc">Phản ứng đầu tiên thường là tăng pool. Gấp đôi lên 400: 379 thread trống hết sau ~2,5 giây, phục vụ tối đa 400 / 7,18 ≈ <b>56 request/giây</b>, vẫn rất xa 170 — chỉ đầy muộn hơn vài giây; phải lên hơn 1.200 thread mới theo kịp. Hướng khác: giảm thời gian giữ thread. Thiếu khối "sản phẩm tương tự", khách vẫn xem tên, giá, ảnh và bấm mua được; thiếu Postgres thì trang không có gì để hiện. <b>Dependency bắt buộc</b> là thành phần mà thiếu nó endpoint không trả được kết quả dùng được: với trang chi tiết là Postgres, không còn là service gợi ý.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 120" role="img" aria-label="Availability trang chi tiết trước và sau khi sửa">
+        <text class="sm" x="10" y="30">Trước</text>
+        <rect class="box" x="70" y="12" width="90" height="30" rx="6"/><text class="sm" x="115" y="32" text-anchor="middle">LB 99,99%</text>
+        <rect class="box" x="170" y="12" width="110" height="30" rx="6"/><text class="sm" x="225" y="32" text-anchor="middle">app 99,9975%</text>
+        <rect class="box" x="290" y="12" width="100" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="340" y="32" text-anchor="middle">PG 99,95%</text>
+        <rect class="box" x="400" y="12" width="100" height="30" rx="6" stroke="var(--peak)"/><text class="sm" x="450" y="32" text-anchor="middle" fill="var(--peak)">gợi ý 99%</text>
+        <text class="sm" x="520" y="32" fill="var(--peak)">≈ 98,94% · ~459 phút</text>
+        <text class="sm" x="10" y="88">Sau</text>
+        <rect class="box" x="70" y="70" width="90" height="30" rx="6"/><text class="sm" x="115" y="90" text-anchor="middle">LB 99,99%</text>
+        <rect class="box" x="170" y="70" width="110" height="30" rx="6"/><text class="sm" x="225" y="90" text-anchor="middle">app 99,9975%</text>
+        <rect class="box" x="290" y="70" width="100" height="30" rx="6" stroke="var(--spec)"/><text class="sm" x="340" y="90" text-anchor="middle">PG 99,95%</text>
+        <rect x="400" y="70" width="100" height="30" rx="6" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text class="sm" x="450" y="90" text-anchor="middle">không chờ</text>
+        <text class="sm" x="520" y="90" fill="var(--cmd)">≈ 99,94% · ~27 phút</text>
+      </svg>
+      <div class="fig-cap">Hình 3 — Chỉ khác đúng một thừa số 0,99; số phút không dùng được tính trong 30 ngày</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — thread bận và availability sau khi sửa</div>
+      <pre><span class="cm">Service gợi ý vẫn trả lời sau 8 giây, trang chi tiết không chờ</span>
+<span class="cm">Giả định: không thread nào trong pool 200 còn chờ service gợi ý</span>
+Trang chi tiết : 150 × 0,06 giây = 9 thread
+Checkout       :  20 × 0,3 giây  = 6 thread
+Tổng           :                  <span class="val">15 / 200</span> thread
+
+<span class="cm">Availability chuỗi bắt buộc = tích từng chặng · 30 ngày = 43.200 phút</span>
+Trước : 0,9999 × 0,999975 × 0,9995 × 0,99 ≈ <span class="bad">98,94%</span> → 1,062% × 43.200 ≈ <span class="bad">459 phút</span>
+Sau   : 0,9999 × 0,999975 × 0,9995        ≈ <span class="val">99,94%</span> → 0,0625% × 43.200 ≈ <span class="val">27 phút</span></pre>
+      <p>Phép tính chỉ cho số thread bận trung bình, không cho p99; mốc p99 ~300 ms cho checkout là số minh hoạ, phải đo mới biết. Nếu phần gợi ý vẫn lấy bằng lời gọi từ app, thread gọi vẫn bị giữ nên <b>cần timeout</b>, và thời gian chờ tối đa phải cộng vào số giây giữ thread. Timeout xảy ra thì app không biết service gợi ý đã xử lý xong chưa — với lời gọi chỉ đọc như lấy gợi ý thì không hại gì. Kết quả của chuỗi luôn thấp hơn chặng yếu nhất: trước khi sửa, thấp hơn cả 99% của service gợi ý.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Hai đường lây</div>
+    <h2 class="c-grow">Lỗi lan qua lời gọi đồng bộ, hoặc qua tài nguyên dùng chung</h2>
+    <p class="desc"><b>Qua lời gọi đồng bộ</b>: thread hoặc connection bị giữ trong lúc chờ một dependency, mọi thứ cần thread từ cùng pool phải chờ theo — checkout treo đúng cách này. <b>Qua tài nguyên dùng chung</b>: hai workload không gọi nhau nhưng cùng dùng một Postgres, một ổ đĩa hay một đường mạng; workload này dùng cạn thì workload kia chậm theo. Bỏ service gợi ý khỏi chuỗi bắt buộc chặn được đường thứ nhất, và chỉ cho riêng lời gọi đó; trang chi tiết và checkout vẫn dùng chung Postgres.</p>
+    <div class="card-grid">
+      <div class="card ok"><h3>TỪ CHỐI KẾT NỐI NGAY</h3><div class="formula">giữ thread ~0,06 s</div><ul><li>150 × 0,06 = 9 thread</li><li>Pool không hề hấn gì</li></ul></div>
+      <div class="card peak"><h3>TRẢ LỜI SAU 8 GIÂY</h3><div class="formula">giữ thread ~8,1 s</div><ul><li>Pool 200 đầy trong chưa tới 2 giây</li><li>Mọi endpoint dùng chung pool chờ theo</li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Chỗ dễ nhầm — "sập hẳn" có tệ hơn "chậm" không?</div>
+      <p>Nghe thì "service gợi ý sập hẳn" có vẻ tệ hơn "service gợi ý chậm", nhưng từ phía app gọi tới thường ngược lại: bị từ chối ngay thì thread được trả lại sau tích tắc. Đừng vì thế suy ra mọi lần sập đều vô hại: khi máy chủ của nó chết hẳn hay đường mạng bị mất, lời gọi thường không bị từ chối ngay mà <b>treo tới khi hết timeout</b> — với app, trường hợp đó giống hệt lúc chậm và phải tính như lúc chậm.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Availability</div>
+    <h2 class="c-cmd">Nối tiếp kéo availability xuống, dự phòng đẩy nó lên</h2>
+    <p class="desc"><b>Nối tiếp</b>: request phải đi qua mọi chặng và chỉ thành công khi tất cả đều chạy, nên availability là tích từng chặng. <b>Dự phòng</b>: n instance giống nhau chạy song song, một instance đủ phục vụ; cả cụm chỉ hỏng khi mọi instance cùng hỏng, nên tính xác suất tất cả cùng hỏng rồi lấy 1 trừ đi. Công thức dự phòng chỉ đúng khi <b>các instance hỏng độc lập</b> và <b>một instance đủ gánh toàn bộ tải</b>.</p>
+    <div class="fig">
+      <svg viewBox="0 0 700 150" role="img" aria-label="Nối tiếp và dự phòng">
+        <text class="lb" x="10" y="20" fill="var(--peak)">NỐI TIẾP · A₁ × A₂ × … × Aₖ</text>
+        <rect class="box" x="10" y="34" width="80" height="34" rx="6"/><text class="sm" x="50" y="56" text-anchor="middle">LB</text>
+        <path class="ln" d="M90,51 L116,51" marker-end="url(#a-dim)"/>
+        <rect class="box" x="120" y="34" width="80" height="34" rx="6"/><text class="sm" x="160" y="56" text-anchor="middle">app</text>
+        <path class="ln" d="M200,51 L226,51" marker-end="url(#a-dim)"/>
+        <rect class="box" x="230" y="34" width="90" height="34" rx="6" stroke="var(--spec)"/><text class="sm" x="275" y="56" text-anchor="middle">Postgres</text>
+        <text class="sm" x="10" y="94" fill="var(--peak)">mỗi chặng thêm vào → kết quả thấp hơn</text>
+        <text class="lb" x="370" y="20" fill="var(--cmd)">DỰ PHÒNG · 1 − (1 − A)ⁿ</text>
+        <path class="ln" d="M370,80 L410,50" marker-end="url(#a-dim)"/><path class="ln" d="M370,80 L410,110" marker-end="url(#a-dim)"/>
+        <rect class="box" x="414" y="34" width="150" height="34" rx="6" stroke="var(--cmd)"/><text class="sm" x="489" y="56" text-anchor="middle">app 1 · 99,5%</text>
+        <rect class="box" x="414" y="94" width="150" height="34" rx="6" stroke="var(--cmd)"/><text class="sm" x="489" y="116" text-anchor="middle">app 2 · 99,5%</text>
+        <text class="sm" x="580" y="76" fill="var(--cmd)">cụm 99,9975%</text>
+        <text class="sm" x="580" y="94">216 → ~1 phút</text>
+      </svg>
+      <div class="fig-cap">Hình 4 — Bỏ chặng khỏi chuỗi và thêm instance đều làm availability tốt hơn, dù hai việc trông không liên quan</div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Phép tính — tầng app, mỗi instance 99,5%</div>
+      <pre>1 instance : 99,5%                              → 0,5% × 43.200 phút     = <span class="bad">216 phút</span>
+2 instance : 1 − (1 − 0,995)² = 1 − 0,000025 = 99,9975% → 0,0025% × 43.200 ≈ <span class="val">1 phút</span></pre>
+      <p>Nếu mỗi instance chỉ chịu được nửa tải cao điểm thì mất một instance là hệ thống không phục vụ được nữa, và con số 99,9975% không còn ý nghĩa.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Tradeoff</div>
+    <h2 class="c-grow">Phép nhân chỉ đếm lời gọi có trên sơ đồ — thread pool dùng chung thì không có trên đó</h2>
+    <p class="desc">Chuỗi bắt buộc của checkout là LB, app, Postgres: <b>99,94%</b>, ~27 phút mỗi 30 ngày — đó là con số người ta sẽ đưa ra trước sự cố 21:05. Nhưng nó chỉ đúng khi checkout không phải chờ gì từ service gợi ý. Cũng đừng sửa bằng cách nhân 99% của service gợi ý vào chuỗi checkout: từ chối ngay thì checkout không mất phút nào; chậm hay treo tới timeout thì ảnh hưởng bao lâu còn tùy tải và thời gian xả hàng chờ thread — chỉ đo mới biết.</p>
+    <div class="card-grid">
+      <div class="card peak"><h3>NÓI RÕ VỚI TEAM</h3><ul><li><b>Trang chi tiết đôi khi thiếu khối gợi ý</b>; team phải chấp nhận và theo dõi tần suất</li><li><b>Lời gọi tới service gợi ý phải có timeout</b>, nếu không thread vẫn bị giữ 8 giây</li><li><b>Đo riêng từng dependency</b>: p99 chung của endpoint không cho biết chặng nào chậm</li></ul></div>
+      <div class="card ok"><h3>BỐN TÍN HIỆU CẦN ĐO</h3><ul><li><b>Tỉ lệ thread bận mỗi instance</b>, cảnh báo ~80% (lúc 21:05 đã 100% khi CPU 15%)</li><li><b>p99 từng lời gọi tới dependency</b></li><li><b>p99 checkout khi cố ý thêm 8 giây trễ</b> vào service gợi ý trên môi trường test</li><li><b>Tỉ lệ trang chi tiết thiếu khối gợi ý</b></li></ul></div>
+    </div>
+    <div class="example-box">
+      <div class="example-label">▸ Giả định của hai phép tính availability</div>
+      <div class="ba">
+        <div><b>NỐI TIẾP</b>Phép nhân coi các chặng hỏng độc lập. Khi các chặng hay hỏng cùng lúc, những phút hỏng chồng lên nhau nên số thật thường <b>cao hơn</b> tích.</div>
+        <div><b>DỰ PHÒNG</b>Hai instance chạy chung một máy vật lý hay cùng nhận một bản deploy lỗi thì hỏng cùng lúc, số thật <b>thấp hơn</b> 99,9975%.</div>
+      </div>
+      <p style="margin-top:10px">99,5% của mỗi instance chỉ tính lỗi của chính nó (lỗi Postgres đã ở thừa số riêng). Phép nhân chỉ đếm lúc thành phần không trả lời; dependency chậm chỉ hiện ra trong availability khi SLI coi request chậm quá ngưỡng là thất bại. Và đừng đổi mọi lời gọi thành không bắt buộc chỉ để số đẹp hơn: Postgres vẫn phải nằm trong chuỗi.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Tổng kết</div>
+    <h2>Áp vào endpoint quan trọng nhất của bạn</h2>
+    <div class="card-grid">
+      <div class="card avg"><h3>1 · LIỆT KÊ DEPENDENCY</h3><ul><li>Với từng cái hỏi: thiếu nó thì endpoint còn trả được kết quả dùng được không?</li></ul></div>
+      <div class="card spec" style="border-color:var(--line)"><h3 style="color:var(--spec)">2 · NHÂN CHUỖI BẮT BUỘC</h3><ul><li>Đổi phần thiếu so với 100% thành số phút trong 30 ngày; xem số phút đổi bao nhiêu nếu bỏ được một dependency</li></ul></div>
+      <div class="card peak"><h3>3 · TÌM TÀI NGUYÊN CHUNG</h3><ul><li>Thread pool, connection pool, database đang dùng chung với endpoint khác — chúng không thành mũi tên nào trên sơ đồ</li></ul></div>
+      <div class="card ok"><h3>4 · ĐO THREAD BẬN</h3><ul><li>Cảnh báo trên tỉ lệ thread bận, không chỉ trên CPU</li></ul></div>
+    </div>
+    <p class="desc" style="margin-bottom:0">Số liệu trong bài là số minh hoạ của khóa học.</p>
+  </section>
+
+</div>
+
+<footer>Lỗi không đi theo mũi tên trên sơ đồ — nó đi qua thread và connection đang bị giữ</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning/sd1-17.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
