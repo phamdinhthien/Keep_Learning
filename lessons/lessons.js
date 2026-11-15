@@ -273,5 +273,18 @@ window.LESSONS = [
     "title": "Kiến trúc máy tính: disk, RAM, CPU, cache",
     "description": "Bốn thành phần của một máy tính, tốc độ của chúng, và vì sao một máy đơn lẻ có giới hạn (Moore's law).",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "nc-01",
+    "path": "system-design/neetcode-beginner/nc-01.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 1,
+    "title": "Kiến trúc ứng dụng: server, storage, scaling, log, metrics, alert",
+    "description": "Bức tranh mức cao của một app production: từ CI/CD tới server, load balancer, storage, log, metrics và alert.",
+    "readTime": "12 phút đọc"
   }
 ];

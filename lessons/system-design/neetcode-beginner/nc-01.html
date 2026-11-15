@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiến trúc ứng dụng — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-01">
+  <meta name="lesson:title" content="Kiến trúc ứng dụng: server, storage, scaling, log, metrics, alert">
+  <meta name="lesson:description" content="Bức tranh mức cao của một app production: từ CI/CD tới server, load balancer, storage, log, metrics và alert.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="12 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Kiến trúc ứng dụng — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 1</div>
+  <h1>Một app production gồm server, storage, <span class="a">load balancer</span> và bộ ba <span class="b">log → metrics → alert</span> cho developer</h1>
+  <div class="sub">Bản kiến trúc mức cao này là khung cho cả khóa: mỗi khối ở đây sẽ được đào sâu ở các video sau.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#dbeafe;border-color:#3b82f6"></i>Người</span><span><i class="sw" style="background:#f1f5f9;border-color:#94a3b8"></i>Hạ tầng</span><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>Server</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Lưu trữ</span><span><i class="sw" style="background:#fce7f3;border-color:#db2777"></i>Dịch vụ ngoài</span><span><i class="sw" style="background:#fef9c3;border-color:#ca8a04"></i>Log</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Metrics</span><span><i class="sw" style="background:#fee2e2;border-color:#dc2626"></i>Alert</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 600" style="min-width:758px" role="img" aria-label="Kiến trúc ứng dụng production nhìn từ phía developer"><rect class="bb-grp" x="20" y="30" width="1060" height="150" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="330" height="24" rx="12" fill="#1e293b"/><text x="165.0" y="16.5" text-anchor="middle">PHÍA DEVELOPER · ĐƯA CODE LÊN SERVER</text></g><g class="bb-node" transform="translate(40,64)"><rect width="190" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="83.0" y="14" width="24" height="24" style="color:#3b82f6"/><text x="95.0" y="58" text-anchor="middle" class="bb-l">Developer</text><text x="95.0" y="76" text-anchor="middle" class="bb-s">viết code</text></g><path class="bb-ar" d="M234,109 H306" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(310,64)"><rect width="240" height="90" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-gear" x="108.0" y="14" width="24" height="24" style="color:#94a3b8"/><text x="120.0" y="58" text-anchor="middle" class="bb-l">CI/CD server</text><text x="120.0" y="76" text-anchor="middle" class="bb-s">build + deploy (tuỳ chọn)</text></g><path class="bb-ar" d="M554,109 H626" marker-end="url(#bb-ah)"/><text x="820" y="104" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:13px">code chạy trên server ↓</text><text x="820" y="124" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">(máy tính phục vụ request)</text><g class="bb-node" transform="translate(40,270)"><rect width="170" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="68.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">User</text><text x="85.0" y="84" text-anchor="middle" class="bb-s">trình duyệt</text></g><path class="bb-ar" d="M214,318 H286" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(250,318)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><g class="bb-node" transform="translate(290,270)"><rect width="210" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="88.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="105.0" y="66" text-anchor="middle" class="bb-l">Load Balancer</text><text x="105.0" y="84" text-anchor="middle" class="bb-s">chuyển tới server ít tải</text></g><path class="bb-ar" d="M504,300 H540 V246 H576" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M504,318 H576" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M504,336 H540 V390 H576" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(580,216)"><rect width="170" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="85.0" y="51" text-anchor="middle" class="bb-l">Server 1</text></g><g class="bb-node" transform="translate(580,288)"><rect width="170" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="85.0" y="51" text-anchor="middle" class="bb-l">Server 2</text></g><g class="bb-node" transform="translate(580,360)"><rect width="170" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="85.0" y="51" text-anchor="middle" class="bb-l">Server 3</text></g><path class="bb-ar" d="M754,280 H800 V250 H846" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(850,210)"><rect width="230" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="103.0" y="11" width="24" height="24" style="color:#16a34a"/><text x="115.0" y="55" text-anchor="middle" class="bb-l">Persistent storage</text><text x="115.0" y="73" text-anchor="middle" class="bb-s">qua network, máy riêng</text></g><path class="bb-ar" d="M754,352 H800 V378 H846" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(850,340)"><rect width="230" height="84" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-money" x="103.0" y="11" width="24" height="24" style="color:#db2777"/><text x="115.0" y="55" text-anchor="middle" class="bb-l">API bên ngoài</text><text x="115.0" y="73" text-anchor="middle" class="bb-s">vd Stripe (thanh toán)</text></g><path class="bb-ar" d="M665,424 V470" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(665,447)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><g class="bb-node" transform="translate(580,474)"><rect width="170" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-doc" x="68.0" y="10" width="34" height="34" style="color:#ca8a04"/><text x="85.0" y="64" text-anchor="middle" class="bb-l">Logging</text></g><path class="bb-ar" d="M754,512 H806" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(780,512)"><circle r="13"/><text y="4.5" text-anchor="middle">3</text></g><g class="bb-node" transform="translate(810,474)"><rect width="120" height="76" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-chart" x="43.0" y="10" width="34" height="34" style="color:#ea580c"/><text x="60.0" y="64" text-anchor="middle" class="bb-l">Metrics</text></g><path class="bb-ar" d="M934,512 H966" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(970,474)"><rect width="110" height="76" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-alert" x="38.0" y="10" width="34" height="34" style="color:#dc2626"/><text x="55.0" y="64" text-anchor="middle" class="bb-l">Alert</text></g><path class="bb-ar d" d="M1025,554 V586 H12 V109 H36" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="560" y="580" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">báo developer ngay khi metric vượt ngưỡng</text></svg></div></div><div class="fig-cap">Hình 1 — Toàn cảnh: user đi qua load balancer tới các server; server ghi log, log thành metrics, metrics kích hoạt alert</div></div>
+  <div class="toc">
+    <span>01 <b>Code → server</b></span><span>02 <b>Storage</b></span><span>03 <b>User &amp; API ngoài</b></span><span>04 <b>Vertical scaling</b></span><span>05 <b>Horizontal &amp; LB</b></span><span>06 <b>Log &amp; metrics</b></span><span>07 <b>Alert</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Code → server <span class="t">~00:00–01:30</span></div>
+    <h2 class="c-avg">Code của developer phải được build, deploy rồi chạy trên server — một máy tính phục vụ request</h2>
+    <p class="desc">Nhìn từ phía developer: ta viết code, code phải được <b>deploy</b> tới một <b>server</b> để chạy. Tạm hiểu server là <b>một máy tính xử lý được request</b>, tức là phục vụ người dùng; khóa học sẽ đào sâu hơn sau.</p>
+    <p class="desc">Thường có một bước trung gian: code được <b>build và deploy</b>. Việc này có thể chạy trên máy local của dev, nhưng phổ biến hơn là trên một <b>CI/CD server</b> (continuous integration, continuous deployment), đặc biệt với ứng dụng production chuyên nghiệp. Trong sơ đồ này nó là bước tuỳ chọn.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai nơi build</div>
+      <div class="ba">
+        <div><b>Máy local của dev</b>Build và deploy ngay từ máy mình.</div>
+        <div><b>CI/CD server</b>Cách phổ biến hơn ở môi trường chuyên nghiệp, cho ứng dụng production.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Persistent storage <span class="t">~01:30–02:45</span></div>
+    <h2 class="c-cmd">Dữ liệu được lưu ở một storage riêng, nối với server qua network, không phải trên disk của server</h2>
+    <p class="desc">Server cần lưu dữ liệu, nên có một <b>storage bên ngoài</b>. Nó có thể là bất cứ thứ gì: nghĩ ngay tới <b>database</b> là đúng, nhưng còn nhiều cách khác để lưu dữ liệu. Đây là <b>persistent storage</b>.</p>
+    <p class="desc">Server là một máy tính nên cũng có disk riêng, nhưng disk đó có giới hạn (như video trước). Vì vậy đây là <b>storage phân tán</b>: chạy trên máy riêng, không cùng server, nối với nhau <b>qua network</b>, thậm chí nằm ở các nơi khác nhau trên thế giới.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — storage không nằm cùng máy</div>
+      <p>Server chạy code ở một nơi, database chạy trên một máy khác, có thể ở một khu vực khác trên thế giới; hai bên nói chuyện qua network.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. User &amp; API ngoài <span class="t">~02:45–05:00</span></div>
+    <h2 class="c-spec">User gửi request từ trình duyệt; server trả về front-end (HTML, JS) hoặc dữ liệu JSON, và có thể gọi tiếp API bên ngoài</h2>
+    <p class="desc">Người dùng muốn dùng ứng dụng thì phải <b>gửi request</b> tới server, thường là từ <b>trình duyệt</b>. Nếu server phục vụ <b>front-end</b>, nó trả về <b>HTML và JavaScript</b> để trình duyệt tải trang. Nếu là <b>back-end</b>, trình duyệt gọi <b>API</b> và server trả về dữ liệu, thường ở dạng <b>JSON</b>, một định dạng dữ liệu phổ biến.</p>
+    <p class="desc">Server không chạy cô lập: nó có thể gọi các server khác. Có thể có rất nhiều server bên ngoài như vậy; sơ đồ chỉ vẽ một.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — neetcode.io gọi Stripe</div>
+      <p>Code của <b>neetcode.io</b> gọi các API khác, ví dụ <b>Stripe API</b> để xử lý thanh toán.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Vertical scaling <span class="t">~05:00–06:30</span></div>
+    <h2 class="c-grow">Quá tải thì tìm bottleneck rồi nâng cấp chính máy đó — gọi là vertical scaling, và nó có trần</h2>
+    <p class="desc">Nhiều user gửi request cùng lúc và một máy không kham nổi. Trước tiên xác định <b>bottleneck</b>: có thể <b>CPU</b> không đủ nhanh, thì mua CPU tốt hơn; có thể thiếu <b>RAM</b>, thì thêm RAM. Từ bài kiến trúc máy tính, ta có thể nâng cấp CPU, RAM, disk, hay cả chiếc máy.</p>
+    <p class="desc">Lấy <b>một</b> tài nguyên và làm nó tốt hơn gọi là <b>vertical scaling</b>, giống như "thêm một khối" vào chính server đó. Về khái niệm thì rất đơn giản. Nhưng máy tính có giới hạn: CPU nhanh tới đâu cũng <b>không xử lý được vô hạn request</b>.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 330" style="min-width:758px" role="img" aria-label="Vertical scaling làm một server mạnh hơn; horizontal scaling thêm bản sao server"><rect class="bb-grp" x="20" y="30" width="500" height="280" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="260" height="24" rx="12" fill="#1e293b"/><text x="130.0" y="16.5" text-anchor="middle">VERTICAL · NÂNG CẤP MỘT MÁY</text></g><g class="bb-node" transform="translate(60,150)"><rect width="170" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="74" text-anchor="middle" class="bb-l">Server</text></g><path class="bb-ar" d="M234,198 H286" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(290,100)"><rect width="200" height="150" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="39" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="93" text-anchor="middle" class="bb-l">Server mạnh hơn</text><text x="100.0" y="111" text-anchor="middle" class="bb-s">CPU · RAM · disk tốt hơn</text></g><text x="270" y="290" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">đơn giản, nhưng CPU nào cũng có trần</text><rect class="bb-grp" x="560" y="30" width="520" height="280" rx="18"/><g class="bb-gtag" transform="translate(578,18)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">HORIZONTAL · THÊM BẢN SAO</text></g><g class="bb-node" transform="translate(590,140)"><rect width="180" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="73.0" y="20" width="34" height="34" style="color:#94a3b8"/><text x="90.0" y="74" text-anchor="middle" class="bb-l">Load Balancer</text></g><path class="bb-ar" d="M774,170 H810 V100 H846" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M774,188 H846" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M774,206 H810 V276 H846" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(850,70)"><rect width="200" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Server</text></g><g class="bb-node" transform="translate(850,158)"><rect width="200" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Server</text></g><g class="bb-node" transform="translate(850,246)"><rect width="200" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Server</text></g></svg></div></div><div class="fig-cap">Hình 2 — Vertical scaling (trái) so với horizontal scaling (phải)</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tìm đúng chỗ nghẽn</div>
+      <p>CPU là thứ làm chậm → thay CPU tốt hơn, server xử lý được nhiều request hơn. RAM là giới hạn → thêm RAM. Cả hai đều là vertical scaling vì chỉ làm <b>một</b> server tốt hơn.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Horizontal scaling &amp; load balancer <span class="t">~06:30–08:30</span></div>
+    <h2 class="c-avg">Horizontal scaling chạy nhiều bản sao server; load balancer quyết định mỗi request đi tới bản nào</h2>
+    <p class="desc"><b>Horizontal scaling</b>: thay vì làm một server tốt hơn, ta tạo <b>nhiều bản sao</b> cùng chạy code. User không còn phải nói chuyện với một server duy nhất, nên hệ thống xử lý được nhiều request cùng lúc hơn. Không server nào được nâng cấp; ta chỉ thêm server cho cùng một việc.</p>
+    <p class="desc">Vấn đề mới: request của user nên tới server nào? Đó là việc của <b>load balancer</b>. Tạm hiểu nó chuyển request tới server <b>đang ít traffic nhất</b>, để các server có lượng traffic cân bằng. Nếu một server gánh hết còn server khác ngồi không thì horizontal scaling chẳng có ý nghĩa.</p>
+    <div class="note">Nguồn gọi cách này là "horizontal autoscaling" ở một chỗ; ý chính vẫn là thêm máy, không nâng cấp máy. Load balancer sẽ được học sâu ở video sau.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vì sao cần cân bằng</div>
+      <div class="ba">
+        <div><b>Không cân bằng</b>Một server xử lý mọi request, server kia không làm gì: thêm máy cũng vô ích.</div>
+        <div><b>Có load balancer</b>Request được gửi tới server ít traffic nhất, mỗi server một phần tải.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Logging &amp; metrics <span class="t">~08:30–11:00</span></div>
+    <h2 class="c-cmd">Log kể từng request diễn ra thế nào; metrics cho thấy server và ứng dụng chạy ra sao theo thời gian</h2>
+    <p class="desc">Chạy local ta dùng log hay print để biết code đang làm gì. Server không chạy trên máy ta, nên cũng ghi log, nhưng không cần lưu hết trên server, vì người đọc log là <b>developer</b>, không phải server. Ta dùng một <b>dịch vụ log bên ngoài</b>: mỗi request, tốt hay hỏng, server đều ghi thông tin vào đó. User không bao giờ tương tác với dịch vụ này.</p>
+    <p class="desc">Log không kể hết câu chuyện. Một server chạy kém, có thể vì <b>CPU lỗi</b>; ta muốn biết CPU có bị chiếm hết, RAM có đầy, storage có hết chỗ. <b>Dịch vụ metrics</b> cung cấp các số đó: server có trả lời mọi request, có request nào lỗi, tài nguyên dùng tới đâu — gồm <b>application metrics</b> và <b>resource metrics</b>.</p>
+    <p class="desc">Một số metric lấy thẳng từ log, gọi là <b>log-based metrics</b>: log mỗi lần request thành công hay thất bại rồi đếm. Metrics thường hiển thị dạng <b>biểu đồ time series</b> (CPU theo thời gian đi lên hay đi xuống). Log hợp làm nguồn vì log vốn là dữ liệu time series: mỗi dòng log đều có <b>timestamp</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — từ log thành metric</div>
+      <pre><span class="cm">// mỗi dòng log có timestamp → ghép lại thành time series</span>
+10:00:01  <span class="val">request OK</span>
+10:00:02  <span class="bad">request FAILED</span>
+10:00:02  <span class="val">request OK</span>
+<span class="cm">→ metric: tỉ lệ thành công theo từng phút</span></pre>
+      <p>Thời điểm và thứ tự dòng log là minh hoạ thêm; nguồn chỉ nói "log mỗi lần thành công, mỗi lần thất bại rồi tạo metric".</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Alerting <span class="t">~11:00–12:30</span></div>
+    <h2 class="c-peak">Alerting đẩy thông báo cho developer ngay khi metric vượt ngưỡng, thay vì chờ user email báo lỗi</h2>
+    <p class="desc">Không ai muốn phải ngồi nhìn metrics mới phát hiện sự cố, tệ hơn là để <b>user email báo</b> app hỏng — user luôn dùng app nên họ thường biết đầu tiên. Ta muốn <b>push notification</b>: metrics được đưa vào một <b>dịch vụ alerting</b>, dịch vụ này báo khi một metric chạm <b>ngưỡng</b> (threshold).</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 280" style="min-width:758px" role="img" aria-label="Metric tỉ lệ request thành công theo thời gian và ngưỡng cảnh báo 95%"><path d="M100,240 H1000" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M100,150 H1000" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="8 5"/><text x="1000" y="142" text-anchor="end" class="bb-a" fill="#dc2626" style="fill:#dc2626">ngưỡng 95%</text><text x="110" y="50" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">100% request thành công</text><polyline points="120,60 210,60 300,78 390,60 480,96 570,114 660,168 750,204 840,186 930,78" fill="none" stroke="#3b82f6" stroke-width="3.5"/><circle cx="120" cy="60" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="210" cy="60" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="300" cy="78" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="390" cy="60" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="480" cy="96" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="570" cy="114" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><circle cx="660" cy="168" r="6" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="750" cy="204" r="6" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="840" cy="186" r="6" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="930" cy="78" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/><text x="660" y="194" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">alert tự động gửi tới developer</text><text x="100" y="266" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">thời gian →</text><text x="1000" y="266" text-anchor="end" fill="#64748b" style="fill:#64748b;font-weight:500">đường số liệu là minh hoạ thêm</text></svg></div></div><div class="fig-cap">Hình 3 — Tỉ lệ request thành công tụt dưới 95% thì alert tự động gửi đi</div></div>
+    <p class="desc">Developer sẽ được báo gần như cùng lúc với một số user; đó là mức nhanh nhất có thể, trừ khi đoán trước được tương lai. Sơ đồ dù đã đơn giản hoá vẫn khá lớn, cho thấy ứng dụng phức tạp tới đâu. Còn nhiều thứ chưa nói, nhất là <b>networking</b>: các thành phần chạy trên máy khác nhau nên giữa chúng luôn có network. Developer không cần biết hết chi tiết, nhưng hiểu cơ bản rất có ích khi thiết kế hệ thống lớn.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ngưỡng 95%</div>
+      <p>Bình thường <b>100%</b> request nhận response thành công. Đặt alert: khi metric này giảm từ 100% xuống <b>95%</b> hoặc thấp hơn, dịch vụ alerting tự động báo developer.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Storage của app chính là disk của server.</div><div><span class="v">✓</span> Storage tách riêng, chạy trên máy khác, nối qua network (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Nâng cấp server mãi là đủ cho mọi lượng traffic.</div><div><span class="v">✓</span> Vertical scaling có trần; CPU nào cũng không xử lý vô hạn request (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Có nhiều server là tự cân bằng tải.</div><div><span class="v">✓</span> Cần load balancer chuyển request tới server ít traffic nhất (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Có log là đủ để biết server khoẻ hay không.</div><div><span class="v">✓</span> Cần metrics về tài nguyên và alert tự động; log không kể hết câu chuyện (→ 06, 07).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Vertical hay horizontal scaling</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Vertical</td><td>Đã xác định một bottleneck phần cứng (CPU, RAM, disk) trên một server</td><td>Đã chạm trần phần cứng</td><td>Đơn giản về khái niệm, nhưng có giới hạn</td></tr>
+      <tr><td class="k">Horizontal</td><td>Một máy không kham nổi số request cùng lúc</td><td>—</td><td>Phải có load balancer để chia request</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>CI/CD là viết tắt của gì, và có bắt buộc không?</summary><p>Continuous integration, continuous deployment. Đây là bước build và deploy trung gian, phổ biến ở môi trường chuyên nghiệp nhưng là tuỳ chọn trong sơ đồ. (→ 01)</p></details>
+    <details><summary>Server front-end và server back-end trả về gì cho trình duyệt?</summary><p>Front-end trả HTML và JavaScript để tải trang; back-end trả dữ liệu từ API, thường là JSON. (→ 03)</p></details>
+    <details><summary>Server chậm vì CPU. Vertical scaling là gì trong trường hợp này, và giới hạn của nó?</summary><p>Thay CPU tốt hơn cho chính server đó. Giới hạn: CPU nhanh tới đâu cũng không xử lý vô hạn request. (→ 04)</p></details>
+    <details><summary>Có ba server sau load balancer. Request mới nên tới đâu?</summary><p>Server đang có ít traffic nhất, để ba server có lượng traffic cân bằng. (→ 05)</p></details>
+    <details><summary>Vì sao log dùng được để tạo metrics?</summary><p>Log vốn là dữ liệu time series: mỗi dòng có timestamp, nên đếm request thành công và thất bại theo thời gian là ra metric. (→ 06)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">server</td><td>Máy tính xử lý request, phục vụ user</td><td>01</td></tr>
+      <tr><td class="k">CI/CD</td><td>Continuous integration / continuous deployment: build và deploy code</td><td>01</td></tr>
+      <tr><td class="k">persistent storage</td><td>Nơi lưu dữ liệu lâu dài, tách khỏi server</td><td>02</td></tr>
+      <tr><td class="k">API · JSON</td><td>Giao diện server cho client gọi · định dạng dữ liệu phổ biến</td><td>03</td></tr>
+      <tr><td class="k">bottleneck</td><td>Tài nguyên đang làm chậm cả hệ thống</td><td>04</td></tr>
+      <tr><td class="k">vertical scaling</td><td>Nâng cấp một server (CPU, RAM, disk)</td><td>04</td></tr>
+      <tr><td class="k">horizontal scaling</td><td>Thêm nhiều bản sao server</td><td>05</td></tr>
+      <tr><td class="k">load balancer</td><td>Chia request cho các server, ưu tiên server ít traffic</td><td>05</td></tr>
+      <tr><td class="k">log-based metrics</td><td>Metric tính từ log</td><td>06</td></tr>
+      <tr><td class="k">time series</td><td>Dữ liệu theo thời gian, mỗi điểm có timestamp</td><td>06</td></tr>
+      <tr><td class="k">alerting · threshold</td><td>Dịch vụ báo động · ngưỡng kích hoạt</td><td>07</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “1 - Application Architecture” (<a href="https://drive.google.com/file/d/1fwvYGsElkmY5KkPfjfJZr0zvtw5WOYan/view">drive.google.com/file/d/1fwvYGsElkmY5KkPfjfJZr0zvtw5WOYan</a>) · khoảng 12 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-01.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
