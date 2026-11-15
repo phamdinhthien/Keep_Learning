@@ -112,11 +112,95 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -133,50 +217,8 @@
   <h1>Ba panel <span class="g">vẫn xanh</span>,<br>trong khi khách <span class="r">chờ 3 giây rồi nhận 503</span></h1>
   <div class="sub">Mỗi panel gộp nhiều request thành một con số. Vấn đề nằm ở chỗ nó gộp <b>request nào</b>, theo <b>cách nào</b>. Toàn bộ số liệu bên dưới là số minh hoạ của bài, phút 21:00 tại API đặt hàng.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 330" role="img" aria-label="Ba panel cũ xanh so với thực tế cùng phút 21:00, và lý do mỗi panel che mất vấn đề">
-      <text class="lb" x="135" y="22" text-anchor="middle" fill="var(--ok)">DASHBOARD CŨ · 21:00</text>
-      <text class="lb" x="565" y="22" text-anchor="middle" fill="var(--err)">THỰC TẾ · CÙNG PHÚT</text>
-
-      <!-- row 1 -->
-      <rect class="box" x="20" y="40" width="230" height="74" rx="8" stroke="var(--ok)"/>
-      <text class="sm" x="34" y="60">Latency trung bình</text>
-      <text class="big" x="34" y="86" fill="var(--ok)">124 ms</text>
-      <text class="sm" x="34" y="104">ngưỡng đỏ 500 ms · XANH</text>
-      <path class="ln" d="M252,77 L446,77" marker-end="url(#a-dim)"/>
-      <text class="sm" x="349" y="68" text-anchor="middle" fill="var(--pct)">180 req chậm bị chia đều</text>
-      <text class="sm" x="349" y="94" text-anchor="middle">cho 17.910 req → chỉ +24 ms</text>
-      <rect class="box" x="450" y="40" width="230" height="74" rx="8" stroke="var(--err)"/>
-      <text class="sm" x="464" y="60">p99 request thành công</text>
-      <text class="big" x="464" y="86" fill="var(--err)">2.000 ms</text>
-      <text class="sm" x="464" y="104">~180 khách/phút chờ ≥ 2 s</text>
-
-      <!-- row 2 -->
-      <rect class="box" x="20" y="134" width="230" height="74" rx="8" stroke="var(--ok)"/>
-      <text class="sm" x="34" y="154">Tỉ lệ lỗi · mọi request</text>
-      <text class="big" x="34" y="180" fill="var(--ok)">0,5%</text>
-      <text class="sm" x="34" y="198">ngưỡng đỏ 1% · XANH</text>
-      <path class="ln" d="M252,171 L446,171" marker-end="url(#a-dim)"/>
-      <text class="sm" x="349" y="162" text-anchor="middle" fill="var(--err)">mẫu số 18.000 req cả API</text>
-      <text class="sm" x="349" y="188" text-anchor="middle">thay vì 1.200 lần đặt hàng</text>
-      <rect class="box" x="450" y="134" width="230" height="74" rx="8" stroke="var(--err)"/>
-      <text class="sm" x="464" y="154">Lỗi của POST /orders</text>
-      <text class="big" x="464" y="180" fill="var(--err)">7,5%</text>
-      <text class="sm" x="464" y="198">90 lần 503, mỗi lần chờ ~3 s</text>
-
-      <!-- row 3 -->
-      <rect class="box" x="20" y="228" width="230" height="74" rx="8" stroke="var(--ok)"/>
-      <text class="sm" x="34" y="248">CPU của API</text>
-      <text class="big" x="34" y="274" fill="var(--ok)">45%</text>
-      <text class="sm" x="34" y="292">"còn rảnh hơn một nửa"</text>
-      <path class="ln" d="M252,265 L446,265" marker-end="url(#a-dim)"/>
-      <text class="sm" x="349" y="256" text-anchor="middle" fill="var(--sat)">đo utilization của CPU,</text>
-      <text class="sm" x="349" y="282" text-anchor="middle">không đo hàng chờ ở pool</text>
-      <rect class="box" x="450" y="228" width="230" height="74" rx="8" stroke="var(--err)"/>
-      <text class="sm" x="464" y="248">Connection pool</text>
-      <text class="big" x="464" y="274" fill="var(--sat)">20/20 + 25 chờ</text>
-      <text class="sm" x="464" y="292">saturation đã xảy ra</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 410" role="img" aria-label="Ba panel cũ xanh so với thực tế cùng phút 21:00, và lý do mỗi panel che mất vấn đề"><text x="180" y="30" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">DASHBOARD CŨ · 21:00</text><text x="920" y="30" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">THỰC TẾ · CÙNG PHÚT</text><rect x="20" y="50" width="320" height="100" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="40" y="78" text-anchor="start" style="font-weight:700;font-size:14px">Latency trung bình</text><text x="40" y="112" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:24px">124 ms</text><text x="40" y="136" text-anchor="start" class="bb-s">ngưỡng đỏ 500 ms · XANH</text><rect x="760" y="50" width="320" height="100" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="780" y="78" text-anchor="start" style="font-weight:700;font-size:14px">p99 request thành công</text><text x="780" y="112" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:24px">2.000 ms</text><text x="780" y="136" text-anchor="start" class="bb-s">~180 khách/phút chờ ≥ 2 s</text><path class="bb-ar" d="M344,100 H756" marker-end="url(#bb-ah)"/><text x="550" y="90" text-anchor="middle" class="bb-a">180 req chậm chia đều cho</text><text x="550" y="122" text-anchor="middle" class="bb-a" fill="#64748b" style="fill:#64748b">17.910 req → chỉ +24 ms</text><rect x="20" y="170" width="320" height="100" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="40" y="198" text-anchor="start" style="font-weight:700;font-size:14px">Tỉ lệ lỗi · mọi request</text><text x="40" y="232" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:24px">0,5%</text><text x="40" y="256" text-anchor="start" class="bb-s">ngưỡng đỏ 1% · XANH</text><rect x="760" y="170" width="320" height="100" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="780" y="198" text-anchor="start" style="font-weight:700;font-size:14px">Lỗi của POST /orders</text><text x="780" y="232" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:24px">7,5%</text><text x="780" y="256" text-anchor="start" class="bb-s">90 lần 503, mỗi lần chờ ~3 s</text><path class="bb-ar" d="M344,220 H756" marker-end="url(#bb-ah)"/><text x="550" y="210" text-anchor="middle" class="bb-a">mẫu số 18.000 req cả API</text><text x="550" y="242" text-anchor="middle" class="bb-a" fill="#64748b" style="fill:#64748b">thay vì 1.200 lần đặt hàng</text><rect x="20" y="290" width="320" height="100" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="40" y="318" text-anchor="start" style="font-weight:700;font-size:14px">CPU của API</text><text x="40" y="352" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:24px">45%</text><text x="40" y="376" text-anchor="start" class="bb-s">“còn rảnh hơn một nửa”</text><rect x="760" y="290" width="320" height="100" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="780" y="318" text-anchor="start" style="font-weight:700;font-size:14px">Connection pool</text><text x="780" y="352" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:24px">20/20 + 25 chờ</text><text x="780" y="376" text-anchor="start" class="bb-s">saturation đã xảy ra</text><path class="bb-ar" d="M344,340 H756" marker-end="url(#bb-ah)"/><text x="550" y="330" text-anchor="middle" class="bb-a">đo utilization của CPU,</text><text x="550" y="362" text-anchor="middle" class="bb-a" fill="#64748b" style="fill:#64748b">không đo hàng chờ ở pool</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Mỗi panel cũ có một cách riêng để giấu đúng nhóm khách đang khổ</div>
   </div>
 
@@ -198,31 +240,8 @@
     <h2 class="c-pct">Số trung bình trả lời "tính chung mỗi request mất bao lâu" — còn khách hỏi "tôi phải chờ bao lâu"</h2>
     <p class="desc"><b>Latency</b> của một request = thời gian từ lúc API nhận request tới lúc trả xong response. Panel "trung bình" cộng latency của mọi request <b>thành công (2xx)</b> trong một phút rồi chia cho số request. Vấn đề nằm ngay trong phép chia: thời gian chờ của một nhóm nhỏ bị <b>chia đều cho tất cả</b>. Nhóm chậm chỉ chiếm 1% số request nhưng chiếm 20% tổng latency — vậy mà kết quả chỉ nhích từ 100 lên 124 ms, còn cách ngưỡng đỏ gần 380 ms. Và nhìn con số 124 ms, bạn không biết nhóm chậm có bao nhiêu request, chờ 500 ms hay 3 giây.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 250" role="img" aria-label="Nhóm chậm chiếm 1 phần trăm số request, 20 phần trăm tổng latency, nhưng chỉ đẩy trung bình từ 100 lên 124 ms">
-        <text class="lb" x="20" y="22" fill="var(--ink-dim)">SỐ REQUEST (17.910)</text>
-        <rect x="20" y="32" width="654" height="22" rx="4" fill="#5eead4" fill-opacity=".28"/>
-        <rect x="674" y="32" width="6" height="22" rx="2" fill="var(--err)"/>
-        <text class="sm" x="30" y="47" fill="var(--ink)">nhóm nhanh 17.730 req · ~100 ms · 99%</text>
-        <text class="sm" x="668" y="70" text-anchor="end" fill="var(--err)">nhóm chậm 180 req · ~2.500 ms · 1% ↑</text>
-
-        <text class="lb" x="20" y="102" fill="var(--ink-dim)">TỔNG LATENCY (2.223.000 ms)</text>
-        <rect x="20" y="112" width="529" height="22" rx="4" fill="#5eead4" fill-opacity=".28"/>
-        <rect x="549" y="112" width="131" height="22" rx="4" fill="var(--err)" fill-opacity=".75"/>
-        <text class="sm" x="30" y="127" fill="var(--ink)">1.773.000 ms · 80%</text>
-        <text class="sm" x="614" y="127" text-anchor="middle" fill="#0d0d0f">450.000 · 20%</text>
-
-        <text class="lb" x="20" y="176" fill="var(--ink-dim)">KẾT QUẢ TRÊN PANEL — thang 0 → 500 ms</text>
-        <line class="grid" x1="20" y1="206" x2="680" y2="206"/>
-        <rect x="20" y="196" width="132" height="20" rx="3" fill="#5eead4" fill-opacity=".25"/>
-        <rect x="152" y="196" width="32" height="20" rx="0" fill="var(--pct)" fill-opacity=".7"/>
-        <line x1="680" y1="186" x2="680" y2="228" stroke="var(--err)" stroke-width="2"/>
-        <text class="sm" x="676" y="242" text-anchor="end" fill="var(--err)">ngưỡng đỏ 500 ms</text>
-        <text class="sm" x="152" y="232" text-anchor="middle">100</text>
-        <text class="sm" x="190" y="190" fill="var(--pct)">124 ms (+24)</text>
-        <path class="ln ln-d" d="M196,206 L672,206" stroke="var(--ok)"/>
-        <text class="sm" x="430" y="200" text-anchor="middle" fill="var(--ok)">còn cách ~380 ms → panel XANH</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" role="img" aria-label="Nhóm chậm chiếm 1% số request, 20% tổng latency, nhưng chỉ đẩy trung bình từ 100 lên 124 ms"><text x="40" y="38" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">SỐ REQUEST (17.910)</text><rect x="40" y="48" width="1010" height="34" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="1050" y="48" width="10" height="34" rx="3" fill="#dc2626" stroke="#dc2626" stroke-width="2"/><text x="54" y="70" text-anchor="start" style="font-weight:600;font-size:13px">nhóm nhanh 17.730 req · ~100 ms · 99%</text><text x="1060" y="102" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:600;font-size:13px">nhóm chậm 180 req · ~2.500 ms · 1% ↑</text><text x="40" y="142" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">TỔNG LATENCY (2.223.000 ms)</text><rect x="40" y="152" width="816" height="34" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="856" y="152" width="204" height="34" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="54" y="174" text-anchor="start" style="font-weight:600;font-size:13px">1.773.000 ms · 80%</text><text x="958" y="174" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">450.000 ms · 20%</text><text x="40" y="228" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">KẾT QUẢ TRÊN PANEL — thang 0 → 500 ms</text><path d="M40,262 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><rect x="40" y="250" width="204" height="24" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="244" y="250" width="49" height="24" rx="4" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="244" y="296" text-anchor="middle" fill="#64748b" style="fill:#64748b">100</text><text x="300" y="244" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:13px">124 ms (+24)</text><path d="M1060,236 V286" fill="none" stroke="#dc2626" stroke-width="3"/><text x="1060" y="306" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:700">ngưỡng đỏ 500 ms</text><path class="bb-ar" d="M302,262 H1052" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="680" y="252" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">còn cách ~380 ms → panel XANH</text></svg></div></div>
       <div class="fig-cap">Hình 2 — 1% request mang 20% thời gian chờ, nhưng phép chia làm nó gần như biến mất</div>
     </div>
 
@@ -242,37 +261,8 @@ Trung bình:   2.223.000 ms ÷ 17.910 request ≈ <span class="good">124 ms</spa
     <h2 class="c-pct">p50, p95, p99 — mỗi percentile chỉ thẳng vào một nhóm request ở cuối danh sách</h2>
     <p class="desc">Lấy latency của mọi request thành công trong phút, <b>xếp từ nhanh tới chậm</b>. <b>p50</b> (median) là giá trị đứng giữa: một nửa xong nhanh hơn. <b>p95</b> là giá trị ở vị trí 95%, <b>p99</b> ở vị trí 99%. Công cụ monitoring có thể nội suy giữa hai giá trị liền kề, nhưng ý nghĩa không đổi: percentile trả lời "<b>bao nhiêu % request xong dưới một mốc thời gian</b>". p50 và p95 mô tả phần đông; chúng không nói gì về 1% chậm nhất — muốn biết nhóm đó chờ bao lâu thì phải nhìn p99.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 256" role="img" aria-label="Dải 17.910 request xếp từ nhanh tới chậm với vạch p50, p95, p99; vùng 90 đến 100 phần trăm được phóng to">
-        <text class="lb" x="40" y="20" fill="var(--ink-dim)">17.910 REQUEST THÀNH CÔNG · XẾP NHANH → CHẬM</text>
-        <!-- latency curve -->
-        <path d="M40,150 L360,146" stroke="var(--pct)" stroke-width="2" fill="none"/>
-        <path d="M380,145 C 470,142 520,138 540,130 C 590,112 615,90 632,64 C 645,46 655,40 660,36" stroke="var(--pct)" stroke-width="2" fill="none"/>
-        <text class="sm" x="60" y="138">latency từng request</text>
-        <!-- strip -->
-        <rect x="40" y="160" width="320" height="16" rx="3" fill="#5eead4" fill-opacity=".22"/>
-        <rect x="380" y="160" width="280" height="16" rx="3" fill="url(#g-lat)"/>
-        <text x="370" y="174" text-anchor="middle" fill="var(--ink-dim)">≈</text>
-        <text class="sm" x="40" y="196">0%</text>
-        <text class="sm" x="360" y="196" text-anchor="end">90%</text>
-        <text class="sm" x="380" y="196">90%</text>
-        <text class="sm" x="660" y="196" text-anchor="end">100%</text>
-        <text class="sm" x="380" y="216">phóng to 90–100%</text>
-        <!-- p50 -->
-        <line x1="218" y1="96" x2="218" y2="180" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>
-        <text x="218" y="88" text-anchor="middle">p50 = 70 ms</text>
-        <!-- p95 -->
-        <line x1="520" y1="96" x2="520" y2="180" stroke="var(--sat)" stroke-width="1.5" stroke-dasharray="3 3"/>
-        <text x="520" y="88" text-anchor="middle" fill="var(--sat)">p95 = 280 ms</text>
-        <!-- p99 -->
-        <line x1="632" y1="44" x2="632" y2="180" stroke="var(--err)" stroke-width="1.5" stroke-dasharray="3 3"/>
-        <text x="626" y="36" text-anchor="end" fill="var(--err)">p99 = 2.000 ms</text>
-        <!-- brackets -->
-        <path d="M632,204 L632,210 L660,210 L660,204" stroke="var(--err)" fill="none" stroke-width="1.2"/>
-        <text class="sm" x="660" y="224" text-anchor="end" fill="var(--err)">≥ p99: ~180 req</text>
-        <path d="M520,232 L520,238 L660,238 L660,232" stroke="var(--sat)" fill="none" stroke-width="1.2"/>
-        <text class="sm" x="590" y="252" text-anchor="middle" fill="var(--sat)">≥ p95: ~900 req</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 350" role="img" aria-label="Dải 17.910 request xếp từ nhanh tới chậm với vạch p50, p95, p99; vùng 90 đến 100% được phóng to"><defs><linearGradient id="bb-g23" x1="0" x2="1"><stop offset="0" stop-color="#dcfce7"/><stop offset=".55" stop-color="#ffedd5"/><stop offset="1" stop-color="#fecaca"/></linearGradient></defs><text x="40" y="26" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">17.910 REQUEST THÀNH CÔNG · XẾP NHANH → CHẬM</text><path d="M40,232 L600,228" fill="none" stroke="#7c3aed" stroke-width="3"/><path d="M620,228 C760,224 820,212 860,198 C940,170 990,132 1016,100 C1035,76 1050,64 1060,58" fill="none" stroke="#7c3aed" stroke-width="3"/><text x="70" y="218" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:600">latency từng request</text><rect x="40" y="246" width="560" height="22" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="620" y="246" width="440" height="22" rx="4" fill="url(#bb-g23)" stroke="#94a3b8" stroke-width="2"/><text x="610" y="262" text-anchor="middle" style="font-weight:700;font-size:16px">≈</text><text x="40" y="288" text-anchor="start" fill="#64748b" style="fill:#64748b">0%</text><text x="600" y="288" text-anchor="end" fill="#64748b" style="fill:#64748b">90%</text><text x="620" y="288" text-anchor="start" fill="#64748b" style="fill:#64748b">90%</text><text x="1060" y="288" text-anchor="end" fill="#64748b" style="fill:#64748b">100%</text><text x="760" y="288" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">phóng to 90–100%</text><path d="M351,150 V272" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><text x="351" y="140" text-anchor="middle" style="font-weight:700;font-size:14px">p50 = 70 ms</text><path d="M840,150 V272" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 6"/><text x="840" y="140" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:14px">p95 = 280 ms</text><path d="M1016,60 V272" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="6 6"/><text x="1006" y="44" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:14px">p99 = 2.000 ms</text><path d="M1016,298 v6 h44 v-6" fill="none" stroke="#dc2626" stroke-width="2"/><text x="1060" y="320" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:600">≥ p99: ~180 req</text><path d="M840,326 v6 h220 v-6" fill="none" stroke="#ea580c" stroke-width="2"/><text x="860" y="346" text-anchor="end" fill="#ea580c" style="fill:#ea580c;font-weight:600">≥ p95: ~900 req</text></svg></div></div>
       <div class="fig-cap">Hình 3 — p50 và p95 nằm ở phần "bằng phẳng"; chỉ p99 chạm vào đoạn cong vút ở cuối</div>
     </div>
 
@@ -306,51 +296,13 @@ Trung bình:   2.223.000 ms ÷ 17.910 request ≈ <span class="good">124 ms</spa
     <h2 class="c-thr">Throughput tăng không có nghĩa là phục vụ tốt hơn — nó có thể đi cùng p99 tăng vọt</h2>
     <p class="desc"><b>Throughput</b> = số request API <b>xử lý xong mỗi giây</b> (tính mọi request, kể cả <code>/health</code>). Throughput nói hệ thống làm xong <b>bao nhiêu việc</b>; latency nói mỗi việc mất <b>bao lâu</b>. Hai số có thể đi theo hai hướng, nên cần hai panel. Throughput có ý nghĩa nhất khi đặt cạnh <b>số request đang tới mỗi giây</b> — một số khác, phải đếm riêng. Khi request tới nhiều hơn request xử lý xong, phần chênh lệch không biến mất: nó nằm lại chờ, và <b>hàng chờ dài ra</b>.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 240" role="img" aria-label="Throughput tăng từ 180 lên 300 request mỗi giây trong khi p99 tăng từ 320 lên 2000 ms">
-        <line class="grid" x1="70" y1="190" x2="630" y2="190"/>
-        <line class="grid" x1="70" y1="40" x2="630" y2="40" stroke-dasharray="3 4"/>
-        <text class="sm" x="62" y="194" text-anchor="end">0</text>
-        <text class="sm" x="62" y="44" text-anchor="end" fill="var(--thr)">300/s</text>
-        <text class="sm" x="638" y="44" fill="var(--pct)">2.000 ms</text>
-        <text class="sm" x="638" y="194">0</text>
-        <!-- throughput bars: scale 150px / 300 -->
-        <rect x="120" y="100" width="60" height="90" rx="3" fill="var(--thr)" fill-opacity=".55"/>
-        <rect x="320" y="65" width="60" height="125" rx="3" fill="var(--thr)" fill-opacity=".55"/>
-        <rect x="520" y="40" width="60" height="150" rx="3" fill="var(--thr)" fill-opacity=".55"/>
-        <text class="sm" x="150" y="94" text-anchor="middle" fill="var(--thr)">180/s</text>
-        <text class="sm" x="350" y="59" text-anchor="middle" fill="var(--thr)">250/s</text>
-        <text class="sm" x="550" y="34" text-anchor="middle" fill="var(--thr)">300/s</text>
-        <!-- p99 line: scale 150px / 2000ms -->
-        <path d="M150,166 L350,122.5 L550,40" stroke="var(--pct)" stroke-width="2.5" fill="none"/>
-        <circle cx="150" cy="166" r="5" fill="var(--pct)"/><circle cx="350" cy="122.5" r="5" fill="var(--sat)"/><circle cx="550" cy="40" r="5" fill="var(--err)"/>
-        <text class="sm" x="190" y="172" fill="var(--pct)">p99 320 ms</text>
-        <text class="sm" x="342" y="106" text-anchor="end" fill="var(--sat)">p99 900 ms</text>
-        <text class="sm" x="596" y="70" fill="var(--err)">p99 2.000</text>
-        <text class="sm" x="150" y="210" text-anchor="middle">19:00</text>
-        <text class="sm" x="350" y="210" text-anchor="middle">20:00</text>
-        <text class="sm" x="550" y="210" text-anchor="middle">21:00</text>
-        <rect x="80" y="222" width="10" height="10" fill="var(--thr)" fill-opacity=".55"/><text class="sm" x="96" y="231">throughput (req xử lý xong/giây)</text>
-        <line x1="380" y1="227" x2="400" y2="227" stroke="var(--pct)" stroke-width="2.5"/><text class="sm" x="406" y="231">p99 latency</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>Throughput (req xử lý xong/giây)</span><span><i class="sw" style="background:#fee2e2;border-color:#dc2626"></i>p99 latency</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" role="img" aria-label="Throughput tăng từ 180 lên 300 request mỗi giây trong khi p99 tăng từ 320 lên 2.000 ms"><path d="M120,280 H980" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M120,80 H980" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"/><text x="110" y="284" text-anchor="end" fill="#64748b" style="fill:#64748b">0</text><text x="110" y="84" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:700">300/s</text><text x="990" y="84" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700">2.000 ms</text><text x="990" y="284" text-anchor="start" fill="#64748b" style="fill:#64748b">0</text><rect x="195" y="160.0" width="110" height="120.0" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="250" y="268" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:13px">180/s</text><text x="250" y="304" text-anchor="middle" style="font-weight:700;font-size:13px">19:00</text><rect x="495" y="113.33333333333331" width="110" height="166.66666666666669" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="550" y="268" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:13px">250/s</text><text x="550" y="304" text-anchor="middle" style="font-weight:700;font-size:13px">20:00</text><rect x="795" y="80.0" width="110" height="200.0" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="850" y="268" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:13px">300/s</text><text x="850" y="304" text-anchor="middle" style="font-weight:700;font-size:13px">21:00</text><path d="M250,248.0 L550,190.0 L850,80.0" fill="none" stroke="#dc2626" stroke-width="3"/><circle cx="250" cy="248.0" r="7" fill="#ea580c" stroke="#fff" stroke-width="2.5"/><circle cx="550" cy="190.0" r="7" fill="#ea580c" stroke="#fff" stroke-width="2.5"/><circle cx="850" cy="80.0" r="7" fill="#dc2626" stroke="#fff" stroke-width="2.5"/><text x="264" y="238" text-anchor="start" class="bb-a" fill="#ea580c" style="fill:#ea580c">p99 320 ms</text><text x="564" y="180" text-anchor="start" class="bb-a" fill="#ea580c" style="fill:#ea580c">p99 900 ms</text><text x="864" y="70" text-anchor="start" class="bb-a" fill="#dc2626" style="fill:#dc2626">p99 2.000 ms</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Cột cao nhất (throughput) đúng lúc đường p99 vọt lên cao nhất</div>
     </div>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 120" role="img" aria-label="Request tới nhiều hơn request xử lý xong thì phần chênh lệch nằm lại trong hàng chờ">
-        <rect class="box" x="20" y="34" width="170" height="52" rx="8" stroke="var(--thr)"/>
-        <text class="sm" x="105" y="56" text-anchor="middle" fill="var(--thr)">REQUEST TỚI / GIÂY</text>
-        <text class="sm" x="105" y="74" text-anchor="middle">panel đếm riêng</text>
-        <path class="ln" stroke="var(--thr)" d="M190,60 L250,60" marker-end="url(#a-thr)"/>
-        <rect class="box" x="254" y="26" width="200" height="68" rx="8" stroke="var(--sat)" stroke-dasharray="5 4"/>
-        <text class="sm" x="354" y="48" text-anchor="middle" fill="var(--sat)">HÀNG CHỜ</text>
-        <g fill="var(--sat)"><circle cx="290" cy="70" r="5"/><circle cx="308" cy="70" r="5"/><circle cx="326" cy="70" r="5"/><circle cx="344" cy="70" r="5"/><circle cx="362" cy="70" r="5"/><circle cx="380" cy="70" r="5"/><circle cx="398" cy="70" r="5" fill-opacity=".5"/><circle cx="416" cy="70" r="5" fill-opacity=".25"/></g>
-        <path class="ln" stroke="var(--thr)" d="M454,60 L514,60" marker-end="url(#a-thr)"/>
-        <rect class="box" x="518" y="34" width="162" height="52" rx="8" stroke="var(--thr)"/>
-        <text class="sm" x="599" y="56" text-anchor="middle" fill="var(--thr)">XỬ LÝ XONG / GIÂY</text>
-        <text class="sm" x="599" y="74" text-anchor="middle">= throughput</text>
-        <text class="sm" x="354" y="112" text-anchor="middle">tới &gt; xong ⇒ chênh lệch nằm lại · hàng chờ dài ra · latency tăng</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 220" role="img" aria-label="Request tới nhiều hơn request xử lý xong thì phần chênh lệch nằm lại trong hàng chờ"><g class="bb-node" transform="translate(40,50)"><rect width="220" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="93.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">Request tới / giây</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">panel đếm riêng</text></g><path class="bb-ar" d="M264,98 H396" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(400,40)"><rect width="300" height="116" rx="14" fill="#fef9c3" stroke="#ca8a04" stroke-dasharray="8 5"/><text x="150.0" y="64" text-anchor="middle" class="bb-l">Hàng chờ</text></g><circle cx="460" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="484" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="508" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="532" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="556" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="580" cy="118" r="8" fill="#ca8a04" fill-opacity="1"/><circle cx="604" cy="118" r="8" fill="#ca8a04" fill-opacity="0.5"/><circle cx="628" cy="118" r="8" fill="#ca8a04" fill-opacity="0.25"/><path class="bb-ar" d="M704,98 H836" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(840,50)"><rect width="220" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">Xử lý xong / giây</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">= throughput</text></g><text x="550" y="200" text-anchor="middle" style="font-weight:600;font-size:13px">tới &gt; xong ⇒ chênh lệch nằm lại · hàng chờ dài ra · latency tăng</text></svg></div></div>
       <div class="fig-cap">Hình 5 — Throughput một mình không cho biết có ai đang phải đứng chờ</div>
     </div>
 
@@ -373,55 +325,13 @@ Chênh lệch:         2 req/s  →  sau 10 giây đã có <span class="bad">~20
     <h2 class="c-err">Error rate = lỗi ÷ một tập request đã chọn — đổi mẫu số là đổi luôn kết luận</h2>
     <p class="desc">Cùng 90 lỗi trong cùng một phút, nhưng chia cho <b>18.000 request của cả API</b> (giỏ hàng, sản phẩm, xem đơn, cả <code>/health</code>) thì ra 0,5%; chia cho <b>1.200 lần POST /orders</b> thì ra 7,5% — gấp 15 lần. Các endpoint đọc gần như luôn thành công nên chúng <b>pha loãng</b> lỗi của thao tác đặt hàng. Thêm nữa, error rate chỉ cho biết lỗi <b>xảy ra thường xuyên tới đâu</b>, không cho biết khách <b>chờ bao lâu rồi mới nhận lỗi</b> — việc đó cần một panel latency riêng cho request lỗi.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 250" role="img" aria-label="Tập 18000 request của cả API chứa tập 1200 request POST orders, trong đó có toàn bộ 90 lỗi; hai phép chia cho hai kết quả khác nhau">
-        <ellipse cx="190" cy="128" rx="172" ry="108" fill="var(--panel)" stroke="var(--ink-dim)" stroke-width="1.5"/>
-        <text class="lb" x="190" y="58" text-anchor="middle" fill="var(--ink-dim)">CẢ API · 18.000 REQ / PHÚT</text>
-        <text class="sm" x="70" y="96">/health</text>
-        <text class="sm" x="62" y="128">giỏ hàng</text>
-        <text class="sm" x="70" y="160">sản phẩm</text>
-        <text class="sm" x="92" y="192">xem đơn</text>
-        <ellipse cx="240" cy="140" rx="100" ry="62" fill="#2a1218" stroke="var(--err)" stroke-width="1.5"/>
-        <text class="sm" x="240" y="104" text-anchor="middle" fill="var(--err)">POST /orders · 1.200</text>
-        <g fill="var(--err)">
-          <circle cx="204" cy="128" r="3"/><circle cx="216" cy="128" r="3"/><circle cx="228" cy="128" r="3"/><circle cx="240" cy="128" r="3"/><circle cx="252" cy="128" r="3"/><circle cx="264" cy="128" r="3"/><circle cx="276" cy="128" r="3"/>
-          <circle cx="204" cy="140" r="3"/><circle cx="216" cy="140" r="3"/><circle cx="228" cy="140" r="3"/><circle cx="240" cy="140" r="3"/><circle cx="252" cy="140" r="3"/><circle cx="264" cy="140" r="3"/><circle cx="276" cy="140" r="3"/>
-          <circle cx="216" cy="152" r="3"/><circle cx="228" cy="152" r="3"/><circle cx="240" cy="152" r="3"/><circle cx="252" cy="152" r="3"/><circle cx="264" cy="152" r="3"/>
-        </g>
-        <text class="sm" x="240" y="178" text-anchor="middle" fill="var(--ink)">toàn bộ 90 lỗi 503</text>
-
-        <rect class="box" x="400" y="34" width="280" height="84" rx="8" stroke="var(--ok)"/>
-        <text class="lb" x="414" y="54" fill="var(--ink-dim)">MẪU SỐ = CẢ API (panel cũ)</text>
-        <text x="414" y="80">90 ÷ 18.000 = <tspan fill="var(--ok)" font-weight="700">0,5%</tspan></text>
-        <text class="sm" x="414" y="102" fill="var(--ok)">dưới ngưỡng 1% → XANH</text>
-
-        <rect class="box" x="400" y="138" width="280" height="84" rx="8" stroke="var(--err)"/>
-        <text class="lb" x="414" y="158" fill="var(--ink-dim)">MẪU SỐ = POST /orders</text>
-        <text x="414" y="184">90 ÷ 1.200 = <tspan fill="var(--err)" font-weight="700">7,5%</tspan></text>
-        <text class="sm" x="414" y="206" fill="var(--err)">≈ cứ ~13 lần bấm "Đặt hàng" có 1 lỗi</text>
-
-        <path class="ln ln-d" d="M362,100 L396,78" marker-end="url(#a-dim)"/>
-        <path class="ln ln-d" stroke="var(--err)" d="M338,158 L396,178" marker-end="url(#a-err)"/>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 350" role="img" aria-label="Tập 18.000 request của cả API chứa tập 1.200 request POST /orders, trong đó có toàn bộ 90 lỗi"><ellipse cx="270" cy="175" rx="245" ry="155" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2.5"/><text x="270" y="52" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800;font-size:13px">CẢ API · 18.000 REQ / PHÚT</text><text x="110" y="120" text-anchor="middle" class="bb-m" fill="#64748b" style="fill:#64748b">/health</text><text x="90" y="168" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">giỏ hàng</text><text x="100" y="216" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">sản phẩm</text><text x="130" y="262" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">xem đơn</text><ellipse cx="330" cy="200" rx="135" ry="85" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><text x="330" y="160" text-anchor="middle" class="bb-m" fill="#dc2626" style="fill:#dc2626;font-weight:700">POST /orders · 1.200</text><circle cx="282" cy="196" r="4.5" fill="#dc2626"/><circle cx="298" cy="196" r="4.5" fill="#dc2626"/><circle cx="314" cy="196" r="4.5" fill="#dc2626"/><circle cx="330" cy="196" r="4.5" fill="#dc2626"/><circle cx="346" cy="196" r="4.5" fill="#dc2626"/><circle cx="362" cy="196" r="4.5" fill="#dc2626"/><circle cx="378" cy="196" r="4.5" fill="#dc2626"/><circle cx="282" cy="212" r="4.5" fill="#dc2626"/><circle cx="298" cy="212" r="4.5" fill="#dc2626"/><circle cx="314" cy="212" r="4.5" fill="#dc2626"/><circle cx="330" cy="212" r="4.5" fill="#dc2626"/><circle cx="346" cy="212" r="4.5" fill="#dc2626"/><circle cx="362" cy="212" r="4.5" fill="#dc2626"/><circle cx="378" cy="212" r="4.5" fill="#dc2626"/><circle cx="298" cy="228" r="4.5" fill="#dc2626"/><circle cx="314" cy="228" r="4.5" fill="#dc2626"/><circle cx="330" cy="228" r="4.5" fill="#dc2626"/><circle cx="346" cy="228" r="4.5" fill="#dc2626"/><circle cx="362" cy="228" r="4.5" fill="#dc2626"/><text x="330" y="262" text-anchor="middle" style="font-weight:700;font-size:13px">toàn bộ 90 lỗi 503</text><path class="bb-ar" d="M500,120 H596" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M466,250 H596" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><rect x="600" y="40" width="460" height="110" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="620" y="68" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">MẪU SỐ = CẢ API (panel cũ)</text><text x="620" y="104" text-anchor="start" style="font-weight:600;font-size:18px">90 ÷ 18.000 = <tspan fill="#16a34a" font-weight="800">0,5%</tspan></text><text x="620" y="132" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:600">dưới ngưỡng 1% → XANH</text><rect x="600" y="196" width="460" height="110" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="620" y="224" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">MẪU SỐ = POST /orders</text><text x="620" y="260" text-anchor="start" style="font-weight:600;font-size:18px">90 ÷ 1.200 = <tspan fill="#dc2626" font-weight="800">7,5%</tspan></text><text x="620" y="288" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:600">≈ cứ ~13 lần bấm “Đặt hàng” có 1 lỗi</text></svg></div></div>
       <div class="fig-cap">Hình 6 — Cùng tử số, khác mẫu số: lỗi "chìm" trong biển request đọc luôn thành công</div>
     </div>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Request đặt hàng chờ connection tối đa 3 giây rồi nhận 503, so với lỗi trả về ngay">
-        <text class="lb" x="20" y="20" fill="var(--ink-dim)">VÌ SAO LATENCY CỦA REQUEST LỖI PHẢI TÁCH RIÊNG</text>
-        <line class="grid" x1="130" y1="140" x2="680" y2="140"/>
-        <text class="sm" x="130" y="158" text-anchor="middle">0</text>
-        <text class="sm" x="313" y="158" text-anchor="middle">1 s</text>
-        <text class="sm" x="497" y="158" text-anchor="middle">2 s</text>
-        <text class="sm" x="680" y="158" text-anchor="middle">3 s</text>
-        <text class="sm" x="20" y="60">POST /orders</text>
-        <rect x="130" y="48" width="550" height="18" rx="3" fill="var(--sat)" fill-opacity=".3" stroke="var(--sat)" stroke-dasharray="4 3"/>
-        <text class="sm" x="405" y="61" text-anchor="middle" fill="var(--sat)">chờ connection từ pool (tối đa 3.000 ms)</text>
-        <text class="sm" x="676" y="86" text-anchor="end" fill="var(--err)">timeout → 503 · p99 lỗi = 3.040 ms</text>
-        <text class="sm" x="20" y="118">lỗi trả ngay</text>
-        <rect x="130" y="106" width="4" height="18" fill="var(--err)"/>
-        <text class="sm" x="142" y="120" fill="var(--ink-dim)">vài ms — gộp chung sẽ làm API trông NHANH hơn thực tế</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 250" role="img" aria-label="Request đặt hàng chờ connection tối đa 3 giây rồi nhận 503, so với lỗi trả về ngay"><text x="40" y="26" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">VÌ SAO LATENCY CỦA REQUEST LỖI PHẢI TÁCH RIÊNG</text><text x="40" y="82" text-anchor="start" class="bb-m" style="font-weight:700">POST /orders</text><rect x="200" y="60" width="860" height="34" rx="6" fill="url(#bb-hatch)" fill-opacity=".5" stroke="#ea580c" stroke-width="2" stroke-dasharray="7 5"/><text x="630" y="82" text-anchor="middle" class="bb-a" fill="#ea580c" style="fill:#ea580c">chờ connection từ pool (tối đa 3.000 ms)</text><text x="1060" y="118" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">timeout → 503 · p99 lỗi = 3.040 ms</text><text x="40" y="168" text-anchor="start" style="font-weight:700">lỗi trả ngay</text><rect x="200" y="150" width="6" height="30" rx="2" fill="#dc2626"/><text x="218" y="170" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">vài ms — gộp chung sẽ làm API trông NHANH hơn thực tế</text><path d="M200,212 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="200.0" y="236" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">0</text><text x="486.6666666666667" y="236" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">1 s</text><text x="773.3333333333334" y="236" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">2 s</text><text x="1060.0" y="236" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">3 s</text></svg></div></div>
       <div class="fig-cap">Hình 7 — Lỗi chậm lẫn vào nhóm thành công chậm; lỗi nhanh kéo percentile xuống — gộp kiểu nào cũng sai</div>
     </div>
 
@@ -450,84 +360,8 @@ Mẫu số là request POST /orders:   90 lỗi ÷  1.200 request = <span class=
     <h2 class="c-sat">CPU mới 45%, nhưng request đã phải xếp hàng chờ connection</h2>
     <p class="desc"><b>Utilization</b> trả lời "tài nguyên đang bận tới mức nào" — với CPU là % thời gian CPU bận, với pool là số connection đang dùng trên 20. <b>Saturation</b> trả lời câu khác: "có bao nhiêu việc đang <b>xếp hàng</b> vì tài nguyên đã dùng hết" — với pool là số request đang chờ connection, hoặc thời gian chờ. CPU và connection pool là <b>hai tài nguyên khác nhau</b>: request đang chờ connection gần như không tốn CPU, nên CPU thấp không nói gì về hàng chờ ở pool. Và utilization 100% <b>chưa phải</b> saturation — saturation bắt đầu khi có request phải chờ, kể cả khi hàng chờ đứng yên.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 300" role="img" aria-label="Bốn trạng thái của connection pool 20 connection: 14 trên 20 không chờ, 20 trên 20 không chờ, 20 trên 20 với 8 chờ, 20 trên 20 với 25 chờ">
-        <!-- column helper: slots 5x4 at 18px pitch -->
-        <g id="c1">
-          <text class="lb" x="87" y="20" text-anchor="middle" fill="var(--ink-dim)">19:00</text>
-          <g fill="var(--pct)" fill-opacity=".7">
-            <rect x="42" y="34" width="14" height="14" rx="2"/><rect x="60" y="34" width="14" height="14" rx="2"/><rect x="78" y="34" width="14" height="14" rx="2"/><rect x="96" y="34" width="14" height="14" rx="2"/><rect x="114" y="34" width="14" height="14" rx="2"/>
-            <rect x="42" y="52" width="14" height="14" rx="2"/><rect x="60" y="52" width="14" height="14" rx="2"/><rect x="78" y="52" width="14" height="14" rx="2"/><rect x="96" y="52" width="14" height="14" rx="2"/><rect x="114" y="52" width="14" height="14" rx="2"/>
-            <rect x="42" y="70" width="14" height="14" rx="2"/><rect x="60" y="70" width="14" height="14" rx="2"/><rect x="78" y="70" width="14" height="14" rx="2"/><rect x="96" y="70" width="14" height="14" rx="2"/>
-          </g>
-          <g fill="none" stroke="var(--line)" stroke-width="1.5">
-            <rect x="114" y="70" width="14" height="14" rx="2"/><rect x="42" y="88" width="14" height="14" rx="2"/><rect x="60" y="88" width="14" height="14" rx="2"/><rect x="78" y="88" width="14" height="14" rx="2"/><rect x="96" y="88" width="14" height="14" rx="2"/><rect x="114" y="88" width="14" height="14" rx="2"/>
-          </g>
-          <text class="sm" x="85" y="124" text-anchor="middle">pool 14/20</text>
-          <text class="sm" x="85" y="146" text-anchor="middle" fill="var(--ok)">hàng chờ: 0</text>
-        </g>
-
-        <g>
-          <text class="lb" x="262" y="20" text-anchor="middle" fill="var(--ink-dim)">GIẢ ĐỊNH</text>
-          <g fill="var(--pct)" fill-opacity=".7">
-            <rect x="217" y="34" width="14" height="14" rx="2"/><rect x="235" y="34" width="14" height="14" rx="2"/><rect x="253" y="34" width="14" height="14" rx="2"/><rect x="271" y="34" width="14" height="14" rx="2"/><rect x="289" y="34" width="14" height="14" rx="2"/>
-            <rect x="217" y="52" width="14" height="14" rx="2"/><rect x="235" y="52" width="14" height="14" rx="2"/><rect x="253" y="52" width="14" height="14" rx="2"/><rect x="271" y="52" width="14" height="14" rx="2"/><rect x="289" y="52" width="14" height="14" rx="2"/>
-            <rect x="217" y="70" width="14" height="14" rx="2"/><rect x="235" y="70" width="14" height="14" rx="2"/><rect x="253" y="70" width="14" height="14" rx="2"/><rect x="271" y="70" width="14" height="14" rx="2"/><rect x="289" y="70" width="14" height="14" rx="2"/>
-            <rect x="217" y="88" width="14" height="14" rx="2"/><rect x="235" y="88" width="14" height="14" rx="2"/><rect x="253" y="88" width="14" height="14" rx="2"/><rect x="271" y="88" width="14" height="14" rx="2"/><rect x="289" y="88" width="14" height="14" rx="2"/>
-          </g>
-          <text class="sm" x="260" y="124" text-anchor="middle">pool 20/20 = 100%</text>
-          <text class="sm" x="260" y="146" text-anchor="middle" fill="var(--ok)">hàng chờ: 0</text>
-        </g>
-
-        <g>
-          <text class="lb" x="437" y="20" text-anchor="middle" fill="var(--ink-dim)">20:00</text>
-          <g fill="var(--pct)" fill-opacity=".7">
-            <rect x="392" y="34" width="14" height="14" rx="2"/><rect x="410" y="34" width="14" height="14" rx="2"/><rect x="428" y="34" width="14" height="14" rx="2"/><rect x="446" y="34" width="14" height="14" rx="2"/><rect x="464" y="34" width="14" height="14" rx="2"/>
-            <rect x="392" y="52" width="14" height="14" rx="2"/><rect x="410" y="52" width="14" height="14" rx="2"/><rect x="428" y="52" width="14" height="14" rx="2"/><rect x="446" y="52" width="14" height="14" rx="2"/><rect x="464" y="52" width="14" height="14" rx="2"/>
-            <rect x="392" y="70" width="14" height="14" rx="2"/><rect x="410" y="70" width="14" height="14" rx="2"/><rect x="428" y="70" width="14" height="14" rx="2"/><rect x="446" y="70" width="14" height="14" rx="2"/><rect x="464" y="70" width="14" height="14" rx="2"/>
-            <rect x="392" y="88" width="14" height="14" rx="2"/><rect x="410" y="88" width="14" height="14" rx="2"/><rect x="428" y="88" width="14" height="14" rx="2"/><rect x="446" y="88" width="14" height="14" rx="2"/><rect x="464" y="88" width="14" height="14" rx="2"/>
-          </g>
-          <text class="sm" x="435" y="124" text-anchor="middle">pool 20/20</text>
-          <text class="sm" x="435" y="146" text-anchor="middle" fill="var(--sat)">hàng chờ: ~8</text>
-          <g fill="var(--sat)">
-            <circle cx="390" cy="164" r="5"/><circle cx="403" cy="164" r="5"/><circle cx="416" cy="164" r="5"/><circle cx="429" cy="164" r="5"/><circle cx="442" cy="164" r="5"/><circle cx="455" cy="164" r="5"/><circle cx="468" cy="164" r="5"/><circle cx="481" cy="164" r="5"/>
-          </g>
-        </g>
-
-        <g>
-          <text class="lb" x="612" y="20" text-anchor="middle" fill="var(--ink-dim)">21:00</text>
-          <g fill="var(--pct)" fill-opacity=".7">
-            <rect x="567" y="34" width="14" height="14" rx="2"/><rect x="585" y="34" width="14" height="14" rx="2"/><rect x="603" y="34" width="14" height="14" rx="2"/><rect x="621" y="34" width="14" height="14" rx="2"/><rect x="639" y="34" width="14" height="14" rx="2"/>
-            <rect x="567" y="52" width="14" height="14" rx="2"/><rect x="585" y="52" width="14" height="14" rx="2"/><rect x="603" y="52" width="14" height="14" rx="2"/><rect x="621" y="52" width="14" height="14" rx="2"/><rect x="639" y="52" width="14" height="14" rx="2"/>
-            <rect x="567" y="70" width="14" height="14" rx="2"/><rect x="585" y="70" width="14" height="14" rx="2"/><rect x="603" y="70" width="14" height="14" rx="2"/><rect x="621" y="70" width="14" height="14" rx="2"/><rect x="639" y="70" width="14" height="14" rx="2"/>
-            <rect x="567" y="88" width="14" height="14" rx="2"/><rect x="585" y="88" width="14" height="14" rx="2"/><rect x="603" y="88" width="14" height="14" rx="2"/><rect x="621" y="88" width="14" height="14" rx="2"/><rect x="639" y="88" width="14" height="14" rx="2"/>
-          </g>
-          <text class="sm" x="610" y="124" text-anchor="middle">pool 20/20</text>
-          <text class="sm" x="610" y="146" text-anchor="middle" fill="var(--err)">hàng chờ: ~25</text>
-          <g fill="var(--err)">
-            <circle cx="565" cy="164" r="4.5"/><circle cx="577" cy="164" r="4.5"/><circle cx="589" cy="164" r="4.5"/><circle cx="601" cy="164" r="4.5"/><circle cx="613" cy="164" r="4.5"/><circle cx="625" cy="164" r="4.5"/><circle cx="637" cy="164" r="4.5"/><circle cx="649" cy="164" r="4.5"/><circle cx="661" cy="164" r="4.5"/>
-            <circle cx="565" cy="176" r="4.5"/><circle cx="577" cy="176" r="4.5"/><circle cx="589" cy="176" r="4.5"/><circle cx="601" cy="176" r="4.5"/><circle cx="613" cy="176" r="4.5"/><circle cx="625" cy="176" r="4.5"/><circle cx="637" cy="176" r="4.5"/><circle cx="649" cy="176" r="4.5"/><circle cx="661" cy="176" r="4.5"/>
-            <circle cx="565" cy="188" r="4.5"/><circle cx="577" cy="188" r="4.5"/><circle cx="589" cy="188" r="4.5"/><circle cx="601" cy="188" r="4.5"/><circle cx="613" cy="188" r="4.5"/><circle cx="625" cy="188" r="4.5"/><circle cx="637" cy="188" r="4.5"/>
-          </g>
-        </g>
-
-        <!-- verdict row -->
-        <line class="grid" x1="20" y1="206" x2="680" y2="206"/>
-        <text class="lb" x="85" y="226" text-anchor="middle" fill="var(--ok)">CHƯA SATURATION</text>
-        <text class="lb" x="260" y="226" text-anchor="middle" fill="var(--ok)">UTIL 100% ≠ SATURATION</text>
-        <text class="lb" x="435" y="226" text-anchor="middle" fill="var(--sat)">ĐÃ SATURATION</text>
-        <text class="lb" x="610" y="226" text-anchor="middle" fill="var(--err)">SATURATION TĂNG</text>
-        <!-- CPU bars -->
-        <text class="sm" x="20" y="256">CPU</text>
-        <rect x="40" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="40" y="246" width="30" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
-        <text class="sm" x="85" y="276" text-anchor="middle">30%</text>
-        <text class="sm" x="260" y="256" text-anchor="middle">—</text>
-        <rect x="385" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="385" y="246" width="40" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
-        <text class="sm" x="435" y="276" text-anchor="middle">40%</text>
-        <rect x="560" y="246" width="100" height="10" rx="4" fill="var(--panel)" stroke="var(--line)"/><rect x="560" y="246" width="45" height="10" rx="4" fill="var(--ok)" fill-opacity=".6"/>
-        <text class="sm" x="610" y="276" text-anchor="middle">45% — vẫn "xanh"</text>
-        <text class="sm" x="350" y="296" text-anchor="middle">■ connection đang dùng   □ connection rảnh   ● request đang chờ connection</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>connection đang dùng</span><span><i class="sw" style="background:#f1f5f9;border-color:#94a3b8"></i>connection rảnh</span><span><i class="sw" style="background:#fee2e2;border-color:#dc2626"></i>request đang chờ connection</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 355" role="img" aria-label="Bốn trạng thái của connection pool 20 connection theo thời gian, so với CPU"><text x="150" y="30" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800;font-size:13px">19:00</text><rect x="92" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="116" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="140" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="164" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="188" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="92" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="116" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="140" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="164" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="188" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="92" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="116" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="140" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="164" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="188" y="94" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><rect x="92" y="118" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><rect x="116" y="118" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><rect x="140" y="118" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><rect x="164" y="118" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><rect x="188" y="118" width="20" height="20" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/><text x="150" y="160" text-anchor="middle" style="font-weight:700;font-size:13px">pool 14/20</text><text x="150" y="180" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">hàng chờ: 0</text><rect x="32" y="252" width="236" height="34" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="150.0" y="274" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">CHƯA SATURATION</text><text x="32" y="318" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">CPU</text><rect x="70" y="306" width="160" height="14" rx="7" fill="#fff" stroke="#94a3b8" stroke-width="2"/><rect x="70" y="306" width="48.0" height="14" rx="7" fill="#16a34a" fill-opacity=".7"/><text x="150" y="342" text-anchor="middle" style="font-weight:600">30%</text><text x="416" y="30" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800;font-size:13px">GIẢ ĐỊNH</text><rect x="358" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="382" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="406" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="430" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="454" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="358" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="382" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="406" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="430" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="454" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="358" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="382" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="406" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="430" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="454" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="358" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="382" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="406" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="430" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="454" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="416" y="160" text-anchor="middle" style="font-weight:700;font-size:13px">pool 20/20 = 100%</text><text x="416" y="180" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">hàng chờ: 0</text><rect x="298" y="252" width="236" height="34" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="416.0" y="274" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">UTIL 100% ≠ SATURATION</text><text x="416" y="318" text-anchor="middle" fill="#64748b" style="fill:#64748b">—</text><text x="682" y="30" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800;font-size:13px">20:00</text><rect x="624" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="648" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="672" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="696" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="720" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="624" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="648" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="672" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="696" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="720" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="624" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="648" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="672" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="696" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="720" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="624" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="648" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="672" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="696" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="720" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="682" y="160" text-anchor="middle" style="font-weight:700;font-size:13px">pool 20/20</text><text x="682" y="180" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:13px">hàng chờ: ~8</text><circle cx="626" cy="198" r="5" fill="#ea580c"/><circle cx="640" cy="198" r="5" fill="#ea580c"/><circle cx="654" cy="198" r="5" fill="#ea580c"/><circle cx="668" cy="198" r="5" fill="#ea580c"/><circle cx="682" cy="198" r="5" fill="#ea580c"/><circle cx="696" cy="198" r="5" fill="#ea580c"/><circle cx="710" cy="198" r="5" fill="#ea580c"/><circle cx="724" cy="198" r="5" fill="#ea580c"/><rect x="564" y="252" width="236" height="34" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="682.0" y="274" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">ĐÃ SATURATION</text><text x="564" y="318" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">CPU</text><rect x="602" y="306" width="160" height="14" rx="7" fill="#fff" stroke="#94a3b8" stroke-width="2"/><rect x="602" y="306" width="64.0" height="14" rx="7" fill="#16a34a" fill-opacity=".7"/><text x="682" y="342" text-anchor="middle" style="font-weight:600">40%</text><text x="948" y="30" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800;font-size:13px">21:00</text><rect x="890" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="914" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="938" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="962" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="986" y="46" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="890" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="914" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="938" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="962" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="986" y="70" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="890" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="914" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="938" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="962" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="986" y="94" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="890" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="914" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="938" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="962" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><rect x="986" y="118" width="20" height="20" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="948" y="160" text-anchor="middle" style="font-weight:700;font-size:13px">pool 20/20</text><text x="948" y="180" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">hàng chờ: ~25</text><circle cx="892" cy="198" r="5" fill="#dc2626"/><circle cx="906" cy="198" r="5" fill="#dc2626"/><circle cx="920" cy="198" r="5" fill="#dc2626"/><circle cx="934" cy="198" r="5" fill="#dc2626"/><circle cx="948" cy="198" r="5" fill="#dc2626"/><circle cx="962" cy="198" r="5" fill="#dc2626"/><circle cx="976" cy="198" r="5" fill="#dc2626"/><circle cx="990" cy="198" r="5" fill="#dc2626"/><circle cx="1004" cy="198" r="5" fill="#dc2626"/><circle cx="892" cy="212" r="5" fill="#dc2626"/><circle cx="906" cy="212" r="5" fill="#dc2626"/><circle cx="920" cy="212" r="5" fill="#dc2626"/><circle cx="934" cy="212" r="5" fill="#dc2626"/><circle cx="948" cy="212" r="5" fill="#dc2626"/><circle cx="962" cy="212" r="5" fill="#dc2626"/><circle cx="976" cy="212" r="5" fill="#dc2626"/><circle cx="990" cy="212" r="5" fill="#dc2626"/><circle cx="1004" cy="212" r="5" fill="#dc2626"/><circle cx="892" cy="226" r="5" fill="#dc2626"/><circle cx="906" cy="226" r="5" fill="#dc2626"/><circle cx="920" cy="226" r="5" fill="#dc2626"/><circle cx="934" cy="226" r="5" fill="#dc2626"/><circle cx="948" cy="226" r="5" fill="#dc2626"/><circle cx="962" cy="226" r="5" fill="#dc2626"/><circle cx="976" cy="226" r="5" fill="#dc2626"/><rect x="830" y="252" width="236" height="34" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="948.0" y="274" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">SATURATION TĂNG</text><text x="830" y="318" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:700">CPU</text><rect x="868" y="306" width="160" height="14" rx="7" fill="#fff" stroke="#94a3b8" stroke-width="2"/><rect x="868" y="306" width="72.0" height="14" rx="7" fill="#16a34a" fill-opacity=".7"/><text x="948" y="342" text-anchor="middle" style="font-weight:600">45% — vẫn “xanh”</text></svg></div></div>
       <div class="fig-cap">Hình 8 — Hàng chờ ở pool tăng 0 → 8 → 25 trong khi CPU chỉ nhích 30 → 45%</div>
     </div>
 

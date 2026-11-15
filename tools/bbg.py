@@ -100,7 +100,9 @@ DEFS = ("<!-- bbg:defs -->\n<svg width=\"0\" height=\"0\" style=\"position:absol
 def t(x, y, s, cls="", anchor="middle", fill=None, weight=None, size=None, raw=False):
     a = f' class="{cls}"' if cls else ""
     st = []
-    if fill: a += f' fill="{fill}"'
+    if fill:
+        a += f' fill="{fill}"'
+        st.append(f"fill:{fill}")
     if weight: st.append(f"font-weight:{weight}")
     if size: st.append(f"font-size:{size}px")
     if st: a += f' style="{";".join(st)}"'
