@@ -325,5 +325,18 @@ window.LESSONS = [
     "title": "TCP và UDP: tin cậy hay tốc độ",
     "description": "TCP sắp thứ tự, gửi lại gói mất, three-way handshake và chi phí; UDP nhanh, không bảo đảm, dùng cho live stream, game, DNS.",
     "readTime": "10 phút đọc"
+  },
+  {
+    "id": "nc-05",
+    "path": "system-design/neetcode-beginner/nc-05.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 5,
+    "title": "DNS: từ domain tới IP",
+    "description": "DNS như danh bạ, nslookup, ICANN và registrar, A record, cache IP, server là gì và cấu trúc một URL.",
+    "readTime": "11 phút đọc"
   }
 ];
