@@ -286,5 +286,18 @@ window.LESSONS = [
     "title": "Kiến trúc ứng dụng: server, storage, scaling, log, metrics, alert",
     "description": "Bức tranh mức cao của một app production: từ CI/CD tới server, load balancer, storage, log, metrics và alert.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "nc-02",
+    "path": "system-design/neetcode-beginner/nc-02.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 2,
+    "title": "Yêu cầu thiết kế: availability, reliability, throughput, latency",
+    "description": "Move, store, transform dữ liệu; đo hệ thống bằng availability (nines, SLO/SLA), reliability, throughput và latency.",
+    "readTime": "18 phút đọc"
   }
 ];
