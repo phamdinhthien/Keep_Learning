@@ -90,11 +90,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -109,38 +195,8 @@
   <h1>Dashboard báo <span class="a">40 req/s</span>, nhưng nginx trả 502 vì <span class="b">900 req/s</span> trong 3 phút</h1>
   <div class="sub">Số trung bình không sai — nó chỉ không nói được gì về đợt tải cao điểm. Mỗi phần gồm sơ đồ → cơ chế → ví dụ số liệu thật của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 215" role="img" aria-label="Request đi từ job push qua nginx, app, Postgres; nginx ghi access log">
-      <rect class="box" x="14" y="30" width="120" height="52" rx="8" stroke="var(--grow)"/>
-      <text class="sm" x="74" y="52" text-anchor="middle" fill="var(--grow)">JOB PUSH 20:00</text>
-      <text class="sm" x="74" y="70" text-anchor="middle">1.200.000 người</text>
-      <path class="ln" d="M134,56 L170,56" marker-end="url(#a-dim)"/>
-
-      <rect class="box" x="174" y="30" width="110" height="52" rx="8"/>
-      <text class="sm" x="229" y="52" text-anchor="middle">NGƯỜI DÙNG</text>
-      <text class="sm" x="229" y="70" text-anchor="middle">bấm vào push</text>
-      <path class="ln" d="M284,56 L320,56" marker-end="url(#a-dim)"/>
-
-      <rect class="box" x="324" y="30" width="110" height="52" rx="8" stroke="var(--cmd)"/>
-      <text class="sm" x="379" y="52" text-anchor="middle" fill="var(--cmd)">NGINX</text>
-      <text class="sm" x="379" y="70" text-anchor="middle">ghi access log</text>
-      <path class="ln" d="M434,56 L470,56" marker-end="url(#a-dim)"/>
-
-      <rect class="box" x="474" y="30" width="90" height="52" rx="8" stroke="var(--peak)"/>
-      <text class="sm" x="519" y="52" text-anchor="middle" fill="var(--peak)">APP</text>
-      <text class="sm" x="519" y="70" text-anchor="middle">chịu ~300/s</text>
-      <path class="ln" d="M564,56 L590,56" marker-end="url(#a-dim)"/>
-
-      <rect class="box" x="594" y="30" width="92" height="52" rx="8" stroke="var(--spec)"/>
-      <text class="sm" x="640" y="52" text-anchor="middle" fill="var(--spec)">POSTGRES</text>
-      <text class="sm" x="640" y="70" text-anchor="middle">giữ state</text>
-
-      <path class="ln ln-d" stroke="var(--peak)" d="M379,82 L379,128 L519,128 L519,86" marker-end="url(#a-peak)"/>
-      <text class="sm" x="450" y="148" text-anchor="middle" fill="var(--peak)">900 req/s &gt; 300 → nginx trả 502</text>
-
-      <rect class="box" x="150" y="168" width="400" height="34" rx="8"/>
-      <text class="sm" x="350" y="190" text-anchor="middle">Dashboard theo ngày: 40 req/s ≈ 13% mức chịu được → "dư sức"</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="Request đi từ job push qua nginx, app, Postgres; nginx ghi access log"><g class="bb-node" transform="translate(20,50)"><rect width="180" height="96" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-clock" x="73.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Job push 20:00</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">1.200.000 người</text></g><path class="bb-ar" d="M204,98 H238" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(242,50)"><rect width="180" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-phone" x="73.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Người dùng</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">bấm vào push</text></g><path class="bb-ar" d="M426,98 H460" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(464,50)"><rect width="180" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="73.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">nginx</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">ghi access log</text></g><path class="bb-ar" d="M648,98 H682" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(686,50)"><rect width="180" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">App</text><text x="90.0" y="84" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">chịu ~300/s</text></g><path class="bb-ar" d="M870,98 H904" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(908,50)"><rect width="180" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="73.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="90.0" y="66" text-anchor="middle" class="bb-l">Postgres</text><text x="90.0" y="84" text-anchor="middle" class="bb-s">giữ state</text></g><path class="bb-ar d" d="M776,150 V190 H554 V150" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="665" y="214" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">900 req/s &gt; 300 → nginx trả 502</text><rect x="200" y="240" width="700" height="50" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="550.0" y="270" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:14px">Dashboard theo ngày: 40 req/s ≈ 13% mức chịu được → “dư sức”</text></svg></div></div>
     <div class="fig-cap">Hình 1 — Request đi qua ba chặng; nginx ghi lại từng request, và access log là nguồn số liệu cho cả bài</div>
   </div>
 
@@ -161,31 +217,8 @@
     <h2 class="c-peak">Trung bình theo ngày che mất đợt burst 3 phút</h2>
     <p class="desc">Cả ngày 02/10 có <b>3.456.000 request</b> (40 × 86.400 giây). Burst lúc 20:00 là <b>900 × 180 = 162.000 request</b> — chỉ khoảng <b>4,7%</b> số request của ngày, dồn vào <b>0,21%</b> thời gian. Khi chia đều cho 86.400 giây, phần 4,7% ấy bị trải mỏng và gần như không làm số trung bình nhích lên. Vì vậy dashboard vẫn phẳng ở 40 trong khi ba phút đó nginx trả 502.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 240" role="img" aria-label="Biểu đồ request/giây theo từng phút quanh 20:00 ngày 02/10">
-        <line x1="60" y1="200" x2="660" y2="200" stroke="var(--line)" stroke-width="1.5"/>
-        <!-- 900 -> 150px ; 60 -> 10px ; 300 -> 50px -->
-        <rect x="90"  y="190" width="70" height="10"  fill="var(--avg)"  opacity=".8"/>
-        <rect x="190" y="50"  width="70" height="150" fill="var(--peak)"/>
-        <rect x="290" y="50"  width="70" height="150" fill="var(--peak)"/>
-        <rect x="390" y="50"  width="70" height="150" fill="var(--peak)"/>
-        <rect x="490" y="190" width="70" height="10"  fill="var(--avg)"  opacity=".8"/>
-        <line x1="60" y1="150" x2="660" y2="150" stroke="var(--cmd)" stroke-width="1.5" stroke-dasharray="6 4"/>
-        <text class="sm" x="662" y="146" text-anchor="end" fill="var(--cmd)">mức chịu được: 300</text>
-        <line x1="60" y1="194" x2="660" y2="194" stroke="var(--avg)" stroke-width="1" stroke-dasharray="2 4"/>
-        <text class="sm" x="658" y="186" text-anchor="end" fill="var(--avg)">TB theo ngày: 40</text>
-        <text class="sm" x="125" y="182" text-anchor="middle">60</text>
-        <text class="sm" x="225" y="42" text-anchor="middle" fill="var(--peak)">900</text>
-        <text class="sm" x="325" y="42" text-anchor="middle" fill="var(--peak)">900</text>
-        <text class="sm" x="425" y="42" text-anchor="middle" fill="var(--peak)">900</text>
-        <text class="sm" x="525" y="182" text-anchor="middle">60</text>
-        <text class="sm" x="125" y="218" text-anchor="middle">19:59</text>
-        <text class="sm" x="225" y="218" text-anchor="middle">20:00</text>
-        <text class="sm" x="325" y="218" text-anchor="middle">20:01</text>
-        <text class="sm" x="425" y="218" text-anchor="middle">20:02</text>
-        <text class="sm" x="525" y="218" text-anchor="middle">20:03</text>
-        <text class="sm" x="225" y="20" fill="var(--peak)">502 từ 20:00:02 → 20:02:58</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 315" style="min-width:758px" role="img" aria-label="Biểu đồ request/giây theo từng phút quanh 20:00 ngày 02/10"><text x="540" y="26" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">502 từ 20:00:02 → 20:02:58</text><path d="M305,46 v-6 h470 v6" fill="none" stroke="#dc2626" stroke-width="2.5"/><rect x="125" y="266.6666666666667" width="110" height="13.333333333333334" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="180" y="258.6666666666667" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:14px">60</text><text x="180" y="302" text-anchor="middle" style="font-weight:700;font-size:13px">19:59</text><rect x="305" y="80.0" width="110" height="200.0" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="360" y="72.0" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">900</text><text x="360" y="302" text-anchor="middle" style="font-weight:700;font-size:13px">20:00</text><rect x="485" y="80.0" width="110" height="200.0" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="540" y="72.0" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">900</text><text x="540" y="302" text-anchor="middle" style="font-weight:700;font-size:13px">20:01</text><rect x="665" y="80.0" width="110" height="200.0" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="720" y="72.0" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">900</text><text x="720" y="302" text-anchor="middle" style="font-weight:700;font-size:13px">20:02</text><rect x="845" y="266.6666666666667" width="110" height="13.333333333333334" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="900" y="258.6666666666667" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:14px">60</text><text x="900" y="302" text-anchor="middle" style="font-weight:700;font-size:13px">20:03</text><path d="M90,280 H1000" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M90,213 H1000" stroke="#0d9488" stroke-width="2.5" stroke-dasharray="8 5"/><text x="1000" y="207.33333333333334" text-anchor="end" class="bb-a" fill="#0d9488" style="fill:#0d9488">mức chịu được: 300</text><path d="M90,271 H1000" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 4"/><text x="1008" y="276" text-anchor="start" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">TB ngày: 40</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Ba cột 900 req/s vượt xa vạch 300 và trùng khít khung giờ nginx trả 502</div>
     </div>
 
@@ -236,25 +269,8 @@ Phút 20:01: 54.000 / 60 giây                 = <span class="bad">900 req/s</sp
     <h2 class="c-cmd">Tìm phút đông nhất bằng một lệnh awk trên access log</h2>
     <p class="desc">Với log combined của nginx, thời điểm nằm ở trường thứ 4, dạng <code>[02/Oct/2026:20:01:13 +0700]</code>. Bỏ ký tự <code>[</code> rồi lấy 17 ký tự — <code>substr($4, 2, 17)</code> — được chuỗi chỉ còn tới phút. <code>sort | uniq -c</code> gom và đếm các dòng giống nhau, <code>sort -rn</code> xếp từ lớn xuống nhỏ. Log dạng JSON hay log của app chỉ cần đổi cách lấy chuỗi thời điểm, phần đếm giữ nguyên.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 150" role="img" aria-label="Pipeline đếm request theo phút từ access log">
-        <rect class="box" x="10" y="40" width="130" height="62" rx="8"/>
-        <text class="sm" x="75" y="64" text-anchor="middle">DÒNG LOG</text>
-        <text class="sm" x="75" y="82" text-anchor="middle">[02/Oct:20:01:13]</text>
-        <path class="ln" stroke="var(--cmd)" d="M140,71 L172,71" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="176" y="40" width="130" height="62" rx="8" stroke="var(--cmd)"/>
-        <text class="sm" x="241" y="64" text-anchor="middle" fill="var(--cmd)">substr($4,2,17)</text>
-        <text class="sm" x="241" y="82" text-anchor="middle">02/Oct/2026:20:01</text>
-        <path class="ln" stroke="var(--cmd)" d="M306,71 L338,71" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="342" y="40" width="130" height="62" rx="8" stroke="var(--cmd)"/>
-        <text class="sm" x="407" y="64" text-anchor="middle" fill="var(--cmd)">sort | uniq -c</text>
-        <text class="sm" x="407" y="82" text-anchor="middle">54000 …20:01</text>
-        <path class="ln" stroke="var(--cmd)" d="M472,71 L504,71" marker-end="url(#a-cmd)"/>
-        <rect class="box" x="508" y="40" width="180" height="62" rx="8" stroke="var(--peak)"/>
-        <text class="sm" x="598" y="64" text-anchor="middle" fill="var(--peak)">54.000 ÷ 60 giây</text>
-        <text class="sm" x="598" y="82" text-anchor="middle">= 900 request/giây</text>
-        <text class="sm" x="350" y="132" text-anchor="middle">cắt tới phút → đếm mỗi phút → chia 60 giây</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 200" style="min-width:758px" role="img" aria-label="Pipeline đếm request theo phút từ access log"><g class="bb-node" transform="translate(20,40)"><rect width="230" height="100" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-doc" x="98.0" y="14" width="34" height="34" style="color:#94a3b8"/><text x="115.0" y="68" text-anchor="middle" class="bb-l">Dòng log</text><text x="115.0" y="86" text-anchor="middle" class="bb-s">[02/Oct:20:01:13]</text></g><path class="bb-ar" d="M254,90 H292" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(296,40)"><rect width="230" height="100" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-terminal" x="98.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="115.0" y="68" text-anchor="middle" class="bb-l bb-m">substr($4,2,17)</text><text x="115.0" y="86" text-anchor="middle" class="bb-s">02/Oct/2026:20:01</text></g><path class="bb-ar" d="M530,90 H568" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(572,40)"><rect width="230" height="100" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-terminal" x="98.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="115.0" y="68" text-anchor="middle" class="bb-l bb-m">sort | uniq -c</text><text x="115.0" y="86" text-anchor="middle" class="bb-s">54000 …20:01</text></g><path class="bb-ar" d="M806,90 H844" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(848,40)"><rect width="232" height="100" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-gauge" x="99.0" y="14" width="34" height="34" style="color:#dc2626"/><text x="116.0" y="68" text-anchor="middle" class="bb-l">54.000 ÷ 60 giây</text><text x="116.0" y="86" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">= 900 request/giây</text></g><text x="550" y="182" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">cắt tới phút → đếm mỗi phút → chia 60 giây</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Từ một dòng log tới con số request/giây của từng phút</div>
     </div>
 
@@ -312,28 +328,8 @@ awk <span class="val">'{ print substr($4, 2, 17) }'</span> /var/log/nginx/access
     <h2 class="c-grow">Peak tăng theo nguyên nhân sinh ra nó, không theo số trung bình</h2>
     <p class="desc">Trung bình theo ngày tăng 5%/tháng: sau 6 tháng chỉ <b>40 × 1,05⁶ ≈ 54 req/s</b>, còn xa mức 300 nên không ai lo. Nhưng peak không sinh ra từ số trung bình — nó sinh ra từ push. Phần tải do push tạo ra là <b>(900 − 60) × 180 = 151.200 lượt</b> mở trang, tức <b>12,6%</b> trong 1.200.000 người nhận. Marketing dự kiến danh sách tăng 50% lên 1.800.000; giữ nguyên 12,6% thì có 226.800 lượt, vẫn dồn vào 3 phút.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 215" role="img" aria-label="So sánh dự báo theo trung bình và dự báo theo số người nhận push">
-        <rect class="box" x="20" y="20" width="310" height="160" rx="10"/>
-        <text class="lb" x="175" y="42" text-anchor="middle" fill="var(--avg)">DỰ BÁO SAI — THEO TRUNG BÌNH</text>
-        <rect class="box" x="40" y="62" width="120" height="48" rx="8" stroke="var(--avg)"/>
-        <text class="sm" x="100" y="83" text-anchor="middle">TB hôm nay</text><text x="100" y="101" text-anchor="middle" fill="var(--avg)">40</text>
-        <path class="ln" stroke="var(--avg)" d="M160,86 L190,86" marker-end="url(#a-dim)"/>
-        <rect class="box" x="194" y="62" width="120" height="48" rx="8" stroke="var(--avg)"/>
-        <text class="sm" x="254" y="83" text-anchor="middle">sau 6 tháng</text><text x="254" y="101" text-anchor="middle" fill="var(--avg)">54</text>
-        <text class="sm" x="175" y="140" text-anchor="middle">"vẫn xa 300, yên tâm"</text>
-        <text class="sm" x="175" y="160" text-anchor="middle" fill="var(--peak)">✗ không liên quan tới peak</text>
-
-        <rect class="box" x="370" y="20" width="310" height="160" rx="10" stroke="var(--grow)"/>
-        <text class="lb" x="525" y="42" text-anchor="middle" fill="var(--grow)">DỰ BÁO ĐÚNG — THEO NGUYÊN NHÂN</text>
-        <rect class="box" x="390" y="62" width="120" height="48" rx="8" stroke="var(--grow)"/>
-        <text class="sm" x="450" y="83" text-anchor="middle">người nhận push</text><text x="450" y="101" text-anchor="middle" fill="var(--grow)">1,2 → 1,8 tr</text>
-        <path class="ln" stroke="var(--grow)" d="M510,86 L540,86" marker-end="url(#a-grow)"/>
-        <rect class="box" x="544" y="62" width="120" height="48" rx="8" stroke="var(--peak)"/>
-        <text class="sm" x="604" y="83" text-anchor="middle">peak sau 6 tháng</text><text x="604" y="101" text-anchor="middle" fill="var(--peak)">1.320</text>
-        <text class="sm" x="525" y="140" text-anchor="middle">226.800 / 180 + 60 = 1.320 req/s</text>
-        <text class="sm" x="525" y="160" text-anchor="middle" fill="var(--cmd)">✓ 440% mức chịu được</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="So sánh dự báo theo trung bình và dự báo theo số người nhận push"><rect class="bb-grp" x="20" y="40" width="510" height="250" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">DỰ BÁO SAI — THEO TRUNG BÌNH</text></g><g class="bb-node" transform="translate(45,76)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-chart" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">40 req/s</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">TB hôm nay</text></g><path class="bb-ar" d="M249,124 H301" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(305,76)"><rect width="200" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-chart" x="83.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">54 req/s</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">sau 6 tháng</text></g><text x="275" y="216" text-anchor="middle" style="font-weight:700;font-size:14px">“vẫn xa 300, yên tâm”</text><text x="275" y="246" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">✗ không liên quan tới peak</text><rect class="bb-grp" x="570" y="40" width="510" height="250" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="270" height="24" rx="12" fill="#1e293b"/><text x="135.0" y="16.5" text-anchor="middle">DỰ BÁO ĐÚNG — THEO NGUYÊN NHÂN</text></g><g class="bb-node" transform="translate(595,76)"><rect width="200" height="96" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-people" x="83.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">1,2 → 1,8 tr</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">người nhận push</text></g><path class="bb-ar" d="M799,124 H851" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(855,76)"><rect width="200" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-chart" x="83.0" y="12" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">1.320 req/s</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">peak sau 6 tháng</text></g><text x="825" y="216" text-anchor="middle" class="bb-m" style="font-weight:700;font-size:13px">226.800 / 180 + 60 = 1.320 req/s</text><text x="825" y="246" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">✓ 440% mức chịu được</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Cùng một app, hai cách dự báo cho hai kết luận cách nhau 24 lần</div>
     </div>
 
