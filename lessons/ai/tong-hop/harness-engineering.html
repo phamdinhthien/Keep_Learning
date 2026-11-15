@@ -136,11 +136,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/ai">AI</a><span>›</span><a href="../../../index.html#/ai/tong-hop">Tổng hợp</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -156,39 +242,8 @@
   <h1>Agent = <span class="a">Model</span> + <span class="b">Harness</span>: tất cả những gì bao quanh bộ não</h1>
   <div class="sub">Từ Prompt Engineering → Context Engineering → Harness Engineering, 9 thành phần bên trong một harness, và cách áp dụng — xuyên suốt bằng ví dụ quán phở.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 230" role="img" aria-label="Agent bằng model cộng harness gồm 9 thành phần">
-      <rect class="box" x="10" y="64" width="140" height="110" rx="8" stroke="var(--evo)"/>
-      <text class="b" x="80" y="96" text-anchor="middle" fill="var(--evo)">MODEL</text>
-      <text class="sm" x="80" y="116" text-anchor="middle">bộ não · anh đầu bếp</text>
-      <text class="sm" x="80" y="134" text-anchor="middle">GPT · Gemini</text>
-      <text class="sm" x="80" y="148" text-anchor="middle">Haiku · Sonnet · Opus</text>
-      <text class="b" x="170" y="125" text-anchor="middle" fill="var(--ink-dim)">+</text>
-
-      <rect class="band" x="190" y="24" width="500" height="190" rx="10" stroke="var(--ink-dim)"/>
-      <text class="b" x="204" y="42" fill="var(--evo)">HARNESS · 9 THÀNH PHẦN · căn bếp trọn gói</text>
-
-      <rect class="box" x="205" y="52" width="150" height="44" rx="6" stroke="var(--loop)"/>
-      <text class="sm" x="215" y="68" fill="var(--loop)">01</text><text x="215" y="86" style="font-size:11px">Vòng lặp chính</text>
-      <rect class="box" x="365" y="52" width="150" height="44" rx="6" stroke="var(--loop)"/>
-      <text class="sm" x="375" y="68" fill="var(--loop)">02</text><text x="375" y="86" style="font-size:11px">Quản lý ngữ cảnh</text>
-      <rect class="box" x="525" y="52" width="150" height="44" rx="6" stroke="var(--tool)"/>
-      <text class="sm" x="535" y="68" fill="var(--tool)">03</text><text x="535" y="86" style="font-size:11px">Công cụ &amp; kỹ năng</text>
-
-      <rect class="box" x="205" y="104" width="150" height="44" rx="6" stroke="var(--tool)"/>
-      <text class="sm" x="215" y="120" fill="var(--tool)">04</text><text x="215" y="138" style="font-size:11px">Agent con</text>
-      <rect class="box" x="365" y="104" width="150" height="44" rx="6" stroke="var(--tool)"/>
-      <text class="sm" x="375" y="120" fill="var(--tool)">05</text><text x="375" y="138" style="font-size:11px">Kỹ năng có sẵn</text>
-      <rect class="box" x="525" y="104" width="150" height="44" rx="6" stroke="var(--guard)"/>
-      <text class="sm" x="535" y="120" fill="var(--guard)">06</text><text x="535" y="138" style="font-size:11px">Bộ nhớ phiên</text>
-
-      <rect class="box" x="205" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
-      <text class="sm" x="215" y="172" fill="var(--guard)">07</text><text x="215" y="190" style="font-size:11px">Lắp ráp system prompt</text>
-      <rect class="box" x="365" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
-      <text class="sm" x="375" y="172" fill="var(--guard)">08</text><text x="375" y="190" style="font-size:11px">Điểm móc (hook)</text>
-      <rect class="box" x="525" y="156" width="150" height="44" rx="6" stroke="var(--guard)"/>
-      <text class="sm" x="535" y="172" fill="var(--guard)">09</text><text x="535" y="190" style="font-size:11px">Phân quyền &amp; an toàn</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#dbeafe;border-color:#3b82f6"></i>Vòng lặp &amp; ngữ cảnh (section 02)</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Công cụ &amp; agent con (section 03)</span><span><i class="sw" style="background:#dcfce7;border-color:#16a34a"></i>Bộ nhớ, prompt, hook, quyền (section 04)</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 360" style="min-width:758px" role="img" aria-label="Agent bằng model cộng harness gồm 9 thành phần"><g class="bb-node" transform="translate(20,110)"><rect width="220" height="130" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-bot" x="93.0" y="21" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="75" text-anchor="middle" class="bb-l">Model</text><text x="110.0" y="93" text-anchor="middle" class="bb-s">bộ não · anh đầu bếp</text><text x="110.0" y="109" text-anchor="middle" class="bb-s">GPT · Gemini · Haiku · Sonnet · Opus</text></g><text x="270" y="184" text-anchor="middle" style="font-weight:800;font-size:30px">+</text><rect class="bb-grp" x="300" y="40" width="780" height="300" rx="18"/><g class="bb-gtag" transform="translate(318,28)"><rect width="330" height="24" rx="12" fill="#1e293b"/><text x="165.0" y="16.5" text-anchor="middle">HARNESS · 9 THÀNH PHẦN · căn bếp trọn gói</text></g><rect x="324" y="70" width="234" height="72" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><g class="bb-badge" transform="translate(350,106)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">01</text></g><text x="374" y="111" text-anchor="start" style="font-weight:700;font-size:14px">Vòng lặp chính</text><rect x="574" y="70" width="234" height="72" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><g class="bb-badge" transform="translate(600,106)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">02</text></g><text x="624" y="111" text-anchor="start" style="font-weight:700;font-size:14px">Quản lý ngữ cảnh</text><rect x="824" y="70" width="234" height="72" rx="12" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><g class="bb-badge" transform="translate(850,106)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">03</text></g><text x="874" y="111" text-anchor="start" style="font-weight:700;font-size:14px">Công cụ &amp; kỹ năng</text><rect x="324" y="158" width="234" height="72" rx="12" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><g class="bb-badge" transform="translate(350,194)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">04</text></g><text x="374" y="199" text-anchor="start" style="font-weight:700;font-size:14px">Agent con</text><rect x="574" y="158" width="234" height="72" rx="12" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><g class="bb-badge" transform="translate(600,194)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">05</text></g><text x="624" y="199" text-anchor="start" style="font-weight:700;font-size:14px">Kỹ năng có sẵn</text><rect x="824" y="158" width="234" height="72" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><g class="bb-badge" transform="translate(850,194)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">06</text></g><text x="874" y="199" text-anchor="start" style="font-weight:700;font-size:14px">Bộ nhớ phiên</text><rect x="324" y="246" width="234" height="72" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><g class="bb-badge" transform="translate(350,282)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">07</text></g><text x="374" y="287" text-anchor="start" style="font-weight:700;font-size:14px">Lắp ráp system prompt</text><rect x="574" y="246" width="234" height="72" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><g class="bb-badge" transform="translate(600,282)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">08</text></g><text x="624" y="287" text-anchor="start" style="font-weight:700;font-size:14px">Điểm móc (hook)</text><rect x="824" y="246" width="234" height="72" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><g class="bb-badge" transform="translate(850,282)"><circle r="13"/><text y="4.5" text-anchor="middle" style="font-size:11px">09</text></g><text x="874" y="287" text-anchor="start" style="font-weight:700;font-size:14px">Phân quyền &amp; an toàn</text></svg></div></div>
     <div class="fig-cap">Hình 0 — Model chỉ là bộ não; harness là toàn bộ căn bếp quanh nó (màu = nhóm section 02 · 03 · 04)</div>
   </div>
 
@@ -209,30 +264,8 @@
     <h2 class="c-evo">Prompt → Context → Harness: ba vòng tròn lồng nhau</h2>
     <p class="desc">Công thức cốt lõi: <b>agent = model + harness</b>. Model (GPT, Gemini, Haiku, Opus, Sonnet, Fable) chỉ là bộ não — nhận prompt, trả lời một phát rồi dừng, không trí nhớ ngoài những gì đang nằm trong <b>context window</b>. Ngành AI đi qua ba giai đoạn vì mỗi giai đoạn chạm một giới hạn: bàn bếp bé (2022, ~4.000 token) chỉ đủ để viết phiếu gọi món khéo; bàn lớn dần (tới hàng trăm nghìn rồi hàng triệu token) cho phép bày đúng nguyên liệu; nhưng việc <b>quá dài</b> (nấu cỗ 500 khách, clone cả một trang web) vẫn vỡ vì agent phải tự tóm tắt ngữ cảnh — tóm tắt sai là báo "xong" khi việc còn dở. Harness ra đời để tổ chức cả quá trình. "Harness" nghĩa gốc là <b>bộ yên cương</b> dẫn sức ngựa vào đúng việc; thuật ngữ phổ biến từ đầu 2026. Harness <b>không thay thế</b> prompt/context — nó bao ngoài cả hai.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 260" role="img" aria-label="Ba vòng tròn lồng nhau: prompt nằm trong context nằm trong harness">
-        <circle cx="140" cy="130" r="118" fill="none" stroke="var(--evo)" stroke-width="2"/>
-        <circle cx="140" cy="140" r="78" fill="var(--panel)" stroke="var(--evo)" stroke-width="1.5" stroke-opacity=".7"/>
-        <circle cx="140" cy="158" r="40" fill="#0d0d0f" stroke="var(--evo)" stroke-width="1.5" stroke-opacity=".45"/>
-        <text class="b" x="140" y="34" text-anchor="middle" fill="var(--evo)">3 · HARNESS</text>
-        <text class="b" x="140" y="85" text-anchor="middle" fill="var(--evo)">2 · CONTEXT</text>
-        <text class="b" x="140" y="162" text-anchor="middle" fill="var(--evo)">1 · PROMPT</text>
-
-        <rect class="box" x="290" y="14" width="400" height="68" rx="8" stroke="var(--evo)"/>
-        <text class="b" x="304" y="34" fill="var(--evo)">3 · Harness Engineering · 2026</text>
-        <text class="sm" x="304" y="52">"Cả quán ăn nên vận hành ra sao?"</text>
-        <text class="sm" x="304" y="68">Điều phối + môi trường + quản lý ngữ cảnh</text>
-
-        <rect class="box" x="290" y="96" width="400" height="68" rx="8" stroke="var(--evo)" stroke-opacity=".7"/>
-        <text class="b" x="304" y="116" fill="var(--evo)">2 · Context Engineering</text>
-        <text class="sm" x="304" y="134">"Nên bày gì lên bàn bếp?" · tool calling · MCP · RAG</text>
-        <text class="sm" x="304" y="150">Context window: vài nghìn → hàng trăm nghìn → hàng triệu</text>
-
-        <rect class="box" x="290" y="178" width="400" height="68" rx="8" stroke="var(--evo)" stroke-opacity=".45"/>
-        <text class="b" x="304" y="198" fill="var(--evo)">1 · Prompt Engineering · 2022</text>
-        <text class="sm" x="304" y="216">"Nên viết phiếu gọi món thế nào?" · ~4.000 token</text>
-        <text class="sm" x="304" y="232">Giới hạn: model chỉ trả lời một phát (one-shot)</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 370" style="min-width:758px" role="img" aria-label="Ba lớp lồng nhau: prompt nằm trong context nằm trong harness"><rect x="20" y="20" width="330" height="330" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="185" y="50" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:15px">3 · HARNESS</text><rect x="55" y="70" width="260" height="260" rx="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="185" y="100" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:15px">2 · CONTEXT</text><rect x="95" y="130" width="180" height="170" rx="14" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="185" y="220" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:15px">1 · PROMPT</text><rect x="400" y="20" width="680" height="100" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="424" y="52" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:15px">3 · Harness Engineering · 2026</text><text x="424" y="78" text-anchor="start" style="font-weight:600;font-size:13px">“Cả quán ăn nên vận hành ra sao?”</text><text x="424" y="100" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">Điều phối + môi trường + quản lý ngữ cảnh</text><rect x="400" y="135" width="680" height="100" rx="14" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="424" y="167" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:15px">2 · Context Engineering</text><text x="424" y="193" text-anchor="start" style="font-weight:600;font-size:13px">“Nên bày gì lên bàn bếp?” · tool calling · MCP · RAG</text><text x="424" y="215" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">Context window: vài nghìn → hàng trăm nghìn → hàng triệu</text><rect x="400" y="250" width="680" height="100" rx="14" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="424" y="282" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:15px">1 · Prompt Engineering · 2022</text><text x="424" y="308" text-anchor="start" style="font-weight:600;font-size:13px">“Nên viết phiếu gọi món thế nào?” · ~4.000 token</text><text x="424" y="330" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">Giới hạn: model chỉ trả lời một phát (one-shot)</text></svg></div></div>
       <div class="fig-cap">Hình 1 — Prompt vẫn còn đó, chỉ là một nhánh nhỏ bên trong hệ thống lớn hơn</div>
     </div>
 
@@ -276,39 +309,8 @@ khách không ăn cay"</span></pre>
     <h2 class="c-loop">Thành phần 01–02: động cơ chính và cách dọn bàn bếp</h2>
     <p class="desc"><b>Vòng lặp</b> là nền móng mọi harness — bản chất chỉ là một vòng <code>while</code>: model đọc system prompt, quyết định gọi công cụ nào; harness chạy công cụ, đưa kết quả ngược vào context; lặp lại. Vòng dừng ở một trong hai trường hợp: model trả lời bằng chữ mà <b>không gọi thêm công cụ</b> (đầu bếp hô "món xong"), hoặc chạm <b>giới hạn số vòng</b> để agent không chạy mãi. Mỗi vòng bàn bếp lại đầy thêm; khi gần chạm giới hạn context, harness phải quyết định <b>cái gì giữ nguyên, cái gì tóm tắt, cái gì vứt</b> — bước <b>compaction</b> làm không tốt sẽ gây hậu quả khó lường.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 190" role="img" aria-label="Vòng lặp agent: đọc, chọn công cụ, chạy, nhận kết quả, lặp hoặc dừng">
-        <rect class="box" x="185" y="6" width="150" height="38" rx="6"/>
-        <text class="b" x="260" y="22" text-anchor="middle" fill="var(--ink)">DỪNG 1 ✓</text>
-        <text class="sm" x="260" y="36" text-anchor="middle">model trả lời bằng chữ</text>
-        <rect class="box" x="360" y="6" width="150" height="38" rx="6"/>
-        <text class="b" x="435" y="22" text-anchor="middle" fill="var(--ink)">DỪNG 2 ⚠</text>
-        <text class="sm" x="435" y="36" text-anchor="middle">chạm giới hạn số vòng</text>
-        <path class="ln ln-d" d="M260,70 L260,48" marker-end="url(#a-dim)"/>
-        <path class="ln ln-d" d="M435,70 L435,48" marker-end="url(#a-dim)"/>
-
-        <rect class="box" x="10" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
-        <text class="b" x="85" y="94" text-anchor="middle" fill="var(--loop)">Đọc system prompt</text>
-        <text class="sm" x="85" y="112" text-anchor="middle">&amp; phiếu gọi món</text>
-        <path class="ln" stroke="var(--loop)" d="M160,98 L183,98" marker-end="url(#a-loop)"/>
-
-        <rect class="box" x="185" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
-        <text class="b" x="260" y="94" text-anchor="middle" fill="var(--loop)">Model chọn</text>
-        <text class="sm" x="260" y="112" text-anchor="middle">công cụ cần gọi</text>
-        <path class="ln" stroke="var(--loop)" d="M335,98 L358,98" marker-end="url(#a-loop)"/>
-
-        <rect class="box" x="360" y="70" width="150" height="56" rx="8" stroke="var(--loop)"/>
-        <text class="b" x="435" y="94" text-anchor="middle" fill="var(--loop)">Harness chạy</text>
-        <text class="sm" x="435" y="112" text-anchor="middle">công cụ</text>
-        <path class="ln" stroke="var(--loop)" d="M510,98 L533,98" marker-end="url(#a-loop)"/>
-
-        <rect class="box" x="535" y="70" width="155" height="56" rx="8" stroke="var(--loop)"/>
-        <text class="b" x="612" y="94" text-anchor="middle" fill="var(--loop)">Kết quả quay lại</text>
-        <text class="sm" x="612" y="112" text-anchor="middle">bàn bếp (context)</text>
-
-        <path class="ln" stroke="var(--loop)" d="M612,126 L612,160 L85,160 L85,130" marker-end="url(#a-loop)"/>
-        <text class="sm" x="348" y="153" text-anchor="middle" fill="var(--loop)">lặp lại cho đến khi dừng</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="Vòng lặp agent: đọc, chọn công cụ, chạy, nhận kết quả, lặp hoặc dừng"><g class="bb-node" transform="translate(20,150)"><rect width="236" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-doc" x="101.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="118.0" y="66" text-anchor="middle" class="bb-l">Đọc system prompt</text><text x="118.0" y="84" text-anchor="middle" class="bb-s">&amp; phiếu gọi món</text></g><g class="bb-badge" transform="translate(38,150)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><path class="bb-ar" d="M260,198 H284" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(288,150)"><rect width="236" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-bot" x="101.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="118.0" y="66" text-anchor="middle" class="bb-l">Model chọn</text><text x="118.0" y="84" text-anchor="middle" class="bb-s">công cụ cần gọi</text></g><g class="bb-badge" transform="translate(306,150)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><path class="bb-ar" d="M528,198 H552" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(556,150)"><rect width="236" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-gear" x="101.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="118.0" y="66" text-anchor="middle" class="bb-l">Harness chạy</text><text x="118.0" y="84" text-anchor="middle" class="bb-s">công cụ</text></g><g class="bb-badge" transform="translate(574,150)"><circle r="13"/><text y="4.5" text-anchor="middle">3</text></g><path class="bb-ar" d="M796,198 H820" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(824,150)"><rect width="236" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-layers" x="101.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="118.0" y="66" text-anchor="middle" class="bb-l">Kết quả quay lại</text><text x="118.0" y="84" text-anchor="middle" class="bb-s">bàn bếp (context)</text></g><g class="bb-badge" transform="translate(842,150)"><circle r="13"/><text y="4.5" text-anchor="middle">4</text></g><g class="bb-node" transform="translate(290,20)"><rect width="236" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-check" x="106.0" y="11" width="24" height="24" style="color:#16a34a"/><text x="118.0" y="55" text-anchor="middle" class="bb-l">DỪNG 1 ✓</text><text x="118.0" y="73" text-anchor="middle" class="bb-s">model trả lời bằng chữ</text></g><g class="bb-node" transform="translate(558,20)"><rect width="236" height="84" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-alert" x="106.0" y="11" width="24" height="24" style="color:#ea580c"/><text x="118.0" y="55" text-anchor="middle" class="bb-l">DỪNG 2 ⚠</text><text x="118.0" y="73" text-anchor="middle" class="bb-s">chạm giới hạn số vòng</text></g><path class="bb-ar d" d="M408,146 V108" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M676,146 V108" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M942,250 V290 H138 V250" marker-end="url(#bb-ah-blue)" style="stroke:#3b82f6"/><text x="540" y="282" text-anchor="middle" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">lặp lại cho đến khi dừng</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Tám thành phần còn lại đều xoay quanh và phục vụ vòng lặp này</div>
     </div>
 
@@ -361,35 +363,8 @@ khách không ăn cay"</span></pre>
       </div>
     </div>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 230" role="img" aria-label="Agent chính giao việc cho ba kiểu agent con">
-        <rect class="box" x="250" y="8" width="200" height="44" rx="8" stroke="var(--tool)"/>
-        <text class="b" x="350" y="26" text-anchor="middle" fill="var(--tool)">AGENT CHÍNH · bếp chính</text>
-        <text class="sm" x="350" y="42" text-anchor="middle">giao việc · giới hạn · thu kết quả</text>
-        <path class="ln" stroke="var(--tool)" d="M350,52 L350,80 L120,80 L120,108" marker-end="url(#a-tool)"/>
-        <path class="ln" stroke="var(--tool)" d="M350,52 L350,108" marker-end="url(#a-tool)"/>
-        <path class="ln" stroke="var(--tool)" d="M350,80 L580,80 L580,108" marker-end="url(#a-tool)"/>
-
-        <rect class="box" x="20" y="110" width="200" height="86" rx="8"/>
-        <text class="b" x="120" y="130" text-anchor="middle" fill="var(--tool)">KHÁM PHÁ</text>
-        <text class="sm" x="120" y="150" text-anchor="middle">đi kiểm kho, tìm hiểu</text>
-        <text class="sm" x="120" y="166" text-anchor="middle">chỉ được XEM, không sửa</text>
-        <text class="sm" x="120" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
-
-        <rect class="box" x="250" y="110" width="200" height="86" rx="8"/>
-        <text class="b" x="350" y="130" text-anchor="middle" fill="var(--tool)">LÀM CHUNG</text>
-        <text class="sm" x="350" y="150" text-anchor="middle">việc thông thường</text>
-        <text class="sm" x="350" y="166" text-anchor="middle">bộ dụng cụ giới hạn</text>
-        <text class="sm" x="350" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
-
-        <rect class="box" x="480" y="110" width="200" height="86" rx="8"/>
-        <text class="b" x="580" y="130" text-anchor="middle" fill="var(--tool)">KIỂM TRA</text>
-        <text class="sm" x="580" y="150" text-anchor="middle">nếm thử: món đã</text>
-        <text class="sm" x="580" y="166" text-anchor="middle">đạt yêu cầu chưa</text>
-        <text class="sm" x="580" y="182" text-anchor="middle">bàn riêng · lời dặn riêng</text>
-
-        <text class="sm" x="350" y="218" text-anchor="middle">Phụ bếp bày bừa thế nào cũng được — bàn của bếp chính vẫn gọn, chỉ nhận lại kết quả cuối</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 350" style="min-width:758px" role="img" aria-label="Agent chính giao việc cho ba kiểu agent con"><g class="bb-node" transform="translate(380,20)"><rect width="340" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-bot" x="153.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="170.0" y="66" text-anchor="middle" class="bb-l">Agent chính · bếp chính</text><text x="170.0" y="84" text-anchor="middle" class="bb-s">giao việc · giới hạn · thu kết quả</text></g><path class="bb-ar" d="M550,120 V140 H180 V166" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M550,120 V166" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M550,140 H920 V166" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(20,170)"><rect width="320" height="110" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-bot" x="143.0" y="11" width="34" height="34" style="color:#ea580c"/><text x="160.0" y="65" text-anchor="middle" class="bb-l">Khám phá</text><text x="160.0" y="83" text-anchor="middle" class="bb-s">đi kiểm kho, tìm hiểu</text><text x="160.0" y="99" text-anchor="middle" class="bb-s">chỉ được XEM, không sửa</text></g><text x="180" y="300" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">bàn riêng · lời dặn riêng</text><g class="bb-node" transform="translate(390,170)"><rect width="320" height="110" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-bot" x="143.0" y="11" width="34" height="34" style="color:#ea580c"/><text x="160.0" y="65" text-anchor="middle" class="bb-l">Làm chung</text><text x="160.0" y="83" text-anchor="middle" class="bb-s">việc thông thường</text><text x="160.0" y="99" text-anchor="middle" class="bb-s">bộ dụng cụ giới hạn</text></g><text x="550" y="300" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">bàn riêng · lời dặn riêng</text><g class="bb-node" transform="translate(760,170)"><rect width="320" height="110" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-bot" x="143.0" y="11" width="34" height="34" style="color:#ea580c"/><text x="160.0" y="65" text-anchor="middle" class="bb-l">Kiểm tra</text><text x="160.0" y="83" text-anchor="middle" class="bb-s">nếm thử: món đã</text><text x="160.0" y="99" text-anchor="middle" class="bb-s">đạt yêu cầu chưa</text></g><text x="920" y="300" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">bàn riêng · lời dặn riêng</text><text x="550" y="336" text-anchor="middle" style="font-weight:700;font-size:13px">Phụ bếp bày bừa thế nào cũng được — bàn của bếp chính vẫn gọn, chỉ nhận lại kết quả cuối</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Mỗi agent con có phiên riêng, bộ dụng cụ giới hạn và một lời dặn tập trung</div>
     </div>
 
@@ -418,31 +393,8 @@ khách không ăn cay"</span></pre>
     <div class="bar"><div class="redo" style="width:12%">dòng chèn</div><div class="redo" style="width:88%">toàn bộ phần sau lệch → phải đọc lại từ đầu</div></div>
     <p class="desc" style="margin-top:6px">Nếu phần đầu prompt giống hệt lần trước, model không cần xử lý lại phần đó — nhanh hơn và rẻ hơn. Vì vậy <b>phần tĩnh đặt trước, phần động đặt sau</b>; đảo ngược sẽ phá prefix caching. Đây là một lý do agent chạy hàng trăm vòng mà chi phí vẫn chấp nhận được.</p>
 
-    <div class="fig">
-      <svg viewBox="0 0 700 140" role="img" aria-label="Pre-tool hook chạy trước công cụ, post-tool hook chạy sau">
-        <rect class="box" x="10" y="42" width="120" height="50" rx="8"/>
-        <text class="b" x="70" y="64" text-anchor="middle">Model</text>
-        <text class="sm" x="70" y="80" text-anchor="middle">xin gọi công cụ</text>
-        <path class="ln" stroke="var(--guard)" d="M130,67 L162,67" marker-end="url(#a-guard)"/>
-
-        <rect class="box" x="166" y="42" width="140" height="50" rx="8" stroke="var(--guard)"/>
-        <text class="b" x="236" y="62" text-anchor="middle" fill="var(--guard)">PRE-TOOL HOOK</text>
-        <text class="sm" x="236" y="78" text-anchor="middle">cho phép·chặn·sửa</text>
-        <path class="ln" stroke="var(--guard)" d="M306,67 L338,67" marker-end="url(#a-guard)"/>
-
-        <rect class="box" x="342" y="42" width="120" height="50" rx="8"/>
-        <text class="b" x="402" y="64" text-anchor="middle">Công cụ chạy</text>
-        <text class="sm" x="402" y="80" text-anchor="middle">đã qua kiểm quyền</text>
-        <path class="ln" stroke="var(--guard)" d="M462,67 L494,67" marker-end="url(#a-guard)"/>
-
-        <rect class="box" x="498" y="42" width="192" height="50" rx="8" stroke="var(--guard)"/>
-        <text class="b" x="594" y="62" text-anchor="middle" fill="var(--guard)">POST-TOOL HOOK</text>
-        <text class="sm" x="594" y="78" text-anchor="middle">ghi log · kiểm toán · không chặn</text>
-
-        <path class="ln ln-d" d="M236,42 L236,18 L70,18 L70,38" marker-end="url(#a-dim)"/>
-        <text class="sm" x="150" y="12" text-anchor="middle">bị chặn → báo lại model</text>
-        <text class="sm" x="350" y="124" text-anchor="middle">Giao tiếp: harness gửi JSON vào hook, hook trả exit code để cho phép hoặc từ chối</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 260" style="min-width:758px" role="img" aria-label="Pre-tool hook chạy trước công cụ, post-tool hook chạy sau"><g class="bb-node" transform="translate(20,90)"><rect width="200" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-bot" x="83.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Model</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">xin gọi công cụ</text></g><path class="bb-ar" d="M224,138 H276" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(250,138)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g><g class="bb-node" transform="translate(280,90)"><rect width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-shield" x="98.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Pre-tool hook</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">cho phép · chặn · sửa</text></g><path class="bb-ar" d="M514,138 H566" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(540,138)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g><g class="bb-node" transform="translate(570,90)"><rect width="210" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-terminal" x="88.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="105.0" y="66" text-anchor="middle" class="bb-l">Công cụ chạy</text><text x="105.0" y="84" text-anchor="middle" class="bb-s">đã qua kiểm quyền</text></g><path class="bb-ar" d="M784,138 H836" marker-end="url(#bb-ah)"/><g class="bb-badge" transform="translate(810,138)"><circle r="13"/><text y="4.5" text-anchor="middle">3</text></g><g class="bb-node" transform="translate(840,90)"><rect width="240" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-doc" x="103.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="120.0" y="66" text-anchor="middle" class="bb-l">Post-tool hook</text><text x="120.0" y="84" text-anchor="middle" class="bb-s">ghi log · kiểm toán · không chặn</text></g><path class="bb-ar d" d="M395,86 V50 H120 V86" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="258" y="40" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">bị chặn → báo lại model</text><text x="550" y="236" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">Giao tiếp: harness gửi JSON vào hook, hook trả exit code để cho phép hoặc từ chối</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Hook là cách doanh nghiệp gắn quy định bảo mật, kiểm toán, tuân thủ vào harness</div>
     </div>
 
