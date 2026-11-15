@@ -120,6 +120,8 @@ def node(x, y, color, icon, label, sub=None, w=180, h=96, stack=False, dash=Fals
     r += f'<rect width="{w}" height="{h}" rx="14" fill="{f}" stroke="{s}"{da}/>'
     cx = w / 2
     lines = 1 + (sub is not None) + (sub2 is not None)
+    if icon and (h - 24 - 22 - 16 * (lines - 1)) / 2 < 5:
+        icon = None
     if icon:
         isz = 34 if h - 16 * (lines - 1) >= 76 else 24
         top = (h - isz - 22 - 16 * (lines - 1)) / 2
