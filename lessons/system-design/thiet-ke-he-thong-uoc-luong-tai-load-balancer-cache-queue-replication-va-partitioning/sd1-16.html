@@ -90,11 +90,97 @@
   <meta name="lesson:source" content="">
   <link rel="stylesheet" href="../../../assets/shell.css">
 <!-- /sdn:head -->
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
 </head>
 <body>
 <!-- sdn:bar -->
 <nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/thiet-ke-he-thong-uoc-luong-tai-load-balancer-cache-queue-replication-va-partitioning">Thiết kế hệ thống - ước lượng tải, load balancer, cache, queue, replication và partitioning</a></span></nav>
 <!-- /sdn:bar -->
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -108,22 +194,8 @@
   <h1>Gấp đôi app lên <span class="a">6 instance</span>, p99 lại tăng từ 180 lên <span class="b">650 ms</span></h1>
   <div class="sub">Bottleneck là tài nguyên bị bão hòa đầu tiên khi tải tăng; throughput của cả request path không vượt được mức trần của nó, dù thêm bao nhiêu máy ở chặng khác. Mỗi phần: sơ đồ → cơ chế → ví dụ số liệu của bài.</div>
 
-  <div class="fig">
-    <svg viewBox="0 0 700 230" role="img" aria-label="Request path và mức trần của từng chặng">
-      <rect class="box" x="10" y="80" width="110" height="56" rx="8" stroke="var(--avg)"/><text class="sm" x="65" y="102" text-anchor="middle" fill="var(--avg)">Load balancer</text><text class="sm" x="65" y="120" text-anchor="middle" fill="var(--peak)">CPU 10% · 5xx 3%</text>
-      <path class="ln" d="M120,108 L156,108" marker-end="url(#a-dim)"/>
-      <rect class="box" x="160" y="74" width="140" height="68" rx="8" stroke="var(--avg)"/><text class="sm" x="230" y="96" text-anchor="middle" fill="var(--avg)">6 app instance</text><text class="sm" x="230" y="114" text-anchor="middle">CPU 23%</text><text class="sm" x="230" y="130" text-anchor="middle" fill="var(--grow)">pool: chờ connection</text>
-      <path class="ln" d="M300,92 L376,40" marker-end="url(#a-dim)"/>
-      <rect class="box" x="380" y="14" width="140" height="44" rx="8"/><text class="sm" x="450" y="34" text-anchor="middle">Redis</text><text class="sm" x="450" y="50" text-anchor="middle">CPU 8%</text>
-      <path class="ln" stroke="var(--peak)" d="M300,108 L376,108" marker-end="url(#a-peak)"/><text class="sm" x="338" y="100" text-anchor="middle" fill="var(--peak)">120 conn</text>
-      <rect class="box" x="380" y="76" width="310" height="64" rx="8" stroke="var(--peak)"/><text class="sm" x="535" y="96" text-anchor="middle" fill="var(--spec)">Postgres primary 16 vCPU</text><text class="sm" x="535" y="114" text-anchor="middle" fill="var(--peak)">CPU 97% · ~40 việc chờ CPU ← bão hòa</text><text class="sm" x="535" y="130" text-anchor="middle" fill="var(--peak)">connection 100/100 · từ chối 53300</text>
-      <path class="ln" d="M300,126 L376,180" marker-end="url(#a-dim)"/>
-      <rect class="box" x="380" y="164" width="150" height="44" rx="8"/><text class="sm" x="455" y="184" text-anchor="middle">Queue + worker</text><text class="sm" x="455" y="200" text-anchor="middle">CPU 15%</text>
-      <rect class="box" x="545" y="164" width="145" height="44" rx="8" stroke="var(--cmd)"/><text class="sm" x="617" y="184" text-anchor="middle" fill="var(--cmd)">Replica dự phòng</text><text class="sm" x="617" y="200" text-anchor="middle">CPU 10% · rảnh</text>
-      <path class="ln ln-d" stroke="var(--cmd)" d="M617,140 L617,160" marker-end="url(#a-cmd)"/>
-      <text class="sm" x="10" y="30" fill="var(--avg)">1.200 request/giây</text>
-      <text class="sm" x="10" y="48">tải gửi tới không đổi</text>
-    </svg>
+  <div class="fig bbg">
+    <div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#fee2e2;border-color:#dc2626"></i>bão hòa / lỗi</span><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>app</span><span><i class="sw" style="background:#ccfbf1;border-color:#0d9488"></i>dự phòng rảnh</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 420" style="min-width:758px" role="img" aria-label="Request path và mức trần của từng chặng"><text x="40" y="30" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:15px">1.200 request/giây</text><text x="40" y="50" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600">tải gửi tới không đổi</text><g class="bb-node" transform="translate(20,150)"><rect width="190" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="78.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="95.0" y="66" text-anchor="middle" class="bb-l">Load Balancer</text><text x="95.0" y="84" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">CPU 10% · 5xx 3%</text></g><path class="bb-ar" d="M214,198 H256" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(260,140)"><rect x="10" y="-10" width="220" height="116" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="220" height="116" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="220" height="116" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="68" text-anchor="middle" class="bb-l">6 app instance</text><text x="110.0" y="86" text-anchor="middle" class="bb-s">CPU 23%</text><text x="110.0" y="102" text-anchor="middle" class="bb-s">pool: chờ connection</text></g><path class="bb-ar" d="M494,170 H560 V68 H646" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(650,30)"><rect width="200" height="76" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-cache" x="88.0" y="7" width="24" height="24" style="color:#ea580c"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Redis</text><text x="100.0" y="69" text-anchor="middle" class="bb-s">CPU 8%</text></g><path class="bb-ar" d="M494,198 H646" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="570" y="188" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">120 conn</text><g class="bb-node" transform="translate(650,140)"><rect width="420" height="116" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-db" x="193.0" y="14" width="34" height="34" style="color:#dc2626"/><text x="210.0" y="68" text-anchor="middle" class="bb-l">Postgres primary 16 vCPU</text><text x="210.0" y="86" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">CPU 97% · ~40 việc chờ CPU ← bão hòa</text><text x="210.0" y="102" text-anchor="middle" class="bb-s">connection 100/100 · từ chối 53300</text></g><path class="bb-ar" d="M494,226 H560 V338 H646" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(650,300)"><rect width="200" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="88.0" y="7" width="24" height="24" style="color:#ca8a04"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Queue + worker</text><text x="100.0" y="69" text-anchor="middle" class="bb-s">CPU 15%</text></g><path class="bb-ar d" d="M960,260 V296" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><g class="bb-node" transform="translate(880,300)"><rect width="190" height="76" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-copy" x="83.0" y="7" width="24" height="24" style="color:#0d9488"/><text x="95.0" y="51" text-anchor="middle" class="bb-l">Replica dự phòng</text><text x="95.0" y="69" text-anchor="middle" class="bb-s">CPU 10% · rảnh</text></g></svg></div></div>
     <div class="fig-cap">Hình 1 — Lỗi lộ ra ở đầu path (502, 500), còn tài nguyên bị bão hòa nằm ở cuối path</div>
   </div>
 
@@ -162,16 +234,8 @@
     <div class="tag">02. Bản đồ</div>
     <h2 class="c-avg">Mỗi mũi tên là một chặng, và chặng nào cũng có tài nguyên riêng có thể cạn</h2>
     <p class="desc">Cửa hàng chạy đủ sáu thành phần quen thuộc. Load balancer chia đều 1.200 request/giây cho 6 instance (~200 mỗi instance). App đọc Redis trước; cache miss thì đọc primary, mọi thao tác ghi (giỏ hàng, đặt hàng) cũng vào primary. Replica nhận thay đổi từ primary nhưng <b>chưa phục vụ truy vấn nào</b>, chỉ để dự phòng. Mỗi đơn mới, app đẩy job gửi email vào queue (~15 job/giây lúc cao điểm). Ảnh sản phẩm ở object storage, trình duyệt tải thẳng nên không đi qua API.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 150" role="img" aria-label="Tài nguyên có thể cạn ở mỗi chặng">
-        <g>
-          <rect class="box" x="10" y="20" width="120" height="110" rx="8" stroke="var(--avg)"/><text class="sm" x="70" y="42" text-anchor="middle" fill="var(--avg)">LB</text><text class="sm" x="70" y="70" text-anchor="middle">CPU</text><text class="sm" x="70" y="88" text-anchor="middle">connection</text>
-          <rect class="box" x="146" y="20" width="130" height="110" rx="8" stroke="var(--avg)"/><text class="sm" x="211" y="42" text-anchor="middle" fill="var(--avg)">App</text><text class="sm" x="211" y="70" text-anchor="middle">CPU, RAM</text><text class="sm" x="211" y="88" text-anchor="middle" fill="var(--grow)">connection pool</text><text class="sm" x="211" y="106" text-anchor="middle">thread pool</text>
-          <rect class="box" x="292" y="20" width="120" height="110" rx="8"/><text class="sm" x="352" y="42" text-anchor="middle">Redis</text><text class="sm" x="352" y="70" text-anchor="middle">CPU</text><text class="sm" x="352" y="88" text-anchor="middle">RAM</text>
-          <rect class="box" x="428" y="20" width="130" height="110" rx="8" stroke="var(--spec)"/><text class="sm" x="493" y="42" text-anchor="middle" fill="var(--spec)">Postgres</text><text class="sm" x="493" y="70" text-anchor="middle">CPU, đĩa</text><text class="sm" x="493" y="88" text-anchor="middle">max_connections</text><text class="sm" x="493" y="106" text-anchor="middle">lock</text>
-          <rect class="box" x="574" y="20" width="116" height="110" rx="8"/><text class="sm" x="632" y="42" text-anchor="middle">Queue</text><text class="sm" x="632" y="70" text-anchor="middle">worker CPU</text><text class="sm" x="632" y="88" text-anchor="middle">queue depth</text>
-        </g>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 230" style="min-width:758px" role="img" aria-label="Tài nguyên có thể cạn ở mỗi chặng"><rect x="20" y="20" width="196" height="190" rx="14" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><use href="#bi-lb" x="103.0" y="34" width="30" height="30" style="color:#94a3b8"/><text x="118.0" y="88" text-anchor="middle" style="font-weight:800;font-size:15px">LB</text><text x="118.0" y="122" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">CPU</text><text x="118.0" y="144" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">connection</text><rect x="232" y="20" width="196" height="190" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><use href="#bi-server" x="315.0" y="34" width="30" height="30" style="color:#7c3aed"/><text x="330.0" y="88" text-anchor="middle" style="font-weight:800;font-size:15px">App</text><text x="330.0" y="122" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">CPU, RAM</text><text x="330.0" y="144" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">connection pool</text><text x="330.0" y="166" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">thread pool</text><rect x="444" y="20" width="196" height="190" rx="14" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><use href="#bi-cache" x="527.0" y="34" width="30" height="30" style="color:#ea580c"/><text x="542.0" y="88" text-anchor="middle" style="font-weight:800;font-size:15px">Redis</text><text x="542.0" y="122" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">CPU</text><text x="542.0" y="144" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">RAM</text><rect x="656" y="20" width="196" height="190" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><use href="#bi-db" x="739.0" y="34" width="30" height="30" style="color:#16a34a"/><text x="754.0" y="88" text-anchor="middle" style="font-weight:800;font-size:15px">Postgres</text><text x="754.0" y="122" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">CPU, đĩa</text><text x="754.0" y="144" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">max_connections</text><text x="754.0" y="166" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">lock</text><rect x="868" y="20" width="212" height="190" rx="14" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><use href="#bi-queue" x="959.0" y="34" width="30" height="30" style="color:#ca8a04"/><text x="974.0" y="88" text-anchor="middle" style="font-weight:800;font-size:15px">Queue</text><text x="974.0" y="122" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">worker CPU</text><text x="974.0" y="144" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:600;font-size:13px">queue depth</text></svg></div></div>
       <div class="fig-cap">Hình 2 — Dashboard ở đầu bài mới chỉ nói về hai chặng trong số này (CPU app và CPU primary)</div>
     </div>
     <div class="example-box">
@@ -193,15 +257,8 @@
       <tr><td class="k">Replica (dự phòng)</td><td>CPU 10%</td><td>không hàng chờ</td><td>0</td></tr>
       <tr><td class="k">Queue + worker</td><td>worker CPU 15%</td><td>queue depth &lt; 20 job</td><td>0</td></tr>
     </table></div>
-    <div class="fig">
-      <svg viewBox="0 0 700 130" role="img" aria-label="Mức trần CPU của primary">
-        <rect class="box" x="10" y="30" width="150" height="56" rx="8" stroke="var(--spec)"/><text class="sm" x="85" y="54" text-anchor="middle" fill="var(--spec)">16 vCPU</text><text class="sm" x="85" y="72" text-anchor="middle">16.000 ms CPU/giây</text>
-        <path class="ln" d="M160,58 L206,58" marker-end="url(#a-dim)"/>
-        <rect class="box" x="210" y="30" width="170" height="56" rx="8"/><text class="sm" x="295" y="54" text-anchor="middle">÷ 12 ms CPU</text><text class="sm" x="295" y="72" text-anchor="middle">mỗi request (trung bình)</text>
-        <path class="ln" d="M380,58 L426,58" marker-end="url(#a-dim)"/>
-        <rect class="box" x="430" y="30" width="260" height="56" rx="8" stroke="var(--peak)"/><text class="sm" x="560" y="54" text-anchor="middle" fill="var(--peak)">mức trần ≈ 1.333 request/giây</text><text class="sm" x="560" y="72" text-anchor="middle">1.200 req/s đã là 90% CPU</text>
-        <text class="sm" x="350" y="116" text-anchor="middle" fill="var(--peak)">Số app instance không nằm trong phép chia này</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 200" style="min-width:758px" role="img" aria-label="Mức trần CPU của primary"><g class="bb-node" transform="translate(20,30)"><rect width="260" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-cpu" x="113.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="130.0" y="66" text-anchor="middle" class="bb-l">16 vCPU</text><text x="130.0" y="84" text-anchor="middle" class="bb-s">16.000 ms CPU/giây</text></g><path class="bb-ar" d="M284,78 H346" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(350,30)"><rect width="280" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-clock" x="123.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="140.0" y="66" text-anchor="middle" class="bb-l">÷ 12 ms CPU</text><text x="140.0" y="84" text-anchor="middle" class="bb-s">mỗi request (trung bình)</text></g><path class="bb-ar" d="M634,78 H696" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(700,30)"><rect width="380" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-gauge" x="173.0" y="12" width="34" height="34" style="color:#dc2626"/><text x="190.0" y="66" text-anchor="middle" class="bb-l" fill="#dc2626" style="fill:#dc2626">mức trần ≈ 1.333 req/s</text><text x="190.0" y="84" text-anchor="middle" class="bb-s">1.200 req/s đã là 90% CPU</text></g><text x="550" y="178" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">Số app instance không nằm trong phép chia này</text></svg></div></div>
       <div class="fig-cap">Hình 3 — Mức trần thấp nhất trên request path đã nằm ở primary từ khi app còn 3 instance</div>
     </div>
     <div class="example-box">
@@ -255,19 +312,8 @@ Connection      : mỗi instance 15 tới primary + 15 tới replica → 6 × 15
     <div class="tag">05. Dễ nhầm</div>
     <h2 class="c-peak">Chặng báo nhiều lỗi nhất chưa chắc là chặng chạm giới hạn</h2>
     <p class="desc">Hai chỗ dễ dẫn đi sai hướng nếu chỉ nhìn một cột. <b>Load balancer và app báo lỗi, nhưng CPU của cả hai đều thấp</b>: chỉ nhìn cột Errors sẽ muốn thêm máy cho đúng hai chặng đó — tức lên 12 instance. <b>CPU app thấp mà request vẫn chờ connection thì chưa đủ để đổ lỗi cho database</b>: hàng chờ connection là saturation của pool trong app; request có thể chờ vì database quá tải, nhưng cũng có thể vì chính pool quá nhỏ.</p>
-    <div class="fig">
-      <svg viewBox="0 0 700 170" role="img" aria-label="Chỉ nhìn lỗi so với đọc utilization và saturation">
-        <text class="lb" x="10" y="20" fill="var(--peak)">CHỈ NHÌN CỘT ERRORS</text>
-        <rect class="box" x="10" y="30" width="140" height="44" rx="6" stroke="var(--peak)"/><text class="sm" x="80" y="56" text-anchor="middle" fill="var(--peak)">LB · 502</text>
-        <rect class="box" x="166" y="30" width="140" height="44" rx="6" stroke="var(--peak)"/><text class="sm" x="236" y="56" text-anchor="middle" fill="var(--peak)">App · 500</text>
-        <rect class="box" x="322" y="30" width="170" height="44" rx="6"/><text class="sm" x="407" y="56" text-anchor="middle">Postgres primary</text>
-        <text class="sm" x="510" y="56" fill="var(--peak)">→ "thêm 12 instance"</text>
-        <text class="lb" x="10" y="104" fill="var(--cmd)">ĐỌC UTILIZATION + SATURATION</text>
-        <rect class="box" x="10" y="114" width="140" height="44" rx="6"/><text class="sm" x="80" y="140" text-anchor="middle">LB · CPU 10%</text>
-        <rect class="box" x="166" y="114" width="140" height="44" rx="6"/><text class="sm" x="236" y="140" text-anchor="middle">App · CPU 23%</text>
-        <rect class="box" x="322" y="114" width="170" height="44" rx="6" stroke="var(--peak)"/><text class="sm" x="407" y="134" text-anchor="middle" fill="var(--peak)">PG · CPU 97%</text><text class="sm" x="407" y="150" text-anchor="middle" fill="var(--peak)">~40 việc chờ CPU</text>
-        <text class="sm" x="510" y="140" fill="var(--cmd)">→ xử lý primary</text>
-      </svg>
+    <div class="fig bbg">
+      <div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 360" style="min-width:758px" role="img" aria-label="Chỉ nhìn lỗi so với đọc utilization và saturation"><rect class="bb-grp" x="20" y="30" width="1060" height="140" rx="18"/><g class="bb-gtag" transform="translate(38,18)"><rect width="200" height="24" rx="12" fill="#1e293b"/><text x="100.0" y="16.5" text-anchor="middle">CHỈ NHÌN CỘT ERRORS</text></g><g class="bb-node" transform="translate(44,58)"><rect width="200" height="88" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-lb" x="83.0" y="16" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="70" text-anchor="middle" class="bb-l" fill="#dc2626" style="fill:#dc2626">LB · 502</text></g><g class="bb-node" transform="translate(264,58)"><rect width="200" height="88" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-server" x="83.0" y="16" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="70" text-anchor="middle" class="bb-l" fill="#dc2626" style="fill:#dc2626">App · 500</text></g><g class="bb-node" transform="translate(484,58)"><rect width="230" height="88" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-db" x="98.0" y="16" width="34" height="34" style="color:#94a3b8"/><text x="115.0" y="70" text-anchor="middle" class="bb-l">Postgres primary</text></g><text x="744" y="108" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:15px">→ “thêm 12 instance”</text><rect class="bb-grp" x="20" y="206" width="1060" height="140" rx="18"/><g class="bb-gtag" transform="translate(38,194)"><rect width="270" height="24" rx="12" fill="#1e293b"/><text x="135.0" y="16.5" text-anchor="middle">ĐỌC UTILIZATION + SATURATION</text></g><g class="bb-node" transform="translate(44,234)"><rect width="200" height="88" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="88.0" y="13" width="24" height="24" style="color:#94a3b8"/><text x="100.0" y="57" text-anchor="middle" class="bb-l">LB</text><text x="100.0" y="75" text-anchor="middle" class="bb-s">CPU 10%</text></g><g class="bb-node" transform="translate(264,234)"><rect width="200" height="88" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-server" x="88.0" y="13" width="24" height="24" style="color:#94a3b8"/><text x="100.0" y="57" text-anchor="middle" class="bb-l">App</text><text x="100.0" y="75" text-anchor="middle" class="bb-s">CPU 23%</text></g><g class="bb-node" transform="translate(484,234)"><rect width="230" height="88" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-db" x="103.0" y="13" width="24" height="24" style="color:#dc2626"/><text x="115.0" y="57" text-anchor="middle" class="bb-l">PG · CPU 97%</text><text x="115.0" y="75" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">~40 việc chờ CPU</text></g><text x="744" y="284" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:15px">→ xử lý primary</text></svg></div></div>
       <div class="fig-cap">Hình 4 — Mỗi metric phải gắn đúng tài nguyên của nó; chỉ gọi là bottleneck khi chính nó có saturation</div>
     </div>
     <div class="example-box">
