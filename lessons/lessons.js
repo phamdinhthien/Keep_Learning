@@ -312,5 +312,18 @@ window.LESSONS = [
     "title": "Networking cơ bản: IP, packet, TCP, port",
     "description": "IP address, packet và header, TCP ráp đúng thứ tự, ba tầng giao thức, public/private, static/dynamic IP và port.",
     "readTime": "14 phút đọc"
+  },
+  {
+    "id": "nc-04",
+    "path": "system-design/neetcode-beginner/nc-04.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 4,
+    "title": "TCP và UDP: tin cậy hay tốc độ",
+    "description": "TCP sắp thứ tự, gửi lại gói mất, three-way handshake và chi phí; UDP nhanh, không bảo đảm, dùng cho live stream, game, DNS.",
+    "readTime": "10 phút đọc"
   }
 ];
