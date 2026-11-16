@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Twitter — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-03">
+  <meta name="lesson:title" content="Thiết kế Twitter">
+  <meta name="lesson:description" content="Follow, tạo tweet, news feed: ước lượng quy mô, DB quan hệ và graph DB, CDN pull, shard theo user ID, feed dựng sẵn qua pub/sub và bài toán người nổi tiếng.">
+  <meta name="lesson:order" content="3">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="16 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Design Twitter — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 3</div>
+  <h1>Twitter đọc nhiều hơn ghi rất nhiều: <span class="a">shard theo user ID</span>, cache, CDN, và <span class="b">dựng sẵn news feed</span> bất đồng bộ</h1>
+  <div class="sub">Không cần sao chép đúng Twitter thật; điều quan trọng là bàn được đánh đổi. Bài tập trung vào follow, tạo tweet và xem feed.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 420" style="min-width:758px" role="img" aria-label="Thiết kế cấp cao Twitter: app server stateless sau load balancer, cache, DB quan hệ có replica, object storage và CDN pull"><g class="bb-node" transform="translate(10,130)"><rect width="140" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-phone" x="58.0" y="14" width="24" height="24" style="color:#3b82f6"/><text x="70.0" y="58" text-anchor="middle" class="bb-l">Client</text><text x="70.0" y="76" text-anchor="middle" class="bb-s">web / mobile</text></g><path class="bb-ar" d="M154,175 H196" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(200,130)"><rect width="170" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-lb" x="68.0" y="17" width="34" height="34" style="color:#0d9488"/><text x="85.0" y="71" text-anchor="middle" class="bb-l">Load balancer</text></g><path class="bb-ar" d="M374,175 H416" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(420,120)"><rect x="10" y="-10" width="180" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="180" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="180" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="19" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="73" text-anchor="middle" class="bb-l">App servers</text><text x="90.0" y="91" text-anchor="middle" class="bb-s">stateless</text></g><path class="bb-ar" d="M604,150 H660 V70 H696" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(700,30)"><rect width="190" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="83.0" y="9" width="24" height="24" style="color:#ca8a04"/><text x="95.0" y="53" text-anchor="middle" class="bb-l">Cache</text><text x="95.0" y="71" text-anchor="middle" class="bb-s">tweet hot · LRU</text></g><path class="bb-ar" d="M604,200 H660 V250 H696" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(700,200)"><rect x="10" y="-10" width="190" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><rect x="5" y="-5" width="190" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><rect width="190" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="66" text-anchor="middle" class="bb-l">Relational DB</text><text x="95.0" y="84" text-anchor="middle" class="bb-s">tweets · follows</text></g><path class="bb-ar" d="M894,248 H936" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(940,200)"><rect width="150" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-copy" x="58.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="75.0" y="66" text-anchor="middle" class="bb-l">Read replicas</text><text x="75.0" y="84" text-anchor="middle" class="bb-s">async, stale vài giây ok</text></g><g class="bb-node" transform="translate(960,320)"><rect width="130" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-image" x="48.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="65.0" y="66" text-anchor="middle" class="bb-l">Object storage</text><text x="65.0" y="84" text-anchor="middle" class="bb-s">S3 / GCS</text></g><g class="bb-node" transform="translate(700,330)"><rect width="210" height="76" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-globe" x="93.0" y="7" width="24" height="24" style="color:#db2777"/><text x="105.0" y="51" text-anchor="middle" class="bb-l">CDN (pull)</text><text x="105.0" y="69" text-anchor="middle" class="bb-s">gần user, nội dung phổ biến</text></g><path class="bb-ar d" d="M956,368 H914" marker-end="url(#bb-ah)"/><text x="935" y="356" text-anchor="middle" class="bb-a">pull</text><path class="bb-ar" d="M80,224 V368 H696" marker-end="url(#bb-ah-blue)" style="stroke:#3b82f6"/><text x="390" y="358" text-anchor="middle" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">client tải media bằng URL trả về</text></svg></div></div><div class="fig-cap">Hình 1 — Thiết kế cấp cao</div></div>
+  <div class="toc">
+    <span>01 <b>Bối cảnh</b></span><span>02 <b>Functional</b></span><span>03 <b>Quy mô</b></span><span>04 <b>Thiết kế cấp cao</b></span><span>05 <b>Media &amp; CDN</b></span><span>06 <b>API &amp; schema</b></span><span>07 <b>Replica &amp; sharding</b></span><span>08 <b>Feed dựng sẵn</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Bối cảnh <span class="t">00:00–01:40</span></div>
+    <h2 class="c-avg">Phỏng vấn không đòi thiết kế giống hệt Twitter thật; Twitter là mạng xã hội follow, ít người tweet, nhiều người đọc — hệ thống thiên về đọc</h2>
+    <p class="desc">Thiết kế không phải khớp sản phẩm thật — mà là bàn <b>trade-off</b>, cân ưu nhược. Có nhiều sản phẩm tương tự, không có một cách đúng duy nhất. Twitter là <b>mạng xã hội</b>: người này follow người kia, có thể hai chiều; vài người có rất nhiều follower; phần lớn người dùng ít tweet và ít follower → hệ thống <b>read heavy</b>.</p>
+    <p class="desc">Một tweet có ảnh đại diện, username, nội dung gồm text, ảnh, video. Có thể like, <b>retweet</b>, follow/unfollow người đăng, gần đây còn sửa tweet — đây là những thứ cần hỏi làm rõ.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tương tác với một tweet</div>
+      <ul class="plain"><li>Like, retweet.</li><li>Follow / unfollow tác giả.</li><li>Edit tweet (tính năng mới).</li></ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Functional requirements <span class="t">01:40–03:30</span></div>
+    <h2 class="c-cmd">Ưu tiên: follow, tạo tweet, xem news feed chỉ gồm tweet của người mình follow; tweet 140 ký tự, có ảnh và video</h2>
+    <p class="desc">Không thể thiết kế mọi thứ trong <b>45 phút</b>. Chọn: (1) <b>follow</b> user khác; (2) <b>tạo tweet</b>; (3) <b>xem newsfeed</b>. Feed có thể phức tạp: thuật toán xếp hạng, có lẽ có <b>machine learning</b>, có cả tweet của người không follow. Giả định feed chỉ gồm tweet của người mình follow — nên hỏi rõ, kẻo tự giả định bài rất phức tạp trong khi người phỏng vấn muốn bản đơn giản. Đó là cái bẫy.</p>
+    <p class="desc">Tweet giới hạn <b>140 ký tự</b> (giả sử người phỏng vấn cho con số này), và có <b>ảnh</b>, <b>video</b>.</p>
+    <div class="note">Twitter đã nâng giới hạn lên 280 ký tự từ năm 2017; video dùng 140 như một con số giả định cho bài.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — câu nên hỏi</div>
+      <p>"Feed có xếp hạng bằng thuật toán hay chỉ là tweet của người mình follow, theo thời gian?" — câu hỏi này thu hẹp phạm vi đáng kể.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Quy mô <span class="t">03:30–07:30</span></div>
+    <h2 class="c-spec">200 triệu DAU đọc 100 tweet/ngày → 20 tỷ lượt đọc, khoảng 20 PB/ngày nếu tính media; ghi chỉ 50 triệu tweet/ngày; người nổi tiếng có trăm triệu follower</h2>
+    <p class="desc"><b>500 million</b> user, <b>200 million</b> DAU — gần một nửa (khoảng <b>40%</b>) hoạt động mỗi ngày, nên sẽ dựng feed cho phần lớn user. Mỗi DAU đọc khoảng <b>100 tweet</b>/ngày → <b>20 billion</b> lượt đọc/ngày. Tweet 140 ký tự ≈ 140 byte, thêm metadata → khoảng <b>1 KB</b>; có ảnh, video (video có thể 10 MB) nhưng ít tweet có → trung bình ước <b>1 MB</b>. 20 tỷ × 1 MB = <b>20 petabytes</b> đọc mỗi ngày. Không cần strong consistency, <b>eventual consistency</b> là đủ.</p>
+    <p class="desc">Ghi: khoảng <b>50 million</b> tweet/ngày (con số người phỏng vấn nên cho), ít hơn đọc rất nhiều — tối ưu cho đọc. Trung bình mỗi người follow <b>100</b> người (power user có thể 1000, 10.000). Quan trọng hơn: một người có thể có bao nhiêu follower? <b>Kim Kardashian</b> chắc hơn <b>100 million</b> follower — nơi lưu tweet của họ sẽ nhanh chóng quá tải.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — phép nhẩm</div>
+      <pre>200.000.000 DAU × 100 tweet   = 20.000.000.000 lượt đọc/ngày
+× 1 MB (trung bình gồm media) = 20 PB/ngày
+ghi: 50.000.000 tweet/ngày</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Thiết kế cấp cao <span class="t">07:30–09:40</span></div>
+    <h2 class="c-grow">App server stateless sau load balancer; database quan hệ vì quan hệ follow, có sharding; thêm cache vì lượng đọc khổng lồ</h2>
+    <p class="desc">Client (máy tính hay mobile — backend không quan tâm) gọi <b>application servers</b> để tạo tweet, lấy newsfeed, follow. Nút thắt là lấy newsfeed. Server <b>stateless</b> thì scale ngang dễ, thêm <b>load balancer</b> — chuyện có thể nói nhanh.</p>
+    <p class="desc">Database: đọc nhiều thì sao không dùng NoSQL? Tuỳ dữ liệu. Quan hệ <b>follower – followee</b> rất relational, có thể cần <b>joins</b> → <b>relational database</b>; NoSQL scale dễ hơn nhưng database quan hệ vẫn <b>sharding</b> được. Phương án khác: tweet và user trong NoSQL, còn quan hệ follow trong <b>graph DB</b> — như danh sách kề, mỗi người là một node: người mình follow là các cạnh đi ra, follower là các cạnh đi vào. Tuỳ kinh nghiệm của bạn và người phỏng vấn. Lượng đọc lớn → bắt buộc có <b>caching layer</b> trước database.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai cách lưu quan hệ follow</div>
+      <div class="ba">
+        <div><b>Relational</b>Bảng follows, join được; shard để scale.</div>
+        <div><b>Graph DB</b>Cạnh ra = người mình follow; cạnh vào = follower.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Media và CDN <span class="t">09:40–11:30</span></div>
+    <h2 class="c-avg">Ảnh, video để trong object storage; server chỉ trả URL, client tải qua CDN kiểu pull để chỉ nội dung phổ biến được đưa tới gần user</h2>
+    <p class="desc">Database quan hệ không hợp lưu media → <b>object storage</b> như <b>Google Cloud Storage</b> hay <b>Amazon S3</b>. Khi đọc tweet, server lấy thông tin tweet (ID, tác giả, thời gian, có ảnh không, ảnh nào, ảnh đại diện). Media là tĩnh nên phân phối qua <b>CDN</b>: server trả URL, client (mobile hay browser) gửi request riêng tới CDN gắn với object storage.</p>
+    <p class="desc">Dùng <b>pull based CDN</b>, không push mọi ảnh/video ngay. CDN có lợi vì gần user về địa lý; người ở <b>India</b> xem nội dung khác người ở <b>United States</b>, nên đẩy mọi tweet mới lên CDN là vô nghĩa. Pull đảm bảo thứ trên CDN là thứ người ta thực sự muốn xem.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tải một tweet có video</div>
+      <ol class="steps">
+        <li>App server trả thông tin tweet kèm URL video.</li>
+        <li>Client gọi URL đó → CDN gần nhất.</li>
+        <li>CDN chưa có → pull từ object storage rồi giữ lại cho người sau.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. API và schema <span class="t">11:30–14:40</span></div>
+    <h2 class="c-cmd">Ba API: createTweet, getFeed, follow; bảng tweets và follows, index bảng follows theo follower để lấy danh sách người mình follow bằng range query</h2>
+    <p class="desc"><b>Create tweet</b>: user gửi <b>text</b> và <b>media</b>; timestamp và tweet ID tạo phía server; user ID lấy từ <b>authorization token</b> trong HTTP header (hoặc truyền user ID/username). <b>Get feed</b>: chỉ cần user ID — nhưng không được lấy feed của người khác dù biết ID; header lo xác thực (có nhưng không phải trọng tâm). <b>Follow</b>: user ID của mình và username người muốn follow.</p>
+    <p class="desc">Bảng <b>follows</b>: <b>followee</b> (người được follow) và <b>follower</b> (người đi follow). Muốn lấy tweet của mọi followee của một follower → <b>index</b> theo follower: mọi dòng của một người nằm liền nhau, chỉ là một <b>range query</b>. Bảng <b>tweets</b>: tweet ID, timestamp, user ID, nội dung (text có thể rỗng nếu có media), media chỉ là <b>tham chiếu</b> tới object store.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — giao diện và bảng</div>
+      <pre>createTweet(text, media)        <span class="cm">// tweetId, createdAt tạo phía server</span>
+getFeed(userId)                 <span class="cm">// auth token trong header</span>
+follow(userId, username)
+
+follows(follower, followee)     <span class="cm">// index theo follower</span>
+tweets(tweetId, createdAt, userId, text, mediaRef)</pre>
+      <p>Tên hàm và tên cột viết kiểu code là minh hoạ thêm; các trường lấy từ video.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Read replica và sharding <span class="t">14:40–20:20</span></div>
+    <h2 class="c-spec">Read replica cho đọc (stale vài giây chấp nhận được); shard theo user ID để ghi scale được và feed chỉ chạm ít shard; cache LRU giảm latency</h2>
+    <p class="desc">Không tính media, ghi khoảng <b>50 gigabytes</b>/ngày, <b>1.5 terabytes</b>/tháng, khoảng <b>18 terabytes</b>/năm — lớn nhưng hợp lý vì tweet nhỏ. Vấn đề là lượng đọc → <b>read only replicas</b>. Với <b>single leader replication</b> mọi ghi vào một database: 50 triệu ÷ 100.000 giây = <b>500 writes per second</b> trung bình, <b>peak</b> có thể gấp 10 (vd <b>Elon Musk</b> làm gì đó gây sốt). Leader ghi rồi <b>bất đồng bộ</b> đẩy sang replica; user đọc phải dữ liệu cũ, thấy tweet chậm 5 hay 20 giây — không lý tưởng nhưng không tận thế.</p>
+    <p class="desc">Scale ghi bằng <b>sharding</b>. <b>Shard key</b>: theo <b>user ID</b> — mỗi user chỉ quan tâm một tập user; biết người mình follow thì định tuyến đúng shard chứa tweet của họ. Theo <b>tweet ID</b> thì không biết shard nào chứa tweet cần, phải hỏi mọi shard. Bảng follows cũng shard theo user ID → mọi người một user follow nằm trên một shard.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Shard theo user ID: biết shard của người mình theo dõi; shard theo tweet ID phải truy vấn mọi shard"><rect class="bb-grp" x="10" y="20" width="520" height="270" rx="18"/><g class="bb-gtag" transform="translate(28,8)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">SHARD THEO USER ID</text></g><g class="bb-node" transform="translate(30,110)"><rect width="170" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="73.0" y="14" width="24" height="24" style="color:#3b82f6"/><text x="85.0" y="58" text-anchor="middle" class="bb-l">Feed của A</text><text x="85.0" y="76" text-anchor="middle" class="bb-s">A theo dõi B, C</text></g><path class="bb-ar" d="M204,140 H260 V80 H296" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M204,170 H260 V220 H296" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(300,45)"><rect width="210" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="93.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="105.0" y="51" text-anchor="middle" class="bb-l">Shard 1</text><text x="105.0" y="69" text-anchor="middle" class="bb-s">tweet của B</text></g><g class="bb-node" transform="translate(300,180)"><rect width="210" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="93.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="105.0" y="51" text-anchor="middle" class="bb-l">Shard 2</text><text x="105.0" y="69" text-anchor="middle" class="bb-s">tweet của C</text></g><text x="270" y="280" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">biết ngay shard nào chứa tweet cần lấy</text><rect class="bb-grp" x="570" y="20" width="520" height="270" rx="18"/><g class="bb-gtag" transform="translate(588,8)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">SHARD THEO TWEET ID</text></g><g class="bb-node" transform="translate(590,110)"><rect width="170" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="68.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="71" text-anchor="middle" class="bb-l">Feed của A</text></g><g class="bb-node" transform="translate(860,40)"><rect width="200" height="62" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><text x="100.0" y="29" text-anchor="middle" class="bb-l">Shard 1</text><text x="100.0" y="47" text-anchor="middle" class="bb-s">?</text></g><g class="bb-node" transform="translate(860,120)"><rect width="200" height="62" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><text x="100.0" y="29" text-anchor="middle" class="bb-l">Shard 2</text><text x="100.0" y="47" text-anchor="middle" class="bb-s">?</text></g><g class="bb-node" transform="translate(860,200)"><rect width="200" height="62" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><text x="100.0" y="29" text-anchor="middle" class="bb-l">Shard 3</text><text x="100.0" y="47" text-anchor="middle" class="bb-s">?</text></g><path class="bb-ar" d="M764,140 H820 V71 H856" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M764,155 H856" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M764,170 H820 V231 H856" marker-end="url(#bb-ah)"/><text x="830" y="280" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">phải hỏi mọi shard → mất ý nghĩa sharding</text></svg></div></div><div class="fig-cap">Hình 2 — Shard theo user ID so với tweet ID</div></div>
+    <p class="desc">Còn phải <b>sắp theo thời gian tạo</b>, và chỉ lấy khoảng <b>20</b> tweet, cuộn thì lấy thêm 20. Luồng hiện tại: tạo tweet → server tìm shard theo user ID, lưu tweet, media vào object storage. Xem feed → có thể phải hỏi nhiều shard, ghép, sắp xếp — chậm, là nút thắt. Cache giữ tweet phổ biến, dùng <b>LRU</b> vì người ta quan tâm tweet mới; tweet một năm trước dù tỷ view cũng nguội. Nhưng mỗi người một tập tweet: 19 tweet có trong cache, tweet thứ 20 phải đọc disk → một tweet giữa feed chậm vài giây, trải nghiệm tệ. Vấn đề lúc này không phải scale mà là <b>latency</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — số liệu ghi</div>
+      <pre>50.000.000 tweet × 1 KB ≈ 50 GB/ngày → 1,5 TB/tháng → ~18 TB/năm
+50.000.000 ÷ 100.000 s  ≈ 500 writes/s (peak có thể ×10)</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. Dựng news feed bất đồng bộ <span class="t">20:20–26:10</span></div>
+    <h2 class="c-grow">Đẩy tweet mới qua pub/sub tới cụm worker để cập nhật feed cache của từng follower; với người có trăm triệu follower thì ghép tweet lúc đọc</h2>
+    <p class="desc">Dựng newsfeed <b>trước</b>, bất đồng bộ, cho mọi user — 200/500 triệu hoạt động nên dù 60% không xem thì cũng không phí nhiều; có thể chỉ dựng cho người hoạt động trong <b>30 ngày</b> qua. Mỗi tweet mới ngoài ghi database còn được app server gửi vào <b>message queue</b> / <b>PubSub</b>, chảy vào một cụm như <b>Spark</b> cluster; worker xử lý song song và ghi vào một <b>feed cache</b> riêng chứa feed của từng user. Mở trang chủ lấy 20 tweet là đọc thẳng feed cache — không query nhiều shard, không ghép và sắp xếp. Cache cũ vẫn dùng cho tweet lẻ, vd tweet nhúng trên web hay xem reply. Feed cache có thể rất lớn (200 triệu user × 100 tweet) nên cũng phải <b>shard</b>.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="Sinh feed bất đồng bộ: tweet mới vào hàng đợi pub/sub, worker cập nhật feed cache của từng follower"><g class="bb-node" transform="translate(10,110)"><rect width="170" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="68.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="68" text-anchor="middle" class="bb-l">User tạo tweet</text></g><path class="bb-ar" d="M184,152 H226" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(230,100)"><rect width="170" height="104" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="24" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="78" text-anchor="middle" class="bb-l">App server</text></g><path class="bb-ar" d="M314,96 V50 H436" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(440,10)"><rect width="170" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="68.0" y="10" width="34" height="34" style="color:#16a34a"/><text x="85.0" y="64" text-anchor="middle" class="bb-l">DB (tweets)</text></g><path class="bb-ar" d="M404,170 H436" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(440,128)"><rect width="190" height="84" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="78.0" y="14" width="34" height="34" style="color:#ca8a04"/><text x="95.0" y="68" text-anchor="middle" class="bb-l">Pub/Sub queue</text></g><path class="bb-ar" d="M634,170 H676" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(680,118)"><rect x="10" y="-10" width="200" height="104" rx="14" fill="#ffedd5" stroke="#ea580c"/><rect x="5" y="-5" width="200" height="104" rx="14" fill="#ffedd5" stroke="#ea580c"/><rect width="200" height="104" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-cpu" x="83.0" y="16" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="70" text-anchor="middle" class="bb-l">Worker cluster</text><text x="100.0" y="88" text-anchor="middle" class="bb-s">vd Spark · song song</text></g><path class="bb-ar d" d="M780,114 V48 H614" marker-end="url(#bb-ah)"/><text x="700" y="38" text-anchor="middle" class="bb-a">đọc tweet</text><path class="bb-ar" d="M884,170 H926" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(930,118)"><rect width="160" height="104" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-cache" x="63.0" y="16" width="34" height="34" style="color:#0d9488"/><text x="80.0" y="70" text-anchor="middle" class="bb-l">Feed cache</text><text x="80.0" y="88" text-anchor="middle" class="bb-s">feed dựng sẵn, sharded</text></g><path class="bb-ar" d="M1010,226 V290 H400 V208" marker-end="url(#bb-ah-blue)" style="stroke:#3b82f6"/><text x="700" y="280" text-anchor="middle" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">mở trang chủ → đọc 20 tweet từ feed cache</text></svg></div></div><div class="fig-cap">Hình 3 — Sinh feed bất đồng bộ qua pub/sub</div></div>
+    <p class="desc">Phần khó là cập nhật: với mỗi tweet, worker thêm vào feed của <b>mọi follower</b> của tác giả. 100 follower → 100 feed. Nhưng <b>Kim Kardashian</b> với 100 triệu follower → cập nhật 100 triệu feed mỗi tweet, quá đắt, mà đâu phải ai cũng mở feed mỗi ngày. Với họ, làm việc khi cần: user lấy feed, song song app server tìm tweet của những người này (thường đã có trong cache) và cập nhật feed. <b>Follow người mới</b> cũng phải cập nhật feed — chậm 5–10 giây được — qua queue và worker tương tự; worker còn phải đọc database chứa tweet.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Fan-out: push feed cho user thường; tài khoản có trăm triệu follower thì ghép tweet lúc đọc"><g class="bb-node" transform="translate(20,30)"><rect width="200" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="88.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="100.0" y="53" text-anchor="middle" class="bb-l">User thường</text><text x="100.0" y="71" text-anchor="middle" class="bb-s">~100 follower</text></g><path class="bb-ar" d="M224,70 H306" marker-end="url(#bb-ah)"/><rect x="310" y="40" width="330" height="60" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="475.0" y="67" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Push lúc ghi (fan-out)</text><text x="475.0" y="83" text-anchor="middle" class="bb-s">worker cập nhật 100 feed — rẻ</text><g class="bb-node" transform="translate(20,180)"><rect width="200" height="80" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-people" x="88.0" y="9" width="24" height="24" style="color:#dc2626"/><text x="100.0" y="53" text-anchor="middle" class="bb-l">Người nổi tiếng</text><text x="100.0" y="71" text-anchor="middle" class="bb-s">~100 triệu follower</text></g><path class="bb-ar" d="M224,220 H306" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><rect x="310" y="190" width="330" height="60" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="475.0" y="217" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Push 100 triệu feed</text><text x="475.0" y="233" text-anchor="middle" class="bb-s">mỗi tweet — quá đắt</text><path class="bb-ar" d="M644,220 H706" marker-end="url(#bb-ah)"/><text x="675" y="206" text-anchor="middle" class="bb-a">thay bằng</text><rect x="710" y="180" width="370" height="80" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="895.0" y="217" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Pull lúc đọc</text><text x="895.0" y="233" text-anchor="middle" class="bb-s">follower mở feed → chèn tweet đã cache</text><text x="740" y="300" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">follow người mới → cũng qua queue để cập nhật feed (chậm 5–10 giây được)</text></svg></div></div><div class="fig-cap">Hình 4 — Push cho user thường, pull cho người nổi tiếng</div></div>
+    <p class="desc">Mọi phức tạp này để mở trang chủ thật nhanh; chịu chậm thêm vài giây thì thiết kế đơn giản hơn. Vẫn còn nhiều vấn đề: cập nhật cache <b>đồng thời</b>, thứ tự feed, <b>paginate</b> 20 tweet tiếp theo… Twitter không xây trong một cuối tuần; kỹ sư Twitter đã nhiều lần đổi thiết kế (database, cách lưu ai follow ai) — xem các <b>white paper</b> từ <b>2010</b> tới nay của đội kỹ thuật Twitter.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai loại tác giả</div>
+      <div class="ba">
+        <div><b>~100 follower</b>Worker đẩy tweet vào 100 feed ngay khi đăng.</div>
+        <div><b>~100 triệu follower</b>Không đẩy; follower mở feed thì app server chèn tweet (đã cache) vào.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Phải thiết kế giống hệt Twitter thật.</div><div><span class="v">✓</span> Điều quan trọng là bàn đánh đổi (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Đọc nhiều thì chắc chắn dùng NoSQL.</div><div><span class="v">✓</span> Quan hệ follow rất relational; DB quan hệ vẫn shard được (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Shard theo tweet ID chia đều là tốt nhất.</div><div><span class="v">✓</span> Lấy feed phải hỏi mọi shard; shard theo user ID (→ 07).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Cache tweet là đủ để feed nhanh.</div><div><span class="v">✓</span> Một tweet miss là chậm cả feed; dựng feed sẵn (→ 07, 08).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Mọi tweet đều fan-out tới tất cả follower.</div><div><span class="v">✓</span> Người có trăm triệu follower thì ghép lúc đọc (→ 08).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Các lựa chọn chính</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Read replica</td><td>Đọc là nút thắt</td><td>Cần đọc dữ liệu mới tuyệt đối</td><td>Rẻ, dễ; dữ liệu stale vài giây</td></tr>
+      <tr><td class="k">Shard theo user ID</td><td>Truy vấn xoay quanh một user</td><td>Truy vấn toàn cục theo tweet</td><td>Ghi scale được; tài khoản lớn có thể thành hot shard</td></tr>
+      <tr><td class="k">Feed dựng sẵn (push)</td><td>Tác giả có ít follower</td><td>Tác giả có hàng trăm triệu follower</td><td>Đọc rất nhanh; tốn công ghi</td></tr>
+      <tr><td class="k">Ghép lúc đọc (pull)</td><td>Tài khoản nổi tiếng</td><td>Mọi tài khoản (feed sẽ chậm)</td><td>Tránh fan-out khổng lồ; thêm việc khi đọc</td></tr>
+      <tr><td class="k">Pull CDN</td><td>Media tĩnh, phổ biến theo vùng</td><td>—</td><td>Chỉ giữ thứ được xem; lần đầu chậm hơn</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Từ 200 triệu DAU, mỗi người đọc 100 tweet, mỗi tweet trung bình 1 MB: đọc bao nhiêu mỗi ngày?</summary><p>20 tỷ lượt đọc, khoảng 20 PB/ngày. (→ 03)</p></details>
+    <details><summary>Vì sao index bảng follows theo follower?</summary><p>Mọi dòng của một follower nằm liền nhau, lấy danh sách người họ follow bằng một range query. (→ 06)</p></details>
+    <details><summary>Vì sao không shard theo tweet ID?</summary><p>Không biết shard nào chứa tweet của người mình follow, phải hỏi mọi shard. (→ 07)</p></details>
+    <details><summary>Feed cache được cập nhật thế nào khi có tweet mới?</summary><p>App server đẩy tweet vào pub/sub; cụm worker (vd Spark) thêm tweet vào feed của từng follower. (→ 08)</p></details>
+    <details><summary>Làm gì với tác giả có 100 triệu follower?</summary><p>Không fan-out lúc ghi; khi follower lấy feed, app server ghép tweet của họ (thường đã cache) vào. (→ 08)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">read heavy</td><td>Đọc nhiều hơn ghi rất nhiều</td><td>01</td></tr>
+      <tr><td class="k">follower / followee</td><td>Người đi follow / người được follow</td><td>06</td></tr>
+      <tr><td class="k">graph DB</td><td>Lưu dữ liệu dạng node và cạnh</td><td>04</td></tr>
+      <tr><td class="k">pull CDN</td><td>CDN lấy nội dung từ origin khi có người yêu cầu</td><td>05</td></tr>
+      <tr><td class="k">range query</td><td>Đọc một dải dòng liền nhau theo index</td><td>06</td></tr>
+      <tr><td class="k">single leader replication</td><td>Một node nhận ghi, replica sao chép lại</td><td>07</td></tr>
+      <tr><td class="k">shard key</td><td>Trường dùng để chia dữ liệu vào shard</td><td>07</td></tr>
+      <tr><td class="k">fan-out</td><td>Đẩy một tweet tới feed của nhiều follower</td><td>08</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “3 - Design Twitter” (<a href="https://drive.google.com/file/d/1B0wxSHACV3DzK8RRVBdShriVoL3xYsc2/view">drive.google.com/file/d/1B0wxSHACV3DzK8RRVBdShriVoL3xYsc2</a>) · khoảng 26 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; đã xem khung hình mỗi phút để đối chiếu sơ đồ.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-03.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

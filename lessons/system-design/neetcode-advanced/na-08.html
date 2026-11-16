@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design a Key-Value Store — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-08">
+  <meta name="lesson:title" content="Thiết kế Key-Value Store phân tán">
+  <meta name="lesson:description" content="Bên trong NoSQL: LSM tree và SSTable, tombstone, CAP và PACELC, quorum và tunable consistency, consistent hashing với virtual node, gossip protocol, last write wins và vector clock.">
+  <meta name="lesson:order" content="8">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="17 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Design a Key-Value Store — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 8</div>
+  <h1>Bên trong một key-value store phân tán: <span class="a">LSM tree</span> cho ghi nhanh, <span class="b">quorum, consistent hashing, gossip</span> cho scale và chịu lỗi</h1>
+  <div class="sub">Lần này đào sâu một thành phần — NoSQL database kiểu Dynamo, Cassandra — thay vì cả một ứng dụng. Bài này giải thích nhiều lựa chọn ở các bài trước.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 400" style="min-width:758px" role="img" aria-label="LSM tree: ghi vào memtable trong bộ nhớ, đầy thì flush thành SSTable sắp xếp theo key trên disk"><g class="bb-node" transform="translate(10,120)"><rect width="150" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-server" x="63.0" y="14" width="24" height="24" style="color:#3b82f6"/><text x="75.0" y="58" text-anchor="middle" class="bb-l">Client</text><text x="75.0" y="76" text-anchor="middle" class="bb-s">app server</text></g><path class="bb-ar" d="M164,150 H246" marker-end="url(#bb-ah)"/><text x="205" y="138" text-anchor="middle" class="bb-a">write</text><rect class="bb-grp" x="250" y="20" width="400" height="200" rx="18"/><g class="bb-gtag" transform="translate(268,8)"><rect width="90" height="24" rx="12" fill="#1e293b"/><text x="45.0" y="16.5" text-anchor="middle">MEMORY</text></g><g class="bb-node" transform="translate(270,100)"><rect width="220" height="96" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-layers" x="93.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">Memtable</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">ghi nhanh, gom theo lô</text></g><path class="bb-ar d" d="M164,185 H200 V350 H936" marker-end="url(#bb-ah)"/><text x="560" y="340" text-anchor="middle" class="bb-a">đồng thời ghi transaction log (chống mất khi crash)</text><g class="bb-node" transform="translate(940,310)"><rect width="150" height="76" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-doc" x="58.0" y="10" width="34" height="34" style="color:#94a3b8"/><text x="75.0" y="64" text-anchor="middle" class="bb-l">Transaction log</text></g><path class="bb-ar" d="M494,148 H696" marker-end="url(#bb-ah)"/><text x="595" y="136" text-anchor="middle" class="bb-a">đầy → flush</text><rect class="bb-grp" x="700" y="20" width="390" height="200" rx="18"/><g class="bb-gtag" transform="translate(718,8)"><rect width="210" height="24" rx="12" fill="#1e293b"/><text x="105.0" y="16.5" text-anchor="middle">DISK · SSTABLE BẤT BIẾN</text></g><rect x="720" y="70" width="110" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="775.0" y="102" text-anchor="middle" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">SSTable 1</text><text x="775.0" y="118" text-anchor="middle" class="bb-s">a … f</text><rect x="842" y="70" width="110" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="897.0" y="102" text-anchor="middle" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">SSTable 2</text><text x="897.0" y="118" text-anchor="middle" class="bb-s">g … m</text><rect x="964" y="70" width="110" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="1019.0" y="102" text-anchor="middle" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:12px">SSTable 3</text><text x="1019.0" y="118" text-anchor="middle" class="bb-s">a … z</text><text x="895" y="180" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">key đã sắp xếp → binary search</text><text x="895" y="202" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">~100–200 MB mỗi bảng</text><rect x="250" y="240" width="400" height="60" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="450" y="265" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">update = ghi bản mới · delete = tombstone</text><text x="450" y="285" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">compaction gộp, bỏ bản cũ và bản đã xoá</text></svg></div></div><div class="fig-cap">Hình 1 — Đường ghi của LSM tree</div></div>
+  <div class="toc">
+    <span>01 <b>Bối cảnh</b></span><span>02 <b>Yêu cầu</b></span><span>03 <b>Các chủ đề</b></span><span>04 <b>LSM tree</b></span><span>05 <b>Update &amp; delete</b></span><span>06 <b>Replication &amp; CAP</b></span><span>07 <b>Quorum</b></span><span>08 <b>Consistent hashing</b></span><span>09 <b>Phát hiện node sập</b></span><span>10 <b>Ghi đồng thời</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Bối cảnh <span class="t">00:00–01:50</span></div>
+    <h2 class="c-avg">NoSQL có nhiều loại: graph, document (MongoDB), key-value (Dynamo), wide column (Cassandra), ZooKeeper, Redis; bài tập trung vào loại như DynamoDB, Cassandra</h2>
+    <p class="desc">Database thường là thành phần quan trọng nhất; hiểu độ phức tạp và đánh đổi bên trong một key-value store giúp nhìn rõ các bài trước. Relational thường là SQL; <b>NoSQL</b> linh hoạt hơn: <b>graph databases</b>, <b>document databases</b> như <b>MongoDB</b>, key-value truyền thống như <b>Dynamo</b> gốc (không phải DynamoDB); <b>DynamoDB</b> lai giữa document và key-value; <b>wide column</b> như <b>Cassandra</b>; <b>ZooKeeper</b> (dùng để điều phối, cũng là key-value store); <b>Redis</b> (in-memory nhưng flush xuống disk được). Tập trung vào loại như DynamoDB, Cassandra, không đi sâu một hệ cụ thể.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — họ NoSQL</div>
+      <div class="tbl-scroll"><table>
+        <tr><th>Loại</th><th>Ví dụ</th></tr>
+        <tr><td>Document</td><td>MongoDB</td></tr><tr><td>Key-value</td><td>Dynamo; DynamoDB (lai)</td></tr>
+        <tr><td>Wide column</td><td>Cassandra</td></tr><tr><td>Điều phối</td><td>ZooKeeper</td></tr><tr><td>In-memory</td><td>Redis</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Yêu cầu <span class="t">01:50–03:30</span></div>
+    <h2 class="c-cmd">Chỉ cần get, put, delete; phải bền và scalable, không cần ACID — thiếu isolation nên ghi đồng thời có thể xung đột</h2>
+    <p class="desc">Functional đơn giản: <b>get</b> theo key, <b>put</b> key → value (document, danh sách giá trị…), <b>delete</b> theo key. Non-functional: phải <b>durable</b>. <b>Không cần ACID</b> — vẫn cần durability (chữ D), nhưng consistency (theo nghĩa ràng buộc, foreign key) ít ý nghĩa với NoSQL, không cần atomic transaction. Thú vị nhất là <b>isolation</b>: SQL đảm bảo hai transaction đồng thời như chạy theo thứ tự, có thể khoá row → không xung đột. Với NoSQL, <b>conflicts</b> là chuyện có thật. Cuối cùng là <b>scalable</b> → cần <b>replication</b> và <b>sharding</b> (horizontal partitioning).</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — API</div>
+      <pre>get(key) → value
+put(key, value)
+delete(key)</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Các chủ đề cần bàn <span class="t">03:30–06:30</span></div>
+    <h2 class="c-spec">Lưu và index dữ liệu, replication, partitioning, node hỏng, xử lý ghi đồng thời; horizontal partitioning mạnh hơn vertical</h2>
+    <p class="desc">Thiết kế "cấp cao" ở đây là danh sách chủ đề: (1) lưu và <b>index</b> — SQL thường dùng <b>B trees</b> / <b>B plus trees</b>, một số NoSQL cũng vậy, nhưng bài bàn <b>LSM trees</b> (Cassandra dùng) — tối ưu cho ghi nhanh, đọc không nhanh bằng; (2) <b>replication</b> và <b>CAP theorem</b>; (3) partitioning; (4) <b>node fails</b>; (5) xung đột khi ghi đồng thời.</p>
+    <p class="desc"><b>Horizontal partitioning</b>: một nửa dữ liệu ở node này, nửa kia ở node khác — chính là sharding. <b>Vertical partitioning</b>: giữ trên một máy nhưng tách bảng theo cột cho bảng nhỏ lại, query nhanh hơn — dễ hơn nhưng kém mạnh. Giống <b>vertical scaling</b> (thêm tài nguyên cho một máy, có giới hạn) so với <b>horizontal scaling</b> (gần như vô hạn nếu có chiến lược tốt). Nên sharding được bàn nhiều hơn, dù khó làm.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai cách cắt bảng</div>
+      <div class="ba">
+        <div><b>Horizontal</b>Cắt theo hàng: nửa số hàng sang máy khác.</div>
+        <div><b>Vertical</b>Cắt theo cột: bảng nhỏ lại, vẫn một máy.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. LSM tree <span class="t">06:30–09:20</span></div>
+    <h2 class="c-grow">Ghi vào memtable trong bộ nhớ, đầy thì flush thành SSTable — bảng key đã sắp xếp — trên disk; ghi rất nhanh nhưng đọc có thể phải dò nhiều SSTable</h2>
+    <p class="desc"><b>LSM tree</b> = <b>log structured merge tree</b>, dùng trong Cassandra. Lý do ghi nhanh: ghi được <b>gom theo lô trong memory</b>. Client (thường là server) gửi lệnh ghi; không ghi ngay xuống disk mà vào <b>mem table</b>; định kỳ <b>flush</b> xuống disk thành <b>SS table</b>. Ghi 100 bản ghi vào memory rất nhanh; đầy thì flush một lần.</p>
+    <p class="desc">SSTable = <b>sorted strings table</b>: sắp theo key để tìm bằng <b>binary search</b>. Với Cassandra, khuyến nghị mỗi SSTable cỡ <b>trăm megabyte</b> (100–200 MB) — không phải database giới hạn 100 MB mà có nhiều SSTable. Giữ nhỏ thì nhìn khoảng key là biết bảng này không chứa key cần tìm, bỏ qua luôn. Nhược điểm: <b>đọc</b> xấu nhất phải dò nhiều SSTable. Hệ thống <b>crash</b> thì dữ liệu trong memory chưa flush sẽ mất → mỗi lần ghi cũng ghi vào <b>transaction log</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — 100 lệnh ghi</div>
+      <ol class="steps"><li>100 bản ghi vào memtable — nhanh.</li><li>Memtable đầy → flush thành một SSTable sắp theo key.</li><li>Đọc key: bỏ qua SSTable có khoảng key không chứa nó, binary search trong bảng còn lại.</li></ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Update, delete và compaction <span class="t">09:20–12:00</span></div>
+    <h2 class="c-avg">SSTable bất biến: update là ghi bản mới, delete là ghi tombstone; compaction gộp bảng và bỏ bản cũ — Cassandra, BigTable, Dynamo đều dùng ý tưởng này</h2>
+    <p class="desc">Update thông thường phải đọc giá trị trước — đi ngược mục tiêu tối ưu ghi. LSM tree <b>không ghi đè</b>: ghi luôn giá trị mới vào memory, sau flush ra SSTable mới; giá trị cũ vẫn nằm ở SSTable trước → tốn disk. SSTable <b>immutable</b>, không xoá hay ghi đè được. Muốn <b>delete</b>: ghi một bản mới đánh dấu đã xoá — <b>tombstone</b>; đọc gặp thì báo client là không tồn tại, dù dữ liệu cũ vẫn trên disk.</p>
+    <p class="desc">Có tối ưu dọn dẹp: SSTable được <b>merged and compacted</b> — bỏ bản trùng, bỏ giá trị đã xoá. LSM tree phổ biến trong NoSQL như Cassandra và <b>Google Big Table</b>; Cassandra theo nhiều nguyên tắc mà BigTable và AWS Dynamo đặt ra trong <b>white papers</b> của họ.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vòng đời một key</div>
+      <pre>SSTable 1:  a = 1
+SSTable 2:  a = 10          <span class="cm">// update: bản mới, bản cũ vẫn còn</span>
+SSTable 3:  a = ✝ tombstone <span class="cm">// delete: đọc a → "không tồn tại"</span>
+compaction → bỏ cả ba bản</pre>
+      <p>Giá trị cụ thể là minh hoạ thêm.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Replication, CAP và PACELC <span class="t">12:00–16:00</span></div>
+    <h2 class="c-cmd">Replication cho scale và chịu lỗi nhưng gây lệch dữ liệu; kể cả không có partition vẫn phải chọn latency hay consistency — Cassandra chọn latency, leaderless</h2>
+    <p class="desc">Replication cho phép scale và <b>fault tolerance</b> — dữ liệu ở nhiều máy, nhiều quốc gia, region, zone thì khó mất. Vấn đề: <b>data consistency</b> khi một replica chưa có bản mới. <b>CAP theorem</b>: khi có <b>partition</b> mạng, hai node không liên lạc được; a = 1 ở cả hai, rồi một node đổi a = 10 nhưng không chép sang được. Chọn: node cũ không nhận đọc (giảm <b>availability</b>), hay vẫn trả lời dù stale (sau này sẽ nhất quán).</p>
+    <p class="desc">Mở rộng <b>PACELC</b>: kể cả không có partition, node ở xa nhau thì chép dữ liệu mất thời gian, vd <b>50 milliseconds</b>. Chặn đọc 50 ms tới khi chép xong → ưu tiên consistency; cho đọc ngay → ưu tiên <b>latency</b>, có thể nhận giá trị cũ. Nhiều database, gồm Cassandra, chọn latency thấp — mô hình <b>eventual consistency</b>; tuỳ ứng dụng, có lúc cần giá trị mới nhất.</p>
+    <p class="desc">Leader/follower: <b>single leader</b> thì mọi ghi vào một node — thành nút thắt; <b>leader leader</b> scale cao hơn; Cassandra dùng <b>leaderless replication</b>: ba node, node nào cũng nhận ghi — phi tập trung, tốt cho ghi, nhưng lại vướng consistency.</p>
+    <div class="note">Transcript nghe "HAP theorem" và "hack else"; đúng là CAP theorem và PACELC.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — a đổi từ 1 thành 10</div>
+      <div class="ba">
+        <div><b>Ưu tiên consistency</b>Node chưa có a = 10 không trả lời trong ~50 ms.</div>
+        <div><b>Ưu tiên latency</b>Trả a = 1 ngay; 50 ms sau đọc lại sẽ ra 10.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Quorum và tunable consistency <span class="t">16:00–19:00</span></div>
+    <h2 class="c-spec">N node, W node phải xác nhận ghi, R node phải đồng ý khi đọc; W = 1 nhanh nhưng kém nhất quán, W = N nhất quán nhưng chậm — Cassandra, MongoDB cho chỉnh</h2>
+    <p class="desc"><b>Quorums</b>: hệ có <b>N</b> node (ở đây N = 3). <b>Write quorum</b> W: số node tối thiểu phải đồng ý trước khi chấp nhận ghi. <b>W = 1</b>: ghi vào một node là coi như xong — sau sẽ nhất quán, nhưng consistency thấp: đọc từ replica khác chưa có bản mới. <b>W = 3</b> (= N): phải ghi vào mọi replica — <b>strongly consistent</b> nhưng tăng latency.</p>
+    <p class="desc"><b>Read quorum</b> R: <b>R = 1</b> thì một node trả là được; <b>R = 3</b> thì cả ba phải đồng ý, không thì từ chối hoặc chờ. Cassandra có <b>tunable consistency</b>: tự đặt quorum để nghiêng về strongly consistent hoặc highly available, latency thấp. <b>MongoDB</b> cũng cho phép.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 290" style="min-width:758px" role="img" aria-label="Quorum: N node, W node xác nhận ghi, R node xác nhận đọc; chỉnh R và W để đổi consistency lấy latency"><g class="bb-node" transform="translate(40,120)"><rect width="150" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="63.0" y="14" width="24" height="24" style="color:#16a34a"/><text x="75.0" y="58" text-anchor="middle" class="bb-l">Node 1</text><text x="75.0" y="76" text-anchor="middle" class="bb-s">a = 10</text></g><g class="bb-node" transform="translate(210,120)"><rect width="150" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="63.0" y="14" width="24" height="24" style="color:#16a34a"/><text x="75.0" y="58" text-anchor="middle" class="bb-l">Node 2</text><text x="75.0" y="76" text-anchor="middle" class="bb-s">a = 10</text></g><g class="bb-node" transform="translate(380,120)"><rect width="150" height="90" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-db" x="63.0" y="14" width="24" height="24" style="color:#94a3b8"/><text x="75.0" y="58" text-anchor="middle" class="bb-l">Node 3</text><text x="75.0" y="76" text-anchor="middle" class="bb-s">a = 1 (cũ)</text></g><g class="bb-node" transform="translate(170,0)"><rect width="200" height="70" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-server" x="88.0" y="12" width="24" height="24" style="color:#3b82f6"/><text x="100.0" y="56" text-anchor="middle" class="bb-l">Write a = 10</text></g><path class="bb-ar" d="M230,74 V100 H115 V116" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M290,74 V116" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M340,74 V100 H455 V116" marker-end="url(#bb-ah)"/><text x="275" y="250" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">N = 3, W = 2: ghi xong khi 2 node xác nhận</text><rect x="560" y="20" width="520" height="250" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="590" y="60" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:13.5px">W = 1</text><text x="740" y="60" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">nhanh nhất, consistency thấp nhất</text><text x="590" y="104" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13.5px">W = N = 3</text><text x="740" y="104" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">strongly consistent, latency cao</text><text x="590" y="148" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:13.5px">R = 1 / R = 3</text><text x="740" y="148" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">đọc từ 1 node / cả 3 node phải đồng ý</text><text x="590" y="192" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13.5px">Tunable</text><text x="740" y="192" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">Cassandra, MongoDB cho tự chỉnh R, W</text><text x="590" y="236" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13.5px">R + W &gt; N</text><text x="740" y="236" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">tập đọc và tập ghi luôn giao nhau</text></svg></div></div><div class="fig-cap">Hình 2 — Quorum đọc và ghi</div></div>
+    <div class="note">Quy tắc thường dùng (không nói trong video): nếu R + W &gt; N thì tập node đọc và tập node ghi luôn giao nhau, nên mỗi lần đọc chạm ít nhất một node có bản mới nhất; vd N = 3, W = 2, R = 2.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai đầu của W</div>
+      <pre>N = 3
+W = 1  → ghi xong khi 1 node có dữ liệu   <span class="cm">// nhanh, kém nhất quán</span>
+W = 3  → ghi xong khi cả 3 node có        <span class="cm">// nhất quán, chậm</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. Partitioning với consistent hashing <span class="t">19:00–23:30</span></div>
+    <h2 class="c-grow">Shard để mỗi node giữ một phần dữ liệu; consistent hashing đưa key lên vòng 0–360, đi theo chiều kim đồng hồ tới node; virtual node đặt ngẫu nhiên để node sập không dồn tải</h2>
+    <p class="desc">Ngoài replicate, dữ liệu còn bị <b>chia</b>: một phần ba ở node này, một phần ba ở node kia. <b>Shard key</b> có thể do user chỉ định (MongoDB cho phép) hoặc tự động. Hệ thống phải tăng giảm số partition khi dữ liệu thay đổi → <b>consistent hashing</b>, giảm tối đa dữ liệu phải chuyển khi thêm bớt partition.</p>
+    <p class="desc">Các node nằm trên một <b>ring</b>, giá trị 0–<b>360</b>. Key được băm thành số trong khoảng đó; đi <b>clockwise</b> tới node đầu tiên: 0–120 về node này, 120–240 về node kia, 240–360 về node thứ ba. Một node sập: dữ liệu các node khác vẫn ở yên, nhưng phần của node sập dồn sang node kế tiếp → node đó giữ <b>hai phần ba</b> dữ liệu — <b>skewed</b>; thêm node cũng có thể lệch.</p>
+    <p class="desc">Giải pháp: <b>virtual nodes</b>. Ba node vật lý nhưng tạo nhiều vnode, mỗi vnode trỏ về một node vật lý. Với 3 vnode như hình vẽ trong video thì chưa giải quyết được; với <b>10 hay 20</b> vnode đặt <b>ngẫu nhiên</b>, một node sập thì phần dữ liệu của nó chia nhỏ cho nhiều node. Dùng thật trong <b>Cassandra</b>, <b>Dynamo</b>, cả <b>Vitess</b> (chạy trên MySQL).</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 350" style="min-width:758px" role="img" aria-label="Consistent hashing: key băm lên vòng, đi theo chiều kim đồng hồ tới node; virtual node giúp dữ liệu không dồn về một node"><circle cx="260" cy="170" r="130" fill="none" stroke="#94a3b8" stroke-width="3"/><circle cx="260" cy="40" r="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><circle cx="373" cy="235" r="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/><circle cx="147" cy="235" r="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/><text x="260" y="164" text-anchor="middle" style="font-weight:800;font-size:13px">3 node vật lý</text><text x="260" y="186" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">mỗi node 1/3 vòng</text><text x="260" y="336" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">node xanh lá sập → node kế tiếp nhận 2/3 dữ liệu</text><circle cx="820" cy="170" r="130" fill="none" stroke="#94a3b8" stroke-width="3"/><circle cx="820" cy="40" r="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><circle cx="873" cy="51" r="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><circle cx="917" cy="83" r="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><circle cx="944" cy="130" r="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/><circle cx="949" cy="184" r="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/><circle cx="933" cy="235" r="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><circle cx="896" cy="275" r="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><circle cx="847" cy="297" r="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><circle cx="793" cy="297" r="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><circle cx="744" cy="275" r="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2.5"/><circle cx="707" cy="235" r="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/><circle cx="691" cy="184" r="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/><circle cx="696" cy="130" r="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/><circle cx="723" cy="83" r="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><circle cx="767" cy="51" r="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><text x="820" y="164" text-anchor="middle" style="font-weight:800;font-size:13px">15 virtual node</text><text x="820" y="186" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">đặt ngẫu nhiên</text><text x="820" y="336" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">một node sập → tải chia đều cho các node còn lại</text><path class="bb-ar" d="M420,170 H640" marker-end="url(#bb-ah)"/><text x="530" y="158" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">thêm vnode</text></svg></div></div><div class="fig-cap">Hình 3 — Vòng consistent hashing và virtual node</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — node sập</div>
+      <div class="ba">
+        <div><b>3 node, không vnode</b>Một node sập → node kế tiếp gánh 2/3 dữ liệu.</div>
+        <div><b>Nhiều vnode ngẫu nhiên</b>Phần của node sập rải ra nhiều node.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">09. Phát hiện và xử lý node sập <span class="t">23:30–27:40</span></div>
+    <h2 class="c-avg">Tập trung: heartbeat tới ZooKeeper (HBase); phi tập trung: gossip protocol (Cassandra) — heartbeat lan qua vài hàng xóm, nhiều node cùng xác nhận; hinted handoff khi node tạm vắng</h2>
+    <p class="desc">Cách đơn giản: dịch vụ ngoài như <b>ZooKeeper</b> — mỗi node gửi <b>heartbeat</b> mỗi <b>10 giây</b> hay <b>30 giây</b>; một <b>control plane</b> tập trung xử lý khi node sập, chuyển traffic sang node khác.</p>
+    <p class="desc">Cassandra phi tập trung bằng <b>gossip protocol</b>: không control plane, không leader; node nào cũng có thể làm coordinator. Mỗi node giữ <b>member list</b> và thời điểm heartbeat cuối của từng node (vd B theo dõi A và C). Mỗi node gửi heartbeat tới vài node, tin <b>lan dần</b> cả mạng — việc chia đều cho các node. B thấy A quá ngưỡng (vd <b>một phút</b>) không có heartbeat — chưa đủ, vì có khi chính B bị cắt mạng; một node khác như D cũng thấy vậy → hai node <b>độc lập xác nhận</b> A đã sập. Nếu mọi node trao đổi với mọi node thì tăng theo <b>N squared</b> — với <b>một nghìn</b> node là quá tốn. <b>HBase</b> thì dùng cách tập trung với ZooKeeper.</p>
+    <p class="desc">Khi một node sập: <b>hinted handoff</b> — các lệnh ghi cho partition đó tạm chuyển sang node khác; node hồi phục thì các lệnh ghi đó được đẩy trả lại.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Gossip protocol: heartbeat lan qua vài hàng xóm, nhiều node cùng xác nhận một node đã sập"><path d="M120,80 L320,40" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><path d="M320,40 L500,120" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><path d="M320,200 L500,120" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><path d="M320,200 L120,240" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><path d="M120,240 L120,80" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><path d="M320,40 L320,200" fill="none" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 6"/><rect x="86" y="54" width="68" height="52" rx="12" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="120" y="86" text-anchor="middle" style="font-weight:800;font-size:15px">A</text><rect x="286" y="14" width="68" height="52" rx="12" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="320" y="46" text-anchor="middle" style="font-weight:800;font-size:15px">B</text><rect x="286" y="174" width="68" height="52" rx="12" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="320" y="206" text-anchor="middle" style="font-weight:800;font-size:15px">C</text><rect x="86" y="214" width="68" height="52" rx="12" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="120" y="246" text-anchor="middle" style="font-weight:800;font-size:15px">D</text><rect x="466" y="94" width="68" height="52" rx="12" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="500" y="126" text-anchor="middle" style="font-weight:800;font-size:15px">E</text><text x="300" y="300" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:12.5px">mỗi node chỉ gửi heartbeat cho vài node, tin lan dần</text><rect x="600" y="20" width="480" height="280" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="840" y="52" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">B và D cùng không thấy heartbeat của A &gt; 1 phút</text><text x="840" y="78" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">→ hai node độc lập xác nhận: A đã sập</text><text x="840" y="124" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">Tất cả gửi cho tất cả: tăng theo N²</text><text x="840" y="166" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12.5px">Hinted handoff: ghi tạm sang node khác,</text><text x="840" y="188" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12.5px">node hồi phục thì đẩy lại</text><text x="840" y="234" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">Cassandra: gossip (phi tập trung)</text><text x="840" y="258" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12.5px">HBase: ZooKeeper (tập trung)</text></svg></div></div><div class="fig-cap">Hình 4 — Gossip protocol</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vì sao cần hai node xác nhận</div>
+      <p>B không nhận heartbeat của A: có thể A sập, nhưng cũng có thể B bị cắt khỏi mạng. Khi D cũng không thấy A quá ngưỡng, mới kết luận A sập.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">10. Ghi đồng thời: last write wins hay vector clock <span class="t">27:40–31:30</span></div>
+    <h2 class="c-cmd">Cassandra dùng last write wins theo timestamp — đơn giản; Dynamo gốc dùng vector clock — phiên bản theo từng node, client tự giải quyết xung đột</h2>
+    <p class="desc">Cassandra: <b>last write wins</b> (LWW). Hai replica, a ban đầu = 0; một nơi đổi a = 1 lúc <b>12:00</b>, nơi khác đổi a = 2 lúc <b>12:01</b> (một phút là lớn, chỉ để ví dụ) → lần ghi sau thắng, đọc a ra 2. Đơn giản, trực quan nhất.</p>
+    <p class="desc">Dynamo gốc dùng <b>vector clocks</b>: thay vì timestamp, mỗi giá trị có <b>version</b> theo từng node — cặp (node, version), vd node A version 1, cập nhật thì version 2. Nếu hai replica nhận giá trị mới khác nhau cùng lúc, các version khác nhau theo node và không có cách giải quyết đơn giản; với Dynamo, <b>client</b> phải tự giải quyết. Bài này chọn LWW — không hoàn hảo nhưng đơn giản; phỏng vấn thường không đòi đào sâu vector clock.</p>
+    <p class="desc">Bài đi sâu hơn vào CAP, replication, consistent hashing để có cái nhìn toàn diện về một thành phần — và gợi ý các lựa chọn khác cho những bài như Twitter, Discord.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai lệnh ghi xung đột</div>
+      <pre>replica 1:  a = 1   @12:00
+replica 2:  a = 2   @12:01
+LWW → a = <span class="kw">2</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> LSM tree nhanh cả đọc lẫn ghi.</div><div><span class="v">✓</span> Tối ưu ghi; đọc có thể phải dò nhiều SSTable (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Delete trong LSM tree xoá dữ liệu ngay.</div><div><span class="v">✓</span> Ghi tombstone; compaction mới dọn (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Không có partition mạng thì không phải đánh đổi.</div><div><span class="v">✓</span> PACELC: vẫn phải chọn latency hay consistency (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Consistent hashing tự chia đều khi node sập.</div><div><span class="v">✓</span> Không có vnode thì node kế tiếp gánh hết (→ 08).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Một node không thấy heartbeat là đủ kết luận.</div><div><span class="v">✓</span> Có thể chính nó bị cắt mạng; cần node khác xác nhận (→ 09).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Các lựa chọn chính</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">B+ tree</td><td>Đọc nhiều, cần đọc nhanh ổn định</td><td>Ghi cực nhiều</td><td>Đọc tốt; ghi chậm hơn</td></tr>
+      <tr><td class="k">LSM tree</td><td>Ghi rất nhiều (time series, log)</td><td>Đọc là ưu tiên</td><td>Ghi nhanh; đọc dò nhiều bảng, cần compaction</td></tr>
+      <tr><td class="k">W, R thấp</td><td>Cần latency thấp, chấp nhận stale</td><td>Cần dữ liệu mới tuyệt đối</td><td>Nhanh; kém nhất quán</td></tr>
+      <tr><td class="k">W, R cao</td><td>Cần strong consistency</td><td>Latency là ưu tiên</td><td>Nhất quán; chậm, kém available</td></tr>
+      <tr><td class="k">Gossip</td><td>Cụm lớn, không muốn điểm tập trung</td><td>Cụm nhỏ đơn giản</td><td>Phi tập trung; lan tin chậm hơn</td></tr>
+      <tr><td class="k">Last write wins</td><td>Cần đơn giản</td><td>Không được mất ghi đồng thời</td><td>Dễ; có thể mất một lần ghi</td></tr>
+      <tr><td class="k">Vector clock</td><td>Cần phát hiện xung đột thật</td><td>Muốn client đơn giản</td><td>Chính xác hơn; client tự giải quyết</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>SSTable là gì và vì sao tìm nhanh?</summary><p>Sorted strings table — key đã sắp xếp nên binary search được; nhìn khoảng key là bỏ qua bảng không liên quan. (→ 04)</p></details>
+    <details><summary>Tombstone dùng để làm gì?</summary><p>Đánh dấu key đã bị xoá vì SSTable bất biến; đọc gặp thì báo không tồn tại. (→ 05)</p></details>
+    <details><summary>N = 3, W = 3 có ưu nhược gì?</summary><p>Strongly consistent nhưng mỗi lần ghi chờ cả 3 node, latency cao. (→ 07)</p></details>
+    <details><summary>Virtual node giải quyết vấn đề gì?</summary><p>Khi một node sập, dữ liệu của nó không dồn hết về một node kế tiếp mà chia cho nhiều node. (→ 08)</p></details>
+    <details><summary>Hinted handoff là gì?</summary><p>Ghi tạm sang node khác khi node đích sập, rồi đẩy trả khi nó hồi phục. (→ 09)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">memtable / SSTable</td><td>Bảng ghi trong memory / bảng key đã sắp trên disk</td><td>04</td></tr>
+      <tr><td class="k">tombstone</td><td>Bản ghi đánh dấu đã xoá</td><td>05</td></tr>
+      <tr><td class="k">compaction</td><td>Gộp SSTable, bỏ bản cũ và bản đã xoá</td><td>05</td></tr>
+      <tr><td class="k">PACELC</td><td>Không partition vẫn phải chọn latency hay consistency</td><td>06</td></tr>
+      <tr><td class="k">leaderless replication</td><td>Node nào cũng nhận ghi</td><td>06</td></tr>
+      <tr><td class="k">quorum (N, W, R)</td><td>Số node phải đồng ý khi ghi, khi đọc</td><td>07</td></tr>
+      <tr><td class="k">virtual node</td><td>Điểm ảo trên vòng hash trỏ về node thật</td><td>08</td></tr>
+      <tr><td class="k">gossip protocol</td><td>Heartbeat lan dần qua các node hàng xóm</td><td>09</td></tr>
+      <tr><td class="k">hinted handoff</td><td>Ghi tạm hộ node đang sập</td><td>09</td></tr>
+      <tr><td class="k">vector clock</td><td>Version theo từng node để phát hiện xung đột</td><td>10</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “8 - Design a Key-Value Store” (<a href="https://drive.google.com/file/d/1wbc6OCohaUboX1d6yO2yRpX2tLefWsva/view">drive.google.com/file/d/1wbc6OCohaUboX1d6yO2yRpX2tLefWsva</a>) · khoảng 31 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; đã xem khung hình mỗi phút.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-08.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

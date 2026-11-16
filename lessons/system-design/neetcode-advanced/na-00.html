@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Approach — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-00">
+  <meta name="lesson:title" content="Cách tiếp cận bài phỏng vấn system design">
+  <meta name="lesson:description" content="Thu hẹp phạm vi cùng người phỏng vấn, functional và non-functional requirements, ước lượng nhẩm và các con số độ trễ cần biết.">
+  <meta name="lesson:order" content="0">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="12 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:How to Approach — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 0</div>
+  <h1>Phỏng vấn system design: <span class="a">thu hẹp phạm vi</span> cùng người phỏng vấn, rồi dùng <span class="b">ước lượng nhẩm</span> để thiết kế cho đúng quy mô</h1>
+  <div class="sub">Mọi thiết kế đều có server, load balancer, database. Điểm cộng nằm ở việc làm rõ yêu cầu, chọn đánh đổi hợp lý và nắm các con số cơ bản.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1060 360" style="min-width:731px" role="img" aria-label="Thiết kế cấp cao chung cho mọi đề: load balancer, nhiều server, database; chưa đủ chi tiết"><g class="bb-node" transform="translate(20,110)"><rect width="150" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="58.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="75.0" y="71" text-anchor="middle" class="bb-l">Users</text></g><path class="bb-ar" d="M174,155 H236" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(240,110)"><rect width="190" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-lb" x="78.0" y="17" width="34" height="34" style="color:#0d9488"/><text x="95.0" y="71" text-anchor="middle" class="bb-l">Load balancer</text></g><path class="bb-ar" d="M434,140 H520 V60 H556" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M434,155 H556" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M434,170 H520 V250 H556" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(560,20)"><rect width="170" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Server 1</text></g><g class="bb-node" transform="translate(560,110)"><rect width="170" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Server 2</text></g><g class="bb-node" transform="translate(560,200)"><rect width="170" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">Server 3</text></g><path class="bb-ar" d="M734,60 H800 V140 H846" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M734,150 H846" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M734,240 H800 V170 H846" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(850,110)"><rect width="170" height="90" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="68.0" y="17" width="34" height="34" style="color:#16a34a"/><text x="85.0" y="71" text-anchor="middle" class="bb-l">Database</text></g><rect x="170" y="300" width="760" height="46" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="550" y="328" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">Áp dụng cho MỌI đề → còn chung chung: schema? SQL hay NoSQL? scale DB thế nào?</text></svg></div></div><div class="fig-cap">Hình 1 — Thiết kế cấp cao chung cho mọi đề</div></div>
+  <div class="toc">
+    <span>01 <b>Khung chung</b></span><span>02 <b>Thu hẹp phạm vi</b></span><span>03 <b>Functional</b></span><span>04 <b>Non-functional</b></span><span>05 <b>Ước lượng nhẩm</b></span><span>06 <b>Con số cần biết</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Khung chung của mọi thiết kế <span class="t">~00:00–01:30</span></div>
+    <h2 class="c-avg">Server, load balancer, database là điểm khởi đầu tốt — nhưng quá chung chung, người phỏng vấn muốn đi vào chi tiết</h2>
+    <p class="desc">System design interview là lấy bài toán thực tế, chia nhỏ và thiết kế phần chức năng cốt lõi. Vì đều là bài toán về máy tính và internet, mọi thiết kế có điểm chung: ứng dụng chạy trên <b>server</b>; cần scale thì có <b>nhiều server</b>; chia traffic thì dùng <b>load balancer</b>; lưu dữ liệu thì có <b>database</b> để các server đọc ghi.</p>
+    <p class="desc">Thiết kế rất cấp cao này còn "handwavy" — nó áp dụng cho mọi đề. Cần đào sâu: <b>schema</b> dữ liệu là gì, dùng <b>SQL hay NoSQL</b>, xử lý scale thế nào — hay thậm chí có cần scale database không, có khi một <b>single instance</b> SQL là đủ. Tuỳ đề.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — câu hỏi để đào sâu</div>
+      <ul class="plain">
+        <li>Schema dữ liệu gồm những bảng/trường nào?</li>
+        <li>SQL hay NoSQL?</li>
+        <li>Database có cần scale không, hay một instance là đủ?</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Thu hẹp phạm vi <span class="t">~01:30–03:30</span></div>
+    <h2 class="c-cmd">Đề như "Design Twitter" không thể làm hết trong 45 phút; hãy cùng người phỏng vấn chọn một mảnh nhỏ — người phỏng vấn giống khách hàng của bạn</h2>
+    <p class="desc">Đề thường rất mở: design <b>Twitter</b>, <b>YouTube</b>, <b>WhatsApp</b>. Không thể phủ hết trong buổi phỏng vấn khoảng <b>45 phút</b> — nếu Twitter đơn giản vậy thì ai cũng làm được; thực tế cần hàng trăm, hàng nghìn kỹ sư. Nên thường ta chỉ thiết kế một phần: <b>news feed</b>, <b>nhắn tin</b>, hay chỉ tính năng <b>like</b> (nút trái tim) — có lẽ riêng tính năng đó đã tốn hàng chục, hàng trăm trang design document.</p>
+    <p class="desc">Việc của ta là chia nhỏ và <b>làm rõ</b> (clarify) với người phỏng vấn: tập trung chức năng nào, một tính năng cụ thể hay thiết kế tổng quan cả site (khi đó sẽ không đi quá sâu). Đây không phải việc tự làm một mình: người phỏng vấn dẫn dắt, giống <b>khách hàng</b>, còn bạn thiết kế thứ đáp ứng yêu cầu của họ.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1060 340" style="min-width:731px" role="img" aria-label="Đề mở cần thu hẹp phạm vi; yêu cầu chia hai nhóm functional và non-functional"><g class="bb-node" transform="translate(20,120)"><rect width="200" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-target" x="83.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Đề mở</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">vd “Design Twitter”</text></g><path class="bb-ar" d="M224,168 H286" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(290,120)"><rect width="250" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="108.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="125.0" y="66" text-anchor="middle" class="bb-l">Làm rõ với người phỏng vấn</text><text x="125.0" y="84" text-anchor="middle" class="bb-s">họ như khách hàng</text></g><path class="bb-ar" d="M544,150 H600 V80 H636" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M544,186 H600 V250 H636" marker-end="url(#bb-ah)"/><rect class="bb-grp" x="640" y="20" width="400" height="120" rx="18"/><g class="bb-gtag" transform="translate(658,8)"><rect width="110" height="24" rx="12" fill="#1e293b"/><text x="55.0" y="16.5" text-anchor="middle">FUNCTIONAL</text></g><text x="840" y="70" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:13px">Tính năng: like, news feed, nhắn tin…</text><text x="840" y="100" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">Like nhiều lần được không? → lưu user ID</text><rect class="bb-grp" x="640" y="190" width="400" height="130" rx="18"/><g class="bb-gtag" transform="translate(658,178)"><rect width="140" height="24" rx="12" fill="#1e293b"/><text x="70.0" y="16.5" text-anchor="middle">NON-FUNCTIONAL</text></g><text x="840" y="238" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:13px">Scale: DAU, throughput, dung lượng</text><text x="840" y="266" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:13px">Performance: latency, availability</text><text x="840" y="294" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">thường là phần khó nhất</text></svg></div></div><div class="fig-cap">Hình 2 — Từ đề mở tới hai nhóm yêu cầu</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — các mảnh của Twitter</div>
+      <div class="ba">
+        <div><b>Một tính năng</b>Nút like, news feed, nhắn tin — đi sâu chi tiết.</div>
+        <div><b>Tổng quan cả site</b>Thiết kế cấp cao, không đào quá sâu từng phần.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Functional requirements <span class="t">~03:30–06:00</span></div>
+    <h2 class="c-spec">Functional requirements là các tính năng thực sự; giả định mà không hỏi rồi giải sai bài là lỗi đắt</h2>
+    <p class="desc">Nhóm đầu là <b>functional requirements</b>: ứng dụng hoạt động thế nào, chuyện gì xảy ra khi like một tweet, có được like nhiều lần không? Chắc là không — một user không được like một tweet nhiều lần, nên mỗi lần like ta lưu <b>user ID</b> vào database để nhớ. Cũng cần biết tính năng nào: có khi không quan tâm like mà chỉ quan tâm news feed — cuộn qua nhiều tweet, mỗi user có một feed riêng cần sinh ra.</p>
+    <p class="desc">Người phỏng vấn thường đã có sẵn một phần muốn tập trung, và họ cũng xem bạn có hỏi làm rõ không — điều rất quan trọng trong công việc thật. Thiết kế một tính năng lớn rồi hoá ra sai yêu cầu là <b>lỗi rất đắt</b>. Đừng nhảy thẳng vào giải rồi hoá ra giải sai bài.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tính năng like</div>
+      <pre><span class="cm">// mỗi lần like → lưu (tweet_id, user_id)</span>
+<span class="cm">// đã có cặp này rồi → không cho like lần nữa</span>
+likes(tweet_id, user_id)</pre>
+      <p>Dạng bảng là minh hoạ thêm; nguồn chỉ nói "lưu user ID vào database".</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Non-functional requirements <span class="t">~06:00–11:00</span></div>
+    <h2 class="c-grow">Non-functional là mọi thứ ngoài tính năng: scale (throughput, dung lượng) và performance (latency, availability) — thường là phần khó nhất</h2>
+    <p class="desc">Tutorial YouTube nào cũng dạy làm Twitter clone, nhưng nó thiếu tính năng và chắc chắn không chịu nổi quy mô Twitter thật — lưu tweet trong một <b>SQL single instance</b> không scale tới hàng trăm triệu user. Người phỏng vấn có thể cho: <b>100 million daily active users</b> (DAU), và bạn thiết kế theo đó.</p>
+    <ul class="plain">
+      <li><b>Throughput</b>: có thể hàng trăm nghìn request vào database mỗi giây.</li>
+      <li><b>Storage capacity</b>: hàng trăm triệu user thì dữ liệu khổng lồ; một instance về lý thuyết chạy được nhưng một query có thể mất vài giây, tới 10 giây.</li>
+      <li><b>Latency</b>: muốn query nhanh thì phải <b>partition</b> database để giảm read/write latency. Có khi chỉ quan tâm một phần: đọc dưới <b>1 giây</b>, còn ghi chậm hơn được, 2–3 giây.</li>
+      <li><b>Availability</b>: user mở Twitter, mạng vẫn ổn mà nhận lỗi vì database hay server sập. Availability ≈ số response không lỗi ÷ tổng số request; muốn càng cao càng tốt, vd <b>99%</b> hay <b>99.9%</b>, nhưng <b>100%</b> là không thể.</li>
+    </ul>
+    <p class="desc">Thêm "số 9" thì giảm downtime nhưng tốn tài nguyên; Twitter sập vài phút mỗi năm không phải tận thế. Đừng <b>overengineer</b>: không có thiết kế hoàn hảo, mục tiêu là đáp ứng nhiều yêu cầu nhất có thể và khi không được thì đưa ra <b>tradeoff</b> thông minh — hy sinh thứ không quan trọng để giữ chức năng cốt lõi.</p>
+    <div class="note">Video nói 5 số 9 ≈ "20 hay 30 phút downtime mỗi năm" và thêm một số 9 nữa thì còn khoảng 5 phút. Tính đúng: 99.99% (4 số 9) ≈ 52,6 phút/năm, 99.999% (5 số 9) ≈ 5,3 phút/năm, 99.9999% ≈ 32 giây/năm. Ý chính của video vẫn đúng: thêm số 9 thì lợi ích giảm dần.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — đọc và ghi khác yêu cầu</div>
+      <div class="ba">
+        <div><b>Reads</b>Phải dưới 1 giây — user đang chờ news feed.</div>
+        <div><b>Writes</b>Chậm hơn được, 2–3 giây.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Back of the envelope <span class="t">~11:00–15:30</span></div>
+    <h2 class="c-avg">Ước lượng nhẩm "mặt sau phong bì": 100M DAU → khoảng 100.000 reads/s và 100 writes/s; lệch gấp đôi cũng không sao</h2>
+    <p class="desc">Trong phỏng vấn không có thời gian tính chính xác throughput, nên dùng <b>back of the envelope calculations</b> — tính như trên mặt sau phong bì hay tờ khăn giấy, không cần máy tính. Ví dụ: Twitter có <b>100 million</b> DAU, mỗi người đọc khoảng <b>100 tweet</b>/ngày, nhưng chỉ một phần mười người viết tweet mỗi ngày → <b>0.1 tweet</b>/người. Tổng: <b>10 million</b> writes/ngày, <b>10 billion</b> reads/ngày.</p>
+    <p class="desc">Số giây trong ngày: 60 × 60 = <b>3600</b>; × 24 → khoảng <b>86,000</b> (đúng là 86.400). Làm tròn thành <b>100,000</b> là đủ tốt — lệch <b>gấp đôi</b> (160.000 hay 40–50.000) cũng ổn. 10 tỷ có 10 số 0, 100.000 có 5 số 0 → khoảng <b>100,000 reads per second</b>. 10 triệu ít hơn 3 số 0 → khoảng <b>100 writes per second</b>.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1060 320" style="min-width:731px" role="img" aria-label="Ví dụ ước lượng throughput của Twitter bằng phép tính nhẩm"><rect x="20" y="30" width="230" height="64" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="135.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">100M DAU</text><text x="135.0" y="75" text-anchor="middle" class="bb-s">user hoạt động mỗi ngày</text><path class="bb-ar" d="M254,50 H316" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M254,76 H300 V176 H316" marker-end="url(#bb-ah)"/><rect x="320" y="20" width="300" height="60" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="470.0" y="47" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">đọc 100 tweet/người</text><text x="470.0" y="63" text-anchor="middle" class="bb-s">→ 10 tỷ (10B) reads/ngày</text><rect x="320" y="150" width="300" height="60" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="470.0" y="177" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">viết 0,1 tweet/người</text><text x="470.0" y="193" text-anchor="middle" class="bb-s">→ 10 triệu (10M) writes/ngày</text><path class="bb-ar" d="M624,50 H736" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M624,180 H736" marker-end="url(#bb-ah)"/><rect x="740" y="20" width="300" height="60" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="890.0" y="47" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">≈ 100.000 reads/s</text><text x="890.0" y="63" text-anchor="middle" class="bb-s">10B ÷ 100K</text><rect x="740" y="150" width="300" height="60" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="890.0" y="177" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">≈ 100 writes/s</text><text x="890.0" y="193" text-anchor="middle" class="bb-s">10M ÷ 100K</text><rect x="240" y="250" width="580" height="56" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="530" y="274" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:800;font-size:13.5px">1 ngày = 60 × 60 × 24 = 86.400 s ≈ 100.000 s</text><text x="530" y="294" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">lệch ×2 vẫn ổn</text></svg></div></div><div class="fig-cap">Hình 3 — Ước lượng throughput Twitter</div></div>
+    <p class="desc">Ứng dụng còn nhiều <b>auxiliary services</b> như <b>authentication</b>, <b>payments</b>. Trừ khi đề chính là chúng, thường có thể bỏ qua: thiết kế Twitter feed cần khái niệm user và user ID để định danh, nhưng không cần bàn login/logout hay thanh toán. Không chắc thì hỏi người phỏng vấn.</p>
+    <div class="note">Video có một chỗ nói nhầm "mỗi người đọc 100 million tweet"; đúng theo phép tính là 100 tweet mỗi người.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — gạch số 0</div>
+      <pre>10,000,000,000 reads ÷ 100,000 s  = 100,000 reads/s
+    10,000,000 writes ÷ 100,000 s =     100 writes/s</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Các con số cần biết <span class="t">~15:30–19:30</span></div>
+    <h2 class="c-cmd">Nắm đơn vị thời gian, đơn vị dung lượng tới petabyte, và thứ tự độ trễ: cache &lt; RAM &lt; SSD &lt; mạng nội bộ &lt; internet</h2>
+    <p class="desc"><b>Thời gian</b>: 1 giây; <b>millisecond</b> = 1/1000 giây; <b>microsecond</b> (ký hiệu chữ Hy Lạp µ, trông như chữ u) = một phần triệu giây; <b>nanosecond</b> (ns) = một phần tỷ giây — thường nhỏ nhất ta cần. Lớn hơn: phút = 60 giây, giờ = 60 phút, ngày = 24 giờ.</p>
+    <p class="desc"><b>Dung lượng</b>: byte → <b>kilobyte</b> (nghìn byte) → <b>megabyte</b> (triệu) → <b>gigabyte</b> (tỷ, thường dùng cho lưu trữ bền) → <b>terabyte</b> (nghìn tỷ) → <b>petabyte</b> (10<sup>15</sup>). Thường không cần vượt quá đơn vị này: có thể nói nghìn hay trăm nghìn petabyte.</p>
+    <p class="desc">Cuối cùng là bảng <b>latency numbers</b> dựa trên số liệu <b>Jeff Dean</b> (Google, giải nhiều bài toán distributed system) nêu khoảng một thập kỷ trước, trang do <b>Colin Scott</b> làm, cập nhật tới <b>2020</b>. Không cần thuộc lòng, chỉ cần biết cái nào nhanh hơn và hơn khoảng bao nhiêu.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Thứ tự độ trễ: cache, RAM, SSD, mạng trong datacenter, mạng xuyên lục địa"><text x="20" y="48" text-anchor="start" style="font-weight:700;font-size:13px">L1 cache</text><rect x="330" y="28" width="40" height="34" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="382" y="51" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">~1 ns</text><text x="20" y="106" text-anchor="start" style="font-weight:700;font-size:13px">Main memory</text><rect x="330" y="86" width="160" height="34" rx="6" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="502" y="109" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:13px">~100 ns</text><text x="20" y="164" text-anchor="start" style="font-weight:700;font-size:13px">SSD read</text><rect x="330" y="144" width="340" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="682" y="167" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">~16 µs</text><text x="20" y="222" text-anchor="start" style="font-weight:700;font-size:13px">Mạng trong cùng datacenter (round trip)</text><rect x="330" y="202" width="470" height="34" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="812" y="225" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">~500 µs</text><text x="20" y="280" text-anchor="start" style="font-weight:700;font-size:13px">California ↔ Hà Lan (round trip)</text><rect x="330" y="260" width="700" height="34" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="1042" y="283" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">~150 ms</text><text x="530" y="320" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">thang đo không tuyến tính — chỉ cần nhớ thứ tự và độ chênh (số liệu Colin Scott, cập nhật 2020)</text></svg></div></div><div class="fig-cap">Hình 4 — Thứ tự độ trễ</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — so sánh nhanh</div>
+      <ul class="plain">
+        <li><b>L1 cache</b> ~1 ns; tham chiếu <b>main memory</b> ~100 ns.</li>
+        <li><b>SSD</b> chậm hơn memory khoảng 100 lần (~16 µs).</li>
+        <li>Gửi qua mạng <b>trong cùng data center</b> ~500 µs, chậm hơn đọc SSD.</li>
+        <li>Round trip <b>California → Netherlands</b> ~150 ms.</li>
+      </ul>
+    </div>
+    <p class="desc">Điều còn lại trước khi vào bài tập: nắm tổng quan distributed system — đã có trong khoá System Design for Beginners.</p>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Vẽ load balancer + server + database là đủ.</div><div><span class="v">✓</span> Đó chỉ là khởi đầu; cần schema, chọn SQL/NoSQL, cách scale (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Nghe đề xong thì bắt tay thiết kế ngay.</div><div><span class="v">✓</span> Hỏi làm rõ phạm vi trước; giải sai bài là lỗi đắt (→ 02, 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Phải đạt availability 100%.</div><div><span class="v">✓</span> Không thể; chọn mức hợp lý, tránh overengineer (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Ước lượng phải tính chính xác.</div><div><span class="v">✓</span> Làm tròn 86.400 → 100.000 là đủ; lệch gấp đôi không sao (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Luôn phải thiết kế cả authentication, payments.</div><div><span class="v">✓</span> Thường bỏ qua trừ khi đề nói về chúng; không chắc thì hỏi (→ 05).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Hai nhóm yêu cầu</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Nhóm</th><th>Hỏi gì</th><th>Ví dụ</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Functional</td><td>Tính năng nào, hoạt động ra sao</td><td>Like một lần mỗi user; news feed riêng</td><td>Chọn đúng mảnh để tập trung</td></tr>
+      <tr><td class="k">Non-functional</td><td>Quy mô, latency, availability</td><td>100M DAU; read &lt; 1 s; 99.9%</td><td>Thêm số 9 hay giảm latency đều tốn chi phí</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Bốn câu hỏi</h2>
+    <details><summary>Vì sao phải thu hẹp phạm vi đề "Design Twitter"?</summary><p>Không thể thiết kế cả Twitter trong khoảng 45 phút; người phỏng vấn thường muốn tập trung một mảnh như news feed hay like. (→ 02)</p></details>
+    <details><summary>Availability được tính thế nào?</summary><p>Số response không lỗi chia cho tổng số request. (→ 04)</p></details>
+    <details><summary>10 triệu writes mỗi ngày là bao nhiêu writes mỗi giây?</summary><p>Khoảng 10.000.000 ÷ 100.000 = 100 writes/s. (→ 05)</p></details>
+    <details><summary>Gửi dữ liệu trong cùng data center nhanh hơn hay chậm hơn đọc SSD?</summary><p>Chậm hơn: khoảng 500 µs so với 16 µs. (→ 06)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">functional requirements</td><td>Các tính năng ứng dụng phải có</td><td>03</td></tr>
+      <tr><td class="k">non-functional requirements</td><td>Scale, throughput, dung lượng, latency, availability</td><td>04</td></tr>
+      <tr><td class="k">DAU</td><td>Daily active users — số user hoạt động mỗi ngày</td><td>04</td></tr>
+      <tr><td class="k">availability</td><td>Tỷ lệ request không trả lỗi</td><td>04</td></tr>
+      <tr><td class="k">back of the envelope</td><td>Ước lượng nhẩm nhanh, chấp nhận sai số</td><td>05</td></tr>
+      <tr><td class="k">auxiliary services</td><td>Dịch vụ phụ trợ như authentication, payments</td><td>05</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “0 - How to Approach” (<a href="https://drive.google.com/file/d/1KHGTMTIK_3S7N4CQRQE7Ehm-fJ2PvDXm/view">drive.google.com/file/d/1KHGTMTIK_3S7N4CQRQE7Ehm-fJ2PvDXm</a>) · khoảng 20 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-00.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

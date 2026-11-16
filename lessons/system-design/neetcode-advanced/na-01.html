@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design a Rate Limiter — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-01">
+  <meta name="lesson:title" content="Thiết kế Rate Limiter">
+  <meta name="lesson:description" content="Rate limiter dùng chung trước các API: yêu cầu, 429, fail open, Redis, fixed và sliding window, schema rule, sharding và cache rule.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="15 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Design a Rate Limiter — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 1</div>
+  <h1>Rate limiter là <span class="a">service dùng chung</span> đứng trước các API, đếm request trong bộ nhớ và trả <span class="b">429</span> khi vượt giới hạn</h1>
+  <div class="sub">Từ bối cảnh và yêu cầu, tới thiết kế cấp cao, thuật toán fixed window và sliding window, schema, rồi cách scale và giảm độ trễ.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Thiết kế cấp cao: rate limiter đứng trước API, đọc rule từ DB, đếm request trong KV store bộ nhớ"><g class="bb-node" transform="translate(20,120)"><rect width="140" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="53.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="70.0" y="71" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M164,150 H286" marker-end="url(#bb-ah)"/><text x="225" y="140" text-anchor="middle" class="bb-a">request</text><path class="bb-ar" d="M286,184 H164" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="225" y="206" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">429</text><g class="bb-node" transform="translate(290,110)"><rect width="210" height="110" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-shield" x="88.0" y="19" width="34" height="34" style="color:#ea580c"/><text x="105.0" y="73" text-anchor="middle" class="bb-l">Rate limiter</text><text x="105.0" y="91" text-anchor="middle" class="bb-s">như reverse proxy</text></g><path class="bb-ar" d="M504,140 H566" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(570,100)"><rect width="270" height="84" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="123.0" y="11" width="24" height="24" style="color:#ca8a04"/><text x="135.0" y="55" text-anchor="middle" class="bb-l">In-memory KV store</text><text x="135.0" y="73" text-anchor="middle" class="bb-s">Redis / Memcached · đếm request</text></g><path class="bb-ar d" d="M640,40 H395 V106" marker-end="url(#bb-ah)"/><text x="520" y="30" text-anchor="middle" class="bb-a">đọc rule</text><g class="bb-node" transform="translate(644,0)"><rect width="230" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="103.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="115.0" y="51" text-anchor="middle" class="bb-l">Rules DB</text><text x="115.0" y="69" text-anchor="middle" class="bb-s">SQL hay NoSQL đều được</text></g><path class="bb-ar" d="M395,224 V270 H446" marker-end="url(#bb-ah)"/><rect class="bb-grp" x="450" y="240" width="400" height="90" rx="18"/><g class="bb-gtag" transform="translate(468,228)"><rect width="60" height="24" rx="12" fill="#1e293b"/><text x="30.0" y="16.5" text-anchor="middle">APIs</text></g><g class="bb-node" transform="translate(470,260)"><rect width="170" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="85.0" y="49" text-anchor="middle" class="bb-l">Upload API</text></g><g class="bb-node" transform="translate(660,260)"><rect width="170" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="85.0" y="49" text-anchor="middle" class="bb-l">Comment API</text></g><text x="980" y="290" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">bị chặn → API không hề</text><text x="980" y="310" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12.5px">biết có request</text></svg></div></div><div class="fig-cap">Hình 1 — Thiết kế cấp cao của rate limiter</div></div>
+  <div class="toc">
+    <span>01 <b>Bối cảnh</b></span><span>02 <b>Functional</b></span><span>03 <b>Non-functional</b></span><span>04 <b>Thiết kế cấp cao</b></span><span>05 <b>Thuật toán</b></span><span>06 <b>Schema</b></span><span>07 <b>Scale</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Bối cảnh <span class="t">00:00–02:40</span></div>
+    <h2 class="c-avg">Rate limiter ngăn user hay bot gửi quá nhiều request trong một khoảng thời gian — vì bảo mật, chi phí, availability hay trải nghiệm, tuỳ ngữ cảnh</h2>
+    <p class="desc">Dạng đơn giản nhất: mật khẩu điện thoại <b>4 chữ số</b>, nhập sai thì chỉ được thử lại vài lần, ví dụ <b>3 lần mỗi giờ</b>, rồi bị khoá. Mục đích là <b>bảo mật</b>: mật khẩu ngắn thì brute force được, đến đứa trẻ thử ngẫu nhiên mãi cũng mở được.</p>
+    <p class="desc">YouTube giới hạn upload khoảng <b>20 video trong 24 giờ</b>. Không phải vì bảo mật mà vì <b>chi phí</b> lưu trữ, và cả <b>availability</b>: upload vô hạn có thể chiếm hết storage, làm sập YouTube với mọi người. Còn <b>comment</b>: một người viết một triệu comment mỗi ngày? Bot trong comment là chuyện <b>trải nghiệm người dùng</b> và bảo mật. Nhưng comment có nên dùng cùng giới hạn với upload không? Ngữ cảnh quyết định — có thể cho <b>100 comment mỗi ngày</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — cùng là giới hạn, khác lý do</div>
+      <div class="tbl-scroll"><table>
+        <tr><th>Trường hợp</th><th>Giới hạn</th><th>Lý do chính</th></tr>
+        <tr><td>Mật khẩu điện thoại</td><td>~3 lần thử/giờ</td><td>Bảo mật, chống brute force</td></tr>
+        <tr><td>Upload YouTube</td><td>20 video/24 giờ</td><td>Chi phí, availability</td></tr>
+        <tr><td>Comment YouTube</td><td>có thể 100/ngày</td><td>Chống bot, trải nghiệm</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Functional requirements <span class="t">02:40–08:40</span></div>
+    <h2 class="c-cmd">Rate limiter bảo vệ nhiều API backend nên phải là service riêng dùng chung; khi vượt giới hạn thì throttle và trả 429</h2>
+    <p class="desc">Câu đầu tiên nên hỏi: thiết kế cho <b>backend API</b>? Đó là nơi rate limiter thường nằm, nhất là trong distributed system. Chỉ cho <b>một API</b> thôi? Nếu vậy cách dễ nhất là cài ngay trong code microservice, giữ rule và số request trong một <b>hash map</b>. Nhưng thường câu trả lời là không: rate limiter cần <b>tái sử dụng</b> cho nhiều microservice, nên phải là một <b>service riêng</b>.</p>
+    <p class="desc">Thêm một lý do: mỗi API (vd upload API, comments API) có <b>nhiều instance</b>. Upload video thứ nhất vào instance 1, video thứ hai vào instance 2 — mỗi instance nghĩ bạn mới upload một video, nên vô tình <b>lách</b> được giới hạn. Rate limiter dùng chung thì biết bạn đã upload hai video.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Rate limit đặt trong từng instance bị lách; tách thành service dùng chung thì đếm đúng"><rect class="bb-grp" x="10" y="20" width="520" height="290" rx="18"/><g class="bb-gtag" transform="translate(28,8)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">RATE LIMIT TRONG TỪNG INSTANCE</text></g><g class="bb-node" transform="translate(30,120)"><rect width="120" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="43.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="60.0" y="68" text-anchor="middle" class="bb-l">User</text></g><path class="bb-ar" d="M154,145 H220 V90 H256" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M154,180 H220 V230 H256" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(260,50)"><rect width="240" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="108.0" y="9" width="24" height="24" style="color:#7c3aed"/><text x="120.0" y="53" text-anchor="middle" class="bb-l">Upload API #1</text><text x="120.0" y="71" text-anchor="middle" class="bb-s">đếm: 1 video</text></g><g class="bb-node" transform="translate(260,190)"><rect width="240" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="108.0" y="9" width="24" height="24" style="color:#7c3aed"/><text x="120.0" y="53" text-anchor="middle" class="bb-l">Upload API #2</text><text x="120.0" y="71" text-anchor="middle" class="bb-s">đếm: 1 video</text></g><text x="270" y="296" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">mỗi instance chỉ thấy một phần → lách được giới hạn</text><rect class="bb-grp" x="570" y="20" width="520" height="290" rx="18"/><g class="bb-gtag" transform="translate(588,8)"><rect width="270" height="24" rx="12" fill="#1e293b"/><text x="135.0" y="16.5" text-anchor="middle">RATE LIMITER LÀ SERVICE DÙNG CHUNG</text></g><g class="bb-node" transform="translate(590,120)"><rect width="120" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="43.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="60.0" y="68" text-anchor="middle" class="bb-l">User</text></g><path class="bb-ar" d="M714,162 H756" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(760,110)"><rect width="170" height="104" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-shield" x="68.0" y="16" width="34" height="34" style="color:#ea580c"/><text x="85.0" y="70" text-anchor="middle" class="bb-l">Rate limiter</text><text x="85.0" y="88" text-anchor="middle" class="bb-s">đếm: 2 video</text></g><path class="bb-ar" d="M934,140 H960 V80 H976" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M934,184 H960 V240 H976" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(980,45)"><rect width="100" height="70" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="38.0" y="12" width="24" height="24" style="color:#7c3aed"/><text x="50.0" y="56" text-anchor="middle" class="bb-l">API #1</text></g><g class="bb-node" transform="translate(980,205)"><rect width="100" height="70" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="38.0" y="12" width="24" height="24" style="color:#7c3aed"/><text x="50.0" y="56" text-anchor="middle" class="bb-l">API #2</text></g><text x="830" y="296" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">mọi instance dùng chung một bộ đếm</text></svg></div></div><div class="fig-cap">Hình 2 — Rate limit trong từng instance so với service dùng chung</div></div>
+    <p class="desc">Khi đạt giới hạn: không cho API xử lý, báo user đang bị <b>throttled</b>, và nên cho biết phải chờ bao lâu (vd 24 giờ). Với HTTP, đây là lỗi nhóm 400 vì lỗi ở client, server vẫn chạy tốt; mã cụ thể là <b>429</b> (Too Many Requests).</p>
+    <p class="desc"><b>Client-side rate limiting</b> (JavaScript, app mobile) dễ làm và nên có, nhưng không đủ: user có thể <b>reverse engineer</b> request và gọi thẳng endpoint public bằng <b>curl</b>, không cần dùng app. Không có rate limiter thật, YouTube đã bị đánh sập từ lâu.</p>
+    <p class="desc">Định danh user thế nào? <b>User ID</b> nếu bắt buộc đăng ký (YouTube cần tài khoản để upload, comment), nhưng site khác thì không. Rate limiter phục vụ nhiều ứng dụng (vd Google dùng cho cả YouTube và Google Search) nên nên hỗ trợ nhiều loại ID, chung nhất là <b>IP address</b> — có đánh đổi nhưng không đi sâu.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — response khi bị chặn</div>
+      <pre>HTTP/1.1 <span class="kw">429</span> Too Many Requests
+<span class="cm">// kèm thông tin: chờ thêm bao lâu nữa (vd tới hết 24 giờ)</span></pre>
+      <p>Dạng response là minh hoạ thêm; nguồn nói mã 429 và nên cho biết thời gian chờ.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Non-functional requirements <span class="t">08:40–14:00</span></div>
+    <h2 class="c-spec">Latency là quan trọng nhất; dữ liệu đếm cho một tỷ user khoảng 132 GB — vừa bộ nhớ; khi rate limiter sập thì nên fail open</h2>
+    <p class="desc"><b>Latency</b>: mọi request giờ có thêm overhead của rate limiter, nên phải thấp nhất có thể — không thể cộng thêm 1 giây vào mỗi request; muốn như thể rate limiter không tồn tại. <b>Throughput</b>: nhiều service dùng chung nên phải <b>horizontally scalable</b>.</p>
+    <p class="desc"><b>Storage</b>: rule không phải nút thắt — một ứng dụng như YouTube có bao nhiêu rule, 10, 100, 1000? Còn số user thì lớn: mỗi user có key (IP <b>4 byte</b>) và số request (ước dư <b>128 byte</b>) → <b>132 byte</b>/user. Với <b>một tỷ user</b> → 132 tỷ byte = <b>132 GB</b> (tỷ là giga). Kết luận: vừa trong bộ nhớ.</p>
+    <p class="desc"><b>Availability</b>: lý tưởng là five nines. Nhưng nếu rate limiter sập? <b>Fail open</b>: hệ thống chạy như thể không có rate limiter. <b>Fail closed</b>: cả hệ thống ngừng, trả lỗi <b>500</b>. Fail open thì đa số user dùng bình thường, chỉ một nhóm nhỏ lạm dụng lọt qua — sập 5 phút cho spam comment chắc không phải tận thế. Fail closed thì ảnh hưởng cả một tỷ user. Thường chọn fail open, tuỳ ứng dụng.</p>
+    <p class="desc">Nên lấy đủ yêu cầu trong <b>5 tới 10 phút</b> đầu (vẫn có thể hỏi chi tiết nhỏ sau). Lý do: sai yêu cầu thì thiết kế sai, cuối buổi không còn thời gian làm lại.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ước lượng bộ nhớ</div>
+      <pre>(4 byte IP + 128 byte đếm) × 1.000.000.000 user
+= 132.000.000.000 byte ≈ <span class="kw">132 GB</span>  → vừa bộ nhớ</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Thiết kế cấp cao <span class="t">14:00–17:30</span></div>
+    <h2 class="c-grow">Request đi qua rate limiter trước; rule nằm trong database bền vững, số đếm nằm trong KV store bộ nhớ như Redis</h2>
+    <p class="desc">Request của user chạm <b>rate limiter</b> đầu tiên — nó như một <b>reverse proxy</b>, không chứa logic ứng dụng, chỉ quyết định có chuyển request tới API hay không, để API không bị quá tải.</p>
+    <p class="desc"><b>Rule</b> do developer định nghĩa (vd 20 video/24 giờ), cần <b>persistent</b> — có thể sửa nhưng không được mất — nên để trong database; <b>SQL hay NoSQL</b> không quan trọng vì số rule ít. Số request mỗi user lưu trong <b>in-memory key value store</b> như <b>Redis</b> hay <b>Memcached</b>: rate limiter vừa đọc vừa ghi (upload lần đầu → ghi "1 video trong 24 giờ"), ghi thường chậm hơn đọc, bộ nhớ nhanh hơn disk, và dữ liệu vừa bộ nhớ.</p>
+    <p class="desc">Được phép → chuyển tới API, API trả qua rate limiter về client. Bị chặn → trả <b>429</b>, API không hề biết có request. Người phỏng vấn có thể góp ý cách khác: gửi thẳng tới API và để API tự đọc KV store, có khi không cần rule — nhưng ở đây ta muốn thiết kế tái sử dụng được.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — upload một video</div>
+      <ol class="steps">
+        <li>Rate limiter đọc rule upload: 20 video / 24 giờ.</li>
+        <li>Đọc số đếm của user trong KV store.</li>
+        <li>Dưới giới hạn → tăng đếm, chuyển tới Upload API; đủ rồi → trả 429.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Thuật toán <span class="t">17:30–23:20</span></div>
+    <h2 class="c-avg">Fixed window rẻ và đơn giản nhưng để lọt đợt dồn ở mép cửa sổ; sliding window chính xác hơn nhưng phải lưu timestamp từng request</h2>
+    <p class="desc">Rule "<b>100 requests per minute</b>" nghĩa chính xác là gì? <b>Fixed window</b>: theo đồng hồ, mỗi phút (12:01, 12:02, 12:03…) cho tối đa 100 request; sang phút mới thì cho 100 nữa. User gửi 100 request ngay trước 12:02 và 100 ngay sau → <b>200 request trong khoảng 2 giây</b>. Về lâu dài vẫn khá chính xác (sau đó phải chờ ~59 giây), nhưng có thể ta không muốn spike như vậy. Ưu điểm: không cần biết request xảy ra giây nào, chỉ lưu phút và count.</p>
+    <p class="desc"><b>Sliding window</b>: mỗi request xét đúng <b>60 giây gần nhất</b>, cửa sổ trượt mỗi giây — không bỏ qua mọi thứ trước phút hiện tại như fixed window. Gần như luôn đảm bảo 100/phút, nhưng phải lưu timestamp từng request: <b>Unix timestamp</b> 32 bit = 4 byte, 100 request → <b>400 bytes</b> mỗi user, có thể hơn tuỳ rule. Đọc thì chỉ lấy 60 giây cuối, có thể xoá phần cũ để tiết kiệm chỗ — thêm một thao tác. Với Redis làm bằng <b>sorted set</b>: một key ánh xạ tới tập giá trị có thứ tự, sắp theo timestamp.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Fixed window cho phép dồn 200 request quanh mép phút; sliding window xét đúng 60 giây gần nhất"><text x="20" y="68" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:13.5px">Fixed window</text><path d="M220,60 H1080" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M260,46 V74" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="260" y="94" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:01</text><path d="M560,46 V74" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="560" y="94" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:02</text><path d="M860,46 V74" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="860" y="94" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:03</text><rect x="520" y="40" width="36" height="40" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><rect x="564" y="40" width="36" height="40" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="540" y="30" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:12px">100</text><text x="582" y="30" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:12px">100</text><text x="820" y="34" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">200 request trong ~2 giây vẫn lọt</text><text x="20" y="208" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:13.5px">Sliding window</text><path d="M220,200 H1080" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M260,186 V214" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="260" y="234" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:01</text><path d="M560,186 V214" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="560" y="234" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:02</text><path d="M860,186 V214" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="860" y="234" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">12:03</text><rect x="300" y="180" width="300" height="40" rx="6" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="450" y="205" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:13px">60 giây gần nhất</text><path class="bb-ar" d="M610,200 H680" marker-end="url(#bb-ah-teal)" style="stroke:#0d9488"/><text x="645" y="176" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:12.5px">trượt mỗi giây</text><rect x="20" y="268" width="520" height="60" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="280" y="292" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12.5px">Fixed: chỉ lưu (phút, count) · Redis EXPIRE tự reset</text><text x="280" y="314" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">rẻ, đơn giản, kém chính xác ở mép cửa sổ</text><rect x="560" y="268" width="520" height="60" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="820" y="292" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:12.5px">Sliding: lưu timestamp từng request · Redis sorted set</text><text x="820" y="314" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">4 byte × 100 request = 400 byte/user, chính xác hơn</text></svg></div></div><div class="fig-cap">Hình 3 — Fixed window so với sliding window</div></div>
+    <p class="desc">Còn nhiều thuật toán khác, thiên về kiến thức chuyên ngành: <b>token bucket</b> (dùng tốc độ nạp lại — refill rate — thay cho cửa sổ) và <b>sliding window counter</b> (cân bằng giữa fixed và sliding window). Nói được các đánh đổi như trên đã là đủ.</p>
+    <div class="note">Transcript có chỗ nói "unlike the sliding window, where we just disregard everything before this minute" — ý đúng là fixed window mới bỏ qua mọi thứ trước phút hiện tại.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — mép cửa sổ</div>
+      <pre>12:01:59  100 request  <span class="cm">// cửa sổ 12:01 → hợp lệ</span>
+12:02:00  100 request  <span class="cm">// cửa sổ mới 12:02 → hợp lệ</span>
+<span class="cm">// fixed window: 200 request trong ~2 giây đều lọt</span>
+<span class="cm">// sliding window: request thứ 101 trong 60 giây gần nhất bị chặn</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Schema <span class="t">23:20–25:40</span></div>
+    <h2 class="c-cmd">KV store: key là user ID hay IP, value là count, dùng EXPIRE để tự reset; bảng rule có id, api, op, time unit và số request</h2>
+    <p class="desc">Trong bộ nhớ (fixed window): <b>key</b> là user ID hoặc IP → <b>count</b>. Mỗi request thì tăng count (++). Count thuộc phút 12:01, sang phút mới phải reset: Redis có <b>expire</b>, đặt hết hạn mỗi 60 giây hoặc đúng lúc 12:02, dữ liệu tự dọn và đếm lại từ 0 — lý do nữa khiến fixed window dễ làm.</p>
+    <p class="desc">Bảng <b>rule</b> trong database: <b>id</b> (string) để rate limiter tìm đúng rule, vd rule upload video; <b>api</b> — chuyển request tới API nào; <b>op</b> — endpoint/thao tác nào (upload, comment…); <b>time unit</b> (giây, phút, giờ; có thể lưu string để rate limiter tự diễn giải); <b>requests</b> — số request cho phép (integer).</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — 100 request mỗi phút</div>
+      <pre><span class="cm">// in-memory</span>
+"ip:1.2.3.4"  →  count = 37    <span class="cm">// EXPIRE lúc 12:02</span>
+
+<span class="cm">// rules DB</span>
+{ id: "...", api: "...", op: "...", timeUnit: "minute", requests: <span class="kw">100</span> }</pre>
+      <p>Giá trị key, IP và count là minh hoạ thêm; các trường lấy từ bảng trong video.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Scale và giảm độ trễ <span class="t">25:40–28:40</span></div>
+    <h2 class="c-spec">Chia shard KV store bằng consistent hashing; đưa rule vào cache bộ nhớ, có worker định kỳ chép từ database sang</h2>
+    <p class="desc">Nếu cần lưu <b>terabytes</b> trong bộ nhớ thì có nhiều instance KV store, scale ngang (<b>sharding</b>: một nửa dữ liệu ở đây, một nửa ở kia). Một user phải luôn chạm đúng shard chứa dữ liệu của mình → dùng <b>consistent hashing</b> (không đi sâu).</p>
+    <p class="desc">Nút thắt latency: đọc memory gần như không thể nhanh hơn, nhưng đọc <b>database</b> rule chậm hơn nhiều. Rule cần lưu bền, nhưng được tạo hiếm, đọc thì liên tục. Nên thêm lớp <b>cache</b> bộ nhớ giữa database và rate limiter: vừa bền (nhờ DB) vừa đọc nhanh. Database không tự ghi sang chỗ khác được, nên cần một <b>worker</b> chạy nền đọc DB và định kỳ cập nhật cache — chạy khá thường xuyên để rate limiter không đọc rule <b>stale</b>; có thể scale ngang nếu cần.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 -20 1100 350" style="min-width:758px" role="img" aria-label="Scale: chia shard KV store bằng consistent hashing; cache rule trong bộ nhớ, worker định kỳ đồng bộ từ DB"><g class="bb-node" transform="translate(20,130)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M154,172 H216" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(220,120)"><rect width="190" height="104" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-shield" x="78.0" y="24" width="34" height="34" style="color:#ea580c"/><text x="95.0" y="78" text-anchor="middle" class="bb-l">Rate limiter</text></g><path class="bb-ar" d="M414,150 H520 V80 H556" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><path class="bb-ar" d="M414,190 H520 V250 H556" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><text x="470" y="230" text-anchor="middle" class="bb-a">consistent hashing</text><rect class="bb-grp" x="560" y="20" width="250" height="300" rx="18"/><g class="bb-gtag" transform="translate(578,8)"><rect width="160" height="24" rx="12" fill="#1e293b"/><text x="80.0" y="16.5" text-anchor="middle">KV STORE SHARDS</text></g><g class="bb-node" transform="translate(580,50)"><rect width="210" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="93.0" y="7" width="24" height="24" style="color:#ca8a04"/><text x="105.0" y="51" text-anchor="middle" class="bb-l">Shard 1</text><text x="105.0" y="69" text-anchor="middle" class="bb-s">user A…</text></g><g class="bb-node" transform="translate(580,210)"><rect width="210" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="93.0" y="7" width="24" height="24" style="color:#ca8a04"/><text x="105.0" y="51" text-anchor="middle" class="bb-l">Shard 2</text><text x="105.0" y="69" text-anchor="middle" class="bb-s">user B…</text></g><g class="bb-node" transform="translate(880,20)"><rect width="200" height="76" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-cache" x="88.0" y="7" width="24" height="24" style="color:#0d9488"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Rules cache</text><text x="100.0" y="69" text-anchor="middle" class="bb-s">in-memory</text></g><path class="bb-ar d" d="M876,40 H840 V-4 H315 V116" marker-end="url(#bb-ah)"/><text x="560" y="-10" text-anchor="middle" class="bb-a">đọc rule nhanh từ cache</text><g class="bb-node" transform="translate(880,140)"><rect width="200" height="76" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Worker</text><text x="100.0" y="69" text-anchor="middle" class="bb-s">định kỳ copy rule</text></g><path class="bb-ar" d="M980,136 V100" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,250)"><rect width="200" height="76" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="88.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Rules DB</text><text x="100.0" y="69" text-anchor="middle" class="bb-s">bền vững</text></g><path class="bb-ar" d="M980,246 V220" marker-end="url(#bb-ah)"/></svg></div></div><div class="fig-cap">Hình 4 — Shard KV store, rules cache và worker</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — sửa một rule</div>
+      <ol class="steps">
+        <li>Developer đổi rule upload trong Rules DB.</li>
+        <li>Worker định kỳ đọc DB, chép rule mới vào cache.</li>
+        <li>Rate limiter đọc rule từ cache trong bộ nhớ, không chạm DB mỗi request.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Giới hạn ở client là đủ.</div><div><span class="v">✓</span> Có thể gọi thẳng API bằng curl; cần rate limiter phía server (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Đếm request trong từng instance API là được.</div><div><span class="v">✓</span> Request rải ra nhiều instance sẽ lách; cần service dùng chung (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Bị rate limit thì trả 500.</div><div><span class="v">✓</span> Lỗi do client → 429 (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Rate limiter sập thì nên chặn hết request.</div><div><span class="v">✓</span> Thường fail open để không ảnh hưởng mọi user (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Fixed window luôn đảm bảo 100/phút.</div><div><span class="v">✓</span> Mép cửa sổ có thể lọt 200 request trong ~2 giây (→ 05).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Chọn thuật toán và chế độ lỗi</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Fixed window</td><td>Cần đơn giản, rẻ; spike ngắn chấp nhận được</td><td>Không chịu được đợt dồn ở mép phút</td><td>Lưu ít, EXPIRE tự reset; kém chính xác</td></tr>
+      <tr><td class="k">Sliding window</td><td>Cần đảm bảo chặt giới hạn</td><td>Bộ nhớ eo hẹp, rule có số request lớn</td><td>Chính xác; lưu timestamp mỗi request, phức tạp hơn</td></tr>
+      <tr><td class="k">Fail open</td><td>Sập ngắn hạn, lạm dụng chút ít chấp nhận được</td><td>Rate limit vì bảo mật nghiêm ngặt</td><td>Hệ thống vẫn chạy; vài kẻ lạm dụng lọt qua</td></tr>
+      <tr><td class="k">Fail closed</td><td>Không được để request lọt dù chỉ ít</td><td>Ứng dụng đại chúng như YouTube</td><td>An toàn; mọi user nhận lỗi 500</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Vì sao YouTube giới hạn upload 20 video mỗi ngày?</summary><p>Chi phí lưu trữ và availability: upload vô hạn có thể chiếm hết storage. (→ 01)</p></details>
+    <details><summary>Ước lượng bộ nhớ cho một tỷ user, mỗi user 132 byte?</summary><p>Khoảng 132 GB — vừa trong bộ nhớ. (→ 03)</p></details>
+    <details><summary>Vì sao số đếm để trong Redis/Memcached thay vì database?</summary><p>Rate limiter vừa đọc vừa ghi mỗi request, cần nhanh nhất; bộ nhớ nhanh hơn disk và dữ liệu vừa bộ nhớ. (→ 04)</p></details>
+    <details><summary>Sliding window lưu bao nhiêu cho rule 100 request/phút?</summary><p>100 timestamp × 4 byte = 400 byte mỗi user. (→ 05)</p></details>
+    <details><summary>Làm sao đọc rule nhanh mà vẫn lưu bền?</summary><p>Cache rule trong bộ nhớ, worker định kỳ chép từ database sang. (→ 07)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">throttle</td><td>Từ chối request vì vượt giới hạn</td><td>02</td></tr>
+      <tr><td class="k">429</td><td>HTTP Too Many Requests</td><td>02</td></tr>
+      <tr><td class="k">fail open / fail closed</td><td>Thành phần sập thì cho qua hết / chặn hết</td><td>03</td></tr>
+      <tr><td class="k">reverse proxy</td><td>Đứng trước server, nhận và chuyển tiếp request</td><td>04</td></tr>
+      <tr><td class="k">fixed window</td><td>Đếm theo cửa sổ cố định theo đồng hồ</td><td>05</td></tr>
+      <tr><td class="k">sliding window</td><td>Đếm trong N giây gần nhất, trượt liên tục</td><td>05</td></tr>
+      <tr><td class="k">token bucket</td><td>Thuật toán dựa trên tốc độ nạp lại token</td><td>05</td></tr>
+      <tr><td class="k">consistent hashing</td><td>Cách ánh xạ key cố định vào shard</td><td>07</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “1 - Design a Rate Limiter” (<a href="https://drive.google.com/file/d/1MLSdePqsaGZwyi0Ph35QJMv0dTs7VWow/view">drive.google.com/file/d/1MLSdePqsaGZwyi0Ph35QJMv0dTs7VWow</a>) · khoảng 28 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; đã xem khung hình mỗi phút để đối chiếu sơ đồ.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-01.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

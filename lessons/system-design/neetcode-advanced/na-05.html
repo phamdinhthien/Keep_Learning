@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design YouTube — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-05">
+  <meta name="lesson:title" content="Thiết kế YouTube">
+  <meta name="lesson:description" content="Upload và xem video: object storage, metadata NoSQL denormalized, encode qua queue và tính số worker, CDN và tải từng chunk qua TCP, YouTube thật với MySQL và Vitess.">
+  <meta name="lesson:order" content="5">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="16 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Design YouTube — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 5</div>
+  <h1>YouTube: video lưu trong <span class="a">object storage</span>, encode bất đồng bộ qua hàng đợi, xem bằng <span class="b">từng chunk qua CDN</span></h1>
+  <div class="sub">Hai chức năng lõi: upload và xem video. Ưu tiên độ bền dữ liệu, availability hơn consistency, và latency thấp khi bấm xem.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 560" style="min-width:758px" role="img" aria-label="Upload: video gốc vào object storage, qua queue tới worker encode; xem: metadata qua cache, video từng chunk qua CDN"><text x="20" y="14" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">UPLOAD</text><g class="bb-node" transform="translate(10,40)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Creator</text></g><path class="bb-ar" d="M144,82 H186" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(190,30)"><rect x="10" y="-10" width="180" height="104" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="180" height="104" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="180" height="104" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="16" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="70" text-anchor="middle" class="bb-l">App servers</text><text x="90.0" y="88" text-anchor="middle" class="bb-s">sau load balancer</text></g><path class="bb-ar" d="M374,60 H436" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(440,20)"><rect width="200" height="80" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-image" x="88.0" y="9" width="24" height="24" style="color:#ea580c"/><text x="100.0" y="53" text-anchor="middle" class="bb-l">Object storage</text><text x="100.0" y="71" text-anchor="middle" class="bb-s">video gốc (raw)</text></g><path class="bb-ar" d="M374,110 H400 V170 H436" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(440,130)"><rect width="200" height="76" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="83.0" y="10" width="34" height="34" style="color:#ca8a04"/><text x="100.0" y="64" text-anchor="middle" class="bb-l">Message queue</text></g><path class="bb-ar" d="M644,168 H686" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(690,120)"><rect x="10" y="-10" width="200" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/><rect x="5" y="-5" width="200" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/><rect width="200" height="96" rx="14" fill="#fee2e2" stroke="#dc2626"/><use href="#bi-cpu" x="83.0" y="12" width="34" height="34" style="color:#dc2626"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Encoding workers</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">~30k · song song</text></g><path class="bb-ar" d="M894,168 H936" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(940,120)"><rect width="150" height="96" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-image" x="58.0" y="12" width="34" height="34" style="color:#ea580c"/><text x="75.0" y="66" text-anchor="middle" class="bb-l">Object storage</text><text x="75.0" y="84" text-anchor="middle" class="bb-s">video đã encode</text></g><path class="bb-ar" d="M280,138 V260 H436" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(440,230)"><rect width="250" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="113.0" y="9" width="24" height="24" style="color:#16a34a"/><text x="125.0" y="53" text-anchor="middle" class="bb-l">NoSQL (MongoDB)</text><text x="125.0" y="71" text-anchor="middle" class="bb-s">metadata · user (denormalized)</text></g><text x="20" y="360" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">WATCH</text><g class="bb-node" transform="translate(10,380)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Viewer</text></g><path class="bb-ar" d="M144,410 H436" marker-end="url(#bb-ah)"/><text x="290" y="398" text-anchor="middle" class="bb-a">metadata</text><g class="bb-node" transform="translate(440,370)"><rect width="250" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="113.0" y="9" width="24" height="24" style="color:#ca8a04"/><text x="125.0" y="53" text-anchor="middle" class="bb-l">Cache (LRU)</text><text x="125.0" y="71" text-anchor="middle" class="bb-s">metadata video hot</text></g><path class="bb-ar" d="M565,366 V314" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><path class="bb-ar" d="M144,440 H180 V500 H736" marker-end="url(#bb-ah-blue)" style="stroke:#3b82f6"/><text x="440" y="490" text-anchor="middle" class="bb-a" fill="#3b82f6" style="fill:#3b82f6">chunk video ~1 MB qua HTTP (TCP)</text><g class="bb-node" transform="translate(740,460)"><rect width="170" height="80" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-globe" x="73.0" y="9" width="24" height="24" style="color:#db2777"/><text x="85.0" y="53" text-anchor="middle" class="bb-l">CDN</text><text x="85.0" y="71" text-anchor="middle" class="bb-s">gần user</text></g><path class="bb-ar d" d="M914,500 H1015 V220" marker-end="url(#bb-ah)"/><text x="1022" y="400" text-anchor="start" class="bb-a">pull</text></svg></div></div><div class="fig-cap">Hình 1 — Luồng upload và luồng xem</div></div>
+  <div class="toc">
+    <span>01 <b>Bối cảnh</b></span><span>02 <b>Yêu cầu &amp; quy mô</b></span><span>03 <b>Availability &gt; consistency</b></span><span>04 <b>Upload &amp; lưu trữ</b></span><span>05 <b>Metadata NoSQL</b></span><span>06 <b>Encoding</b></span><span>07 <b>Xem video</b></span><span>08 <b>Số worker</b></span><span>09 <b>Chunk &amp; TCP</b></span><span>10 <b>Mở rộng &amp; MySQL</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Bối cảnh <span class="t">00:00–01:20</span></div>
+    <h2 class="c-avg">Khác Netflix, ai cũng upload được và miễn phí; ngoài upload và xem còn search, gợi ý, comment, like, analytics, quảng cáo — không thể làm hết</h2>
+    <p class="desc">So với <b>Netflix</b>, YouTube cho mọi người <b>upload</b> video, miễn phí, và xem video. Đó là lõi, nhưng không đơn giản ở quy mô YouTube. Ngoài ra còn tìm kiếm, <b>recommendation</b> (tự nó đã là một đề thiết kế), comment, like/dislike, analytics lượt xem, chống bot trong comment, quảng cáo… Đề mơ hồ thì có nhiều hướng, không thể khám phá hết trong 45 phút.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — những thứ nằm ngoài phạm vi</div>
+      <ul class="plain"><li>Search và recommendation.</li><li>Comment, like/dislike, chống bot.</li><li>Analytics lượt xem, quảng cáo.</li></ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Yêu cầu và quy mô <span class="t">01:20–03:40</span></div>
+    <h2 class="c-cmd">Chức năng: upload và xem; video phải cực kỳ bền; 1 tỷ DAU × 5 video → 5 tỷ lượt xem/ngày, tỷ lệ 100:1 → 50 triệu video upload/ngày</h2>
+    <p class="desc">Functional: <b>uploading videos</b> và <b>watching videos</b>; còn thời gian thì bàn mở rộng. Non-functional đầu tiên: <b>reliability</b> — video upload lên không bao giờ được hỏng hay biến mất, dù miễn phí. Một video có thể có <b>hàng nghìn người xem đồng thời</b>.</p>
+    <p class="desc"><b>A billion daily active users</b> (khá sát thực tế), mỗi người xem <b>5 video</b>/ngày → <b>5 billion</b> lượt xem. Tỷ lệ xem:upload là <b>100 : 1</b> → 1% → <b>50 million</b> video upload/ngày — throughput khổng lồ. May là đa số video không được xem nhiều; đoán khoảng <b>top 5%</b> video chiếm <b>90%</b> lượt xem. Nhưng vẫn phải lưu và không được mất. Không cần toán phức tạp, cần ra đúng kết luận.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — phép nhẩm</div>
+      <pre>1.000.000.000 DAU × 5 video = 5.000.000.000 lượt xem/ngày
+5 tỷ × 1% (tỷ lệ 100:1)     = 50.000.000 video upload/ngày</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Availability hơn consistency, latency thấp <span class="t">03:40–05:20</span></div>
+    <h2 class="c-spec">Refresh trang chủ phải luôn trả 200; chấp nhận video mới upload xuất hiện chậm 5–10 giây; bấm xem thì phát ngay, không buffer</h2>
+    <p class="desc">Ưu tiên <b>availability over consistency</b>: mỗi lần refresh trang chủ phải nhận response đúng, <b>HTTP 200</b>. Đổi lại: người bạn subscribe vừa đăng video một giây trước, bạn refresh nhưng chưa thấy — vì bạn đọc từ một storage chưa có bản mới nhất; video sẽ được replicate sau vài giây. Đó là <b>stale data</b>; tệ nhất là chờ thêm <b>5 giây</b>, hay <b>10 giây</b>. Còn tệ hơn nhiều nếu refresh mà không trả về gì.</p>
+    <p class="desc"><b>Latency</b> tối thiểu: bấm xem là phát ngay dù video chưa tải hết; mạng tốt thì không phải <b>buffering</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — subscription feed</div>
+      <div class="ba">
+        <div><b>Chấp nhận được</b>Video mới chưa hiện, vài giây sau mới có.</div>
+        <div><b>Không chấp nhận</b>Refresh trang mà nhận lỗi, không có gì.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Upload và lưu trữ video <span class="t">05:20–07:40</span></div>
+    <h2 class="c-grow">Upload đi qua load balancer tới app server; file video lưu trong object storage như S3 — hợp file lớn và tự replicate nên độ bền được đảm bảo</h2>
+    <p class="desc">Bắt đầu với luồng upload vì phức tạp hơn và cho thấy hạ tầng cần. 50 triệu upload/ngày → nhiều <b>application servers</b> sau <b>load balancer</b>, scale ngang. Upload cũng không đơn giản: mạng đứt một giây khi đang tải file hơn <b>một gigabyte</b> được nửa — làm lại từ đầu hay tiếp tục? Không đi theo hướng đó ở đây.</p>
+    <p class="desc">Video lưu trong <b>object storage</b> — file gốc user upload. Object storage tốt cho media và file lớn, không cần database quan hệ; <b>AWS S3</b>, <b>Google Cloud Storage</b> tự lo <b>replication</b>, nên có thể coi như không bị mất. <b>Google Drive</b> cũng xây trên object storage. Vậy <b>reliability</b> đã được đảm bảo.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — request upload</div>
+      <pre>upload(title, description, video.mp4, tags…)
+<span class="cm">// file → object storage; còn lại là metadata</span></pre>
+      <p>Dạng hàm là minh hoạ thêm; các trường lấy từ video.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Metadata trong NoSQL <span class="t">07:40–11:00</span></div>
+    <h2 class="c-avg">Metadata và user để trong NoSQL như MongoDB; denormalize — chép thông tin người tạo vào mỗi video để khỏi join, cập nhật bất đồng bộ khi họ đổi avatar</h2>
+    <p class="desc">Mỗi video có <b>title</b>, <b>description</b>, nội dung (vd MP4 — vào object storage), tag… Quan trọng: gắn với <b>user</b> — dưới video là ảnh đại diện và username của <b>content creator</b>. Không như Netflix chỉ có show. Lưu metadata và thông tin user trong <b>NoSQL</b> vì lượng video lớn và đọc rất thường xuyên; database giữ <b>tham chiếu</b> tới file trong object store.</p>
+    <p class="desc"><b>MongoDB</b> không có bảng và hàng mà lưu dạng gần như <b>JSON</b>: <b>collection</b> gồm các <b>document</b>. Collection videos, collection users. Xem video có phải join với user? Không nhất thiết: dữ liệu <b>denormalized</b>. <b>Normalized</b> trong SQL là không lưu trùng, tách bảng, cần thì join. MongoDB cho lưu trùng: mỗi document video chứa luôn thông tin cần của người tạo, vd tham chiếu ảnh đại diện (ảnh nằm trong object storage) — vừa trong document user vừa trong mọi document video của họ. Không cần join, nhanh hơn.</p>
+    <p class="desc">User đổi ảnh đại diện? Sửa document user và mọi video của họ — 100 hay 1000 document. Chấp nhận được: đổi avatar hiếm, upload và xem thường xuyên hơn — ưu tiên <b>đọc hơn ghi</b>. Và cập nhật <b>asynchronously</b>: thấy ảnh cũ vài phút, thậm chí một giờ, không phải tận thế.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — document video</div>
+      <pre>{ title: "...", description: "...", videoRef: "<span class="cm">object storage</span>",
+  creator: { username: "...", avatarRef: "<span class="cm">object storage</span>" } }</pre>
+      <p>Cấu trúc JSON cụ thể là minh hoạ thêm cho ý "lưu thông tin người tạo trong mỗi video".</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Encoding bất đồng bộ <span class="t">11:00–12:40</span></div>
+    <h2 class="c-cmd">Encode và nén video mất vài phút tới vài giờ, nên đưa qua message queue tới nhiều server encode; video đã encode lại vào object storage vì video bất biến</h2>
+    <p class="desc">YouTube <b>encoding</b> và <b>compression</b> video để giảm dung lượng. Không xong trong một giây: thường vài phút, file rất dài (YouTube cho upload cả video <b>24 giờ</b>) có thể mất hàng giờ → tác vụ <b>asynchronous</b>, dùng <b>message queue</b>. Không đi sâu kiến thức encoding. File gốc được lưu và đồng thời đưa vào queue tới service encode — nhiều server, không phải một.</p>
+    <p class="desc">Video đã encode vẫn lưu trong object storage cho bền và replicate. Video <b>immutable</b> nên không cần <b>Hadoop</b> file system: chỉ upload, có thể xoá, không sửa video (chỉ sửa metadata).</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vòng đời một video</div>
+      <ol class="steps"><li>Upload → lưu file gốc vào object storage + đẩy vào queue.</li><li>Worker lấy từ queue, encode, nén.</li><li>Lưu bản encode vào object storage; sau đó chỉ đọc, không sửa.</li></ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Xem video <span class="t">12:40–14:00</span></div>
+    <h2 class="c-spec">Video đã encode phát qua CDN kéo từ object storage; metadata đọc từ database có cache bộ nhớ LRU phía trước</h2>
+    <p class="desc">Đọc phải nhanh nhất có thể, chỗ nào cache được thì cache. User đọc file đã encode, không đọc file gốc; nên phân phối khắp thế giới, gần user → <b>CDN</b>, phân phối file tĩnh theo địa lý; CDN <b>pull</b> từ object storage. Metadata đọc từ database, thêm <b>cache</b> phía trước vì một số ít video có nhiều view nhất — <b>in memory</b>, không chứa hết được nên phải loại bớt; video mới thường được xem nhiều hơn → <b>LRU</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — bấm xem một video</div>
+      <ol class="steps"><li>Lấy metadata (title, creator…) — cache trước, miss thì database.</li><li>Tải video từ CDN gần nhất; CDN chưa có thì kéo từ object storage.</li></ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. Cần bao nhiêu worker encode? <span class="t">14:00–16:20</span></div>
+    <h2 class="c-grow">500 video/giây, mỗi video encode 1 phút → cần khoảng 30.000 worker; chỉ 500 worker thì hàng đợi dồn mãi không hết</h2>
+    <p class="desc">Encode song song, không phụ thuộc nhau, dễ scale ngang. Giả sử một worker encode một video một lúc, mỗi video <b>1 phút</b> (có lẽ quá ngắn, nhưng giả sử worker rất mạnh và video đa số ngắn). <b>Capacity planning</b>: 50 triệu ÷ 100.000 giây → khoảng <b>500</b> video/giây.</p>
+    <p class="desc">Chỉ <b>500 workers</b> là ngây thơ: giây đầu 500 worker nhận 500 video, giây sau 500 video nữa vào queue vì ai cũng bận, cứ thế suốt một phút; xong lô đầu thì queue đã <b>backlog</b> nặng, không bao giờ đuổi kịp. Cần 500 × 60 = <b>30k workers</b>. Encoding khó ước chính xác, có thể một worker xử lý nhiều video, nhưng điều cần thấy: phải nhiều hơn số video upload mỗi giây.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 270" style="min-width:758px" role="img" aria-label="Capacity planning: 500 video mỗi giây, encode mất một phút, cần khoảng 30.000 worker"><rect x="20" y="30" width="280" height="64" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="160.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">50 triệu upload/ngày</text><text x="160.0" y="75" text-anchor="middle" class="bb-s">÷ 100.000 s</text><path class="bb-ar" d="M304,62 H366" marker-end="url(#bb-ah)"/><rect x="370" y="30" width="260" height="64" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="500.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">≈ 500 video/giây</text><text x="500.0" y="75" text-anchor="middle" class="bb-s">mỗi video encode 1 phút</text><path class="bb-ar" d="M634,62 H696" marker-end="url(#bb-ah)"/><rect x="700" y="30" width="380" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="890.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">500 × 60 = 30.000 workers</text><text x="890.0" y="75" text-anchor="middle" class="bb-s">để hàng đợi không dồn mãi</text><rect x="20" y="130" width="1060" height="120" rx="12" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="550" y="160" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">Chỉ 500 workers: giây 1 nhận 500 video → mọi worker bận suốt 1 phút</text><rect x="150" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="205" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 2: +500</text><rect x="280" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="335" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 3: +500</text><rect x="410" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="465" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 4: +500</text><rect x="540" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="595" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 5: +500</text><rect x="670" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="725" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 6: +500</text><rect x="800" y="182" width="110" height="34" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="855" y="204" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:700;font-size:12px">giây 7: +500</text><text x="550" y="240" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">hàng đợi tăng 500 mỗi giây → không bao giờ hết backlog</text></svg></div></div><div class="fig-cap">Hình 2 — Tính số worker encode</div></div>
+    <div class="note">Transcript có chỗ "100 seconds in a day" — ý là khoảng 100.000 giây (86.400 làm tròn).</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — định luật nhẩm</div>
+      <pre>số worker ≈ video/giây × thời gian encode (giây)
+          = 500 × 60 = 30.000</pre>
+      <p>Cách viết thành công thức là minh hoạ thêm (đây chính là Little's Law); con số lấy từ video.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">09. Xem từng chunk, chọn TCP <span class="t">16:20–21:50</span></div>
+    <h2 class="c-avg">DevTools cho thấy YouTube tải video bằng nhiều HTTP request nhỏ (~1 MB), audio và video tách riêng; video đã lưu thì dùng TCP để không mất đoạn nào</h2>
+    <p class="desc">Mở kênh YouTube, DevTools, tab Network, lọc <b>XHR</b>. Thanh buffer cho thấy chỉ phần đầu đã tải; nhảy tới đoạn khác thì đoạn đó được tải ngay — không cần cả video. Các request "videoplayback" tải từng phần; response là dữ liệu nhị phân. Xem header <b>content type</b>: một request là <b>audio</b>, request khác là video — <b>audio tải riêng</b> khỏi video. Mỗi chunk khoảng <b>một megabyte</b>, dễ truyền hơn cả video 20–30 MB. Đó là kỹ thuật giảm latency: gửi các <b>chunk</b> nhỏ của đoạn đang xem.</p>
+    <p class="desc">Đây là <b>video streaming</b> (không phải <b>live streaming</b> — video đã lưu sẵn): gửi từng phần, khác <b>download</b> là tải nguyên file lưu vào máy. Chunk có lẽ nằm trong memory của máy, nên client cần giải phóng bộ nhớ — video <b>10 giờ</b> không thể buffer hết; JavaScript phía client dễ làm crash browser.</p>
+    <p class="desc">Giao thức: <b>UDP</b> hay <b>TCP</b>? UDP hợp live streaming: trận thể thao lỡ một giây thì bỏ qua, theo kịp thời gian thực. Với video đã lưu, lỡ hai giây phim có thể mất tình tiết → <b>TCP</b> vì <b>reliability</b>, không thiếu đoạn; chậm hơn chút nhưng gửi theo chunk nhỏ là ổn. YouTube đúng là dùng HTTP request, chạy trên TCP.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — trong DevTools</div>
+      <pre>GET …/videoplayback?…   content-type: audio/…   <span class="cm">// chunk âm thanh</span>
+GET …/videoplayback?…   content-type: video/…   <span class="cm">// chunk hình ảnh</span>
+<span class="cm">// nhảy tới đoạn mới → thêm request cho đúng đoạn đó</span></pre>
+      <p>URL và giá trị content-type rút gọn là minh hoạ thêm; video chỉ đọc "content type is audio" và "this one was the video".</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">10. Mở rộng, và YouTube thật dùng MySQL + Vitess <span class="t">21:50–26:00</span></div>
+    <h2 class="c-cmd">Rate limit upload, dịch vụ search và gợi ý đọc metadata; YouTube thật dùng MySQL, qua read replica, sharding rồi tự xây Vitess làm lớp định tuyến shard</h2>
+    <p class="desc">Upload nên <b>rate limit</b> (có thể ở load balancer). <b>Recommendation</b> và <b>search</b> là auxiliary services đọc metadata; lưu lịch sử xem, video đã like để gợi ý. Search tự nó như thiết kế <b>Google search</b>: indexing, độ liên quan theo title, description, lượt xem, <b>autocomplete</b>; xây trên hoặc tách khỏi phần lõi.</p>
+    <p class="desc">YouTube thật không dùng NoSQL mà <b>MySQL</b>. Đoán lý do: YouTube ra đời khoảng <b>2005</b>, khi chưa có MongoDB, và chưa cần quy mô như giờ. Khi cần scale: thêm <b>read only replicas</b> (hệ read heavy), vẫn gặp vấn đề → <b>shard</b> MySQL, kèm nhiều code phức tạp trong app server để định tuyến request tới đúng shard. Giải pháp dài hạn: tự xây <b>Vitess</b> — lớp trung gian giữa app server và database, <b>decouple</b> tầng ứng dụng khỏi tầng database; mọi logic shard và định tuyến nằm ở đó. Vitess sau đó được <b>open source</b>, rất phổ biến, được <b>PlanetScale</b> dùng (MySQL + Vitess thành sản phẩm).</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 290" style="min-width:758px" role="img" aria-label="YouTube scale MySQL: từ code định tuyến shard trong app tới lớp trung gian Vitess"><rect class="bb-grp" x="10" y="20" width="500" height="260" rx="18"/><g class="bb-gtag" transform="translate(28,8)"><rect width="200" height="24" rx="12" fill="#1e293b"/><text x="100.0" y="16.5" text-anchor="middle">MYSQL SHARD THỦ CÔNG</text></g><g class="bb-node" transform="translate(30,60)"><rect width="220" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="93.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">App servers</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">+ code định tuyến shard</text></g><path class="bb-ar" d="M254,90 H296" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M254,110 H276 V190 H296" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(300,50)"><rect width="180" height="64" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="9" width="24" height="24" style="color:#16a34a"/><text x="90.0" y="53" text-anchor="middle" class="bb-l">Shard 1</text></g><g class="bb-node" transform="translate(300,160)"><rect width="180" height="64" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="9" width="24" height="24" style="color:#16a34a"/><text x="90.0" y="53" text-anchor="middle" class="bb-l">Shard 2</text></g><text x="140" y="220" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">app phải biết DB chia shard</text><text x="140" y="242" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">ra sao → phức tạp</text><rect class="bb-grp" x="560" y="20" width="530" height="260" rx="18"/><g class="bb-gtag" transform="translate(578,8)"><rect width="110" height="24" rx="12" fill="#1e293b"/><text x="55.0" y="16.5" text-anchor="middle">VỚI VITESS</text></g><g class="bb-node" transform="translate(580,110)"><rect width="170" height="80" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="68.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">App servers</text></g><path class="bb-ar" d="M754,150 H796" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(800,100)"><rect width="150" height="100" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-layers" x="58.0" y="14" width="34" height="34" style="color:#0d9488"/><text x="75.0" y="68" text-anchor="middle" class="bb-l">Vitess</text><text x="75.0" y="86" text-anchor="middle" class="bb-s">sharding + routing</text></g><path class="bb-ar" d="M954,130 H990 V80 H1006" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M954,170 H990 V220 H1006" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(1010,50)"><rect width="70" height="60" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="23.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="35.0" y="51" text-anchor="middle" class="bb-l">S1</text></g><g class="bb-node" transform="translate(1010,190)"><rect width="70" height="60" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="23.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="35.0" y="51" text-anchor="middle" class="bb-l">S2</text></g><text x="820" y="260" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">app tách khỏi cách DB được shard</text></svg></div></div><div class="fig-cap">Hình 3 — Từ shard thủ công tới Vitess</div></div>
+    <div class="note">Transcript nghe "by tests"; tên đúng là <b>Vitess</b>. YouTube thành lập năm 2005.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — các bước scale MySQL của YouTube</div>
+      <ol class="steps"><li>Read only replicas cho lượng đọc lớn.</li><li>Shard MySQL, app server tự định tuyến — code phức tạp.</li><li>Vitess làm lớp trung gian lo sharding và routing.</li></ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Cần đọc thấy video mới ngay lập tức.</div><div><span class="v">✓</span> Ưu tiên availability; chậm 5–10 giây được (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Denormalize là sai vì lưu trùng.</div><div><span class="v">✓</span> Đổi lấy đọc không cần join; ghi trùng thì cập nhật bất đồng bộ (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> 500 video/giây thì 500 worker là đủ.</div><div><span class="v">✓</span> Mỗi video mất 1 phút → cần ~30.000 (→ 08).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Phải tải hết video mới xem được.</div><div><span class="v">✓</span> Tải từng chunk ~1 MB của đoạn đang xem (→ 09).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Video streaming nên dùng UDP cho nhanh.</div><div><span class="v">✓</span> UDP hợp live; video đã lưu dùng TCP để không mất đoạn (→ 09).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Các lựa chọn chính</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Object storage</td><td>File lớn, bất biến, cần bền</td><td>Dữ liệu cần query, sửa thường xuyên</td><td>Rẻ, tự replicate; chỉ đọc ghi theo key</td></tr>
+      <tr><td class="k">Denormalize (NoSQL)</td><td>Đọc nhiều, cần tránh join</td><td>Dữ liệu trùng đổi liên tục</td><td>Đọc nhanh; ghi nhiều chỗ</td></tr>
+      <tr><td class="k">Queue + worker</td><td>Tác vụ dài như encode</td><td>Cần kết quả ngay trong request</td><td>Chịu được tải dồn; phải tính đủ worker</td></tr>
+      <tr><td class="k">TCP</td><td>Video đã lưu, cần đầy đủ</td><td>Live, ưu tiên thời gian thực</td><td>Tin cậy; có thể chậm hơn</td></tr>
+      <tr><td class="k">UDP</td><td>Live streaming</td><td>Phim, video phải xem đủ</td><td>Nhanh; chấp nhận mất gói</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Tính số video upload mỗi ngày từ 1 tỷ DAU, 5 video/người, tỷ lệ 100:1.</summary><p>5 tỷ lượt xem × 1% = 50 triệu video/ngày. (→ 02)</p></details>
+    <details><summary>Vì sao object storage đảm bảo reliability?</summary><p>Dịch vụ như S3, GCS tự replicate dữ liệu, có thể coi như không mất. (→ 04)</p></details>
+    <details><summary>Đổi avatar thì cập nhật dữ liệu denormalized thế nào?</summary><p>Sửa document user và mọi document video của họ, bất đồng bộ; thấy ảnh cũ một lúc là chấp nhận được. (→ 05)</p></details>
+    <details><summary>Tại sao cần ~30.000 worker encode?</summary><p>500 video/giây × 60 giây encode mỗi video; ít hơn thì hàng đợi tăng mãi. (→ 08)</p></details>
+    <details><summary>Vitess giải quyết vấn đề gì?</summary><p>Tách logic sharding và định tuyến ra khỏi app server, đặt ở lớp trung gian trước MySQL. (→ 10)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">reliability</td><td>Dữ liệu không hỏng, không mất</td><td>02</td></tr>
+      <tr><td class="k">denormalized</td><td>Lưu trùng dữ liệu để khỏi join</td><td>05</td></tr>
+      <tr><td class="k">encoding</td><td>Chuyển đổi, nén video sang định dạng phát</td><td>06</td></tr>
+      <tr><td class="k">immutable</td><td>Không sửa sau khi tạo</td><td>06</td></tr>
+      <tr><td class="k">capacity planning</td><td>Tính tài nguyên cần cho tải dự kiến</td><td>08</td></tr>
+      <tr><td class="k">video streaming</td><td>Gửi video đã lưu theo từng chunk</td><td>09</td></tr>
+      <tr><td class="k">Vitess</td><td>Lớp sharding và routing cho MySQL</td><td>10</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “5 - Design Youtube” (<a href="https://drive.google.com/file/d/1TZeMLeOOodicNv1IZRyMKVBbmzJHO9Y6/view">drive.google.com/file/d/1TZeMLeOOodicNv1IZRyMKVBbmzJHO9Y6</a>) · khoảng 26 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; đã xem khung hình mỗi phút.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-05.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

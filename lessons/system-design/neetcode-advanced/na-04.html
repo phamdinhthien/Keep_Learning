@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Discord — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="na-04">
+  <meta name="lesson:title" content="Thiết kế Discord">
+  <meta name="lesson:description" content="Chat nhóm real-time: WebSocket thay polling, bảng Messages shard theo channel, last_read_at cho tin chưa đọc, cache số mention, và Discord chuyển từ MongoDB sang Cassandra.">
+  <meta name="lesson:order" content="4">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Advanced">
+  <meta name="lesson:lop-order" content="3">
+  <meta name="lesson:read-time" content="15 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-advanced">NeetCode - Advanced</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Design Discord — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Advanced · Video 4</div>
+  <h1>Chat nhóm cần <span class="a">WebSocket</span> để tin đến tức thì, bảng tin nhắn <span class="b">shard theo channel</span>, và <code>last_read_at</code> để tiếp tục từ chỗ đã đọc</h1>
+  <div class="sub">Thiết kế cho Discord, Slack hay Microsoft Teams: server, channel, tin nhắn real-time, số mention chưa đọc. Cuối bài là cách Discord thật chuyển từ MongoDB sang Cassandra.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 350" style="min-width:758px" role="img" aria-label="Kiến trúc Discord: HTTP server và WebSocket server, bảng Messages shard theo channel và bảng UserActivity"><g class="bb-node" transform="translate(10,120)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M144,140 H206" marker-end="url(#bb-ah)"/><text x="175" y="128" text-anchor="middle" class="bb-a">HTTP</text><g class="bb-node" transform="translate(210,40)"><rect width="230" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="103.0" y="14" width="24" height="24" style="color:#7c3aed"/><text x="115.0" y="58" text-anchor="middle" class="bb-l">HTTP server</text><text x="115.0" y="76" text-anchor="middle" class="bb-s">gửi tin, xem kênh, đếm mention</text></g><path class="bb-ar" d="M144,185 H180 V250 H206" marker-end="url(#bb-ah-green)" marker-start="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="150" y="236" text-anchor="end" class="bb-a" fill="#16a34a" style="fill:#16a34a">WS</text><g class="bb-node" transform="translate(210,200)"><rect width="230" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-net" x="103.0" y="14" width="24" height="24" style="color:#0d9488"/><text x="115.0" y="58" text-anchor="middle" class="bb-l">WebSocket server</text><text x="115.0" y="76" text-anchor="middle" class="bb-s">push tin mới, ping mention</text></g><path class="bb-ar" d="M444,85 H506" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(510,30)"><rect x="10" y="-10" width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><rect x="5" y="-5" width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><rect width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">Messages (SQL)</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">shard theo channelId</text></g><path class="bb-ar" d="M444,110 H475 V280 H506" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><path class="bb-ar" d="M444,265 H475" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(510,240)"><rect width="230" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-cache" x="103.0" y="9" width="24" height="24" style="color:#ca8a04"/><text x="115.0" y="53" text-anchor="middle" class="bb-l">Cache</text><text x="115.0" y="71" text-anchor="middle" class="bb-s">kênh hot · mention count</text></g><rect x="790" y="20" width="300" height="170" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="940" y="46" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13.5px">Messages</text><text x="940" y="76" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">id · uid · mentionId</text><text x="940" y="102" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">serverId · channelId</text><text x="940" y="128" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">sent_at (index)</text><text x="940" y="168" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12px">shard theo channelId</text><rect x="790" y="210" width="300" height="130" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="940" y="236" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13.5px">UserActivity</text><text x="940" y="264" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">id · uid</text><text x="940" y="288" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">serverId · channelId</text><text x="940" y="312" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">last_read_at</text></svg></div></div><div class="fig-cap">Hình 1 — Kiến trúc và hai bảng chính</div></div>
+  <div class="toc">
+    <span>01 <b>Bối cảnh</b></span><span>02 <b>Functional</b></span><span>03 <b>Non-functional</b></span><span>04 <b>Real-time</b></span><span>05 <b>Mở một channel</b></span><span>06 <b>Schema &amp; sharding</b></span><span>07 <b>Tin chưa đọc</b></span><span>08 <b>Đếm mention</b></span><span>09 <b>Discord thật</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Bối cảnh <span class="t">00:00–01:40</span></div>
+    <h2 class="c-avg">Ứng dụng chat nhóm: server (Slack gọi là workspace) chứa channel, mỗi channel có lịch sử tin nhắn theo thời gian; có mention và DM</h2>
+    <p class="desc">Discord, <b>Slack</b>, <b>Microsoft Teams</b> đều có một thực thể nhóm — Slack gọi là <b>workspace</b> — phải là thành viên mới thấy tin nhắn. Mỗi <b>server</b> có nhiều <b>channel</b> (vd welcome, coding help); mỗi channel có lịch sử tin nhắn sắp theo thời gian, mới nhất ở dưới. Mở channel không nhảy ngay xuống cuối nếu còn tin <b>chưa xem</b> — phải nhớ chỗ đã đọc để <b>pick up where we left off</b>.</p>
+    <p class="desc">User có thể <b>mention</b> nhau bằng ký hiệu @ và username; channel hiện biểu tượng như "3 mention chưa đọc". Số thông báo áp dụng cho <b>direct messages</b> (DM), cho cả một server/workspace, và cho từng channel.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — server Discord của NeetCode</div>
+      <ul class="plain"><li>Channel "welcome", "coding help".</li><li>Tin mới nhất ở dưới cùng.</li><li>Badge "3" trên channel = 3 mention chưa đọc.</li></ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Functional requirements <span class="t">01:40–03:30</span></div>
+    <h2 class="c-cmd">Tập trung: gửi và nhận tin trong channel real-time, tiếp tục từ tin chưa đọc, đếm mention theo server và channel; bỏ DM, quyền, gọi thoại, ảnh</h2>
+    <p class="desc">Trọng tâm: server và channel; gửi, nhận tin; tiếp tục từ chỗ đã đọc (không có tính năng này thì đơn giản hơn nhiều). Không đi vào DM, việc tham gia server/channel (lời mời, <b>permissions</b>), hay <b>gọi thoại, video chat</b>. Cần hiển thị <b>số thông báo</b> cho channel và server mà không phải mở chúng.</p>
+    <p class="desc">Tin nhắn hiện <b>real time</b>. Lúc tải trang thấy lịch sử tin chưa đọc; không có tin chưa đọc thì bắt đầu ở tin mới nhất. Chỉ có <b>text</b>, không ảnh và video.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — trong và ngoài phạm vi</div>
+      <div class="ba">
+        <div><b>Trong</b>Tin nhắn channel real-time, tin chưa đọc, đếm mention.</div>
+        <div><b>Ngoài</b>DM, lời mời, quyền channel, gọi thoại/video, ảnh/video.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Non-functional requirements <span class="t">03:30–06:40</span></div>
+    <h2 class="c-spec">Latency thấp là trên hết; startup 5 triệu DAU, 50 triệu tin/ngày; server tối đa 20.000 người; tin tối đa 2 KB; chủ yếu đọc tin gần đây</h2>
+    <p class="desc"><b>Latency</b> phải tối thiểu: availability 100% mà chờ <b>60 giây</b> mới thấy tin thì không chat real-time được — còn tệ hơn độ trễ một giây của cuộc gọi điện thoại. Vẫn muốn redundant, <b>fault tolerant</b>, highly available, nhưng ưu tiên latency thấp.</p>
+    <p class="desc">Giả sử ta là kỹ sư startup thời đầu của Discord: <b>5 million</b> DAU, <b>50 million</b> tin nhắn/ngày. Quan trọng hơn tổng số là chỗ chạm giới hạn: một server tối đa <b>20,000</b> người (khá thực tế với Discord thời đầu; khi server lớn hơn họ phải làm lại thiết kế), <b>200,000</b> tin/ngày trong một server — trường hợp xấu nhất đều trong một channel; trung bình khoảng <b>10K</b> tin/channel/ngày. Tin tối đa <b>2000 bytes</b> (≈ 2000 ký tự, thêm metadata) → <b>2 KB</b>/tin.</p>
+    <p class="desc">Nhận xét quan trọng: đa số tin được <b>ghi</b> nhưng ít khi được đọc lại; người ta chỉ đọc tin <b>gần đây</b> — tối đa khoảng 10.000 tin trong ngày, thực tế gần <b>100</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — giới hạn để thiết kế</div>
+      <pre>20.000 người / server
+200.000 tin / ngày / server   <span class="cm">// xấu nhất: tất cả trong 1 channel</span>
+~10.000 tin / ngày / channel
+2 KB / tin</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Nhận tin real-time <span class="t">06:40–09:10</span></div>
+    <h2 class="c-grow">Gửi tin bằng HTTP là đủ; nhận tin thì polling mỗi giây tốn tài nguyên, nên dùng WebSocket để server đẩy tin tới mọi người đang ở channel</h2>
+    <p class="desc"><b>Send message</b>: body tin nhắn; ID tạo phía server; tin gắn với server và channel — gửi bằng HTTP request thông thường. Nhận tin real-time? Dùng HTTP <b>polling</b>: mỗi vài giây hỏi có tin mới không. Mỗi <b>1 giây</b> thì trễ tối đa 1 giây — chấp nhận được — nhưng đâu phải giây nào cũng có tin: mọi người đang hoạt động trong channel gửi request mỗi giây, quá nhiều traffic. Giãn ra <b>5 giây</b> thì vẫn nhiều request và latency tăng.</p>
+    <p class="desc">Tốt hơn HTTP/1 là <b>WebSockets</b>: không cần polling, server <b>push</b> tin mới ngay tới mọi user đang có kết nối WebSocket trong channel. HTTP ngày nay cũng có chức năng tương tự (<b>HTTP streaming</b>) — nêu ra là dịp thể hiện kiến thức, nhưng nhiều người phỏng vấn không biết, nên tập trung vào WebSocket.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="Polling hỏi server liên tục và lãng phí; WebSocket giữ kết nối để server đẩy tin nhắn ngay"><rect class="bb-grp" x="10" y="20" width="520" height="280" rx="18"/><g class="bb-gtag" transform="translate(28,8)"><rect width="120" height="24" rx="12" fill="#1e293b"/><text x="60.0" y="16.5" text-anchor="middle">HTTP POLLING</text></g><g class="bb-node" transform="translate(30,110)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Client</text></g><g class="bb-node" transform="translate(370,110)"><rect width="140" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="53.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="70.0" y="68" text-anchor="middle" class="bb-l">Server</text></g><path class="bb-ar d" d="M164,100 H366" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M164,140 H366" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M164,180 H366" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M164,220 H366" marker-end="url(#bb-ah)"/><text x="265" y="92" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:12.5px">“có tin mới không?” mỗi 1 giây</text><text x="270" y="260" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">đa số lần hỏi trả về rỗng → tốn tài nguyên;</text><text x="270" y="282" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">giãn ra 5 giây thì latency tăng</text><rect class="bb-grp" x="570" y="20" width="520" height="280" rx="18"/><g class="bb-gtag" transform="translate(588,8)"><rect width="110" height="24" rx="12" fill="#1e293b"/><text x="55.0" y="16.5" text-anchor="middle">WEBSOCKET</text></g><g class="bb-node" transform="translate(590,110)"><rect width="130" height="84" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="48.0" y="14" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="68" text-anchor="middle" class="bb-l">Client</text></g><g class="bb-node" transform="translate(930,110)"><rect width="140" height="84" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="53.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="70.0" y="68" text-anchor="middle" class="bb-l">WS server</text></g><path d="M724,140 H926" fill="none" stroke="#16a34a" stroke-width="3"/><text x="825" y="128" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">kết nối mở liên tục</text><path class="bb-ar" d="M926,170 H724" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="825" y="190" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">server push ngay khi có tin</text><text x="830" y="270" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">không cần polling · latency thấp</text></svg></div></div><div class="fig-cap">Hình 2 — Polling so với WebSocket</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — chi phí polling</div>
+      <p>Channel có 1.000 người đang mở, polling mỗi giây → 1.000 request/giây dù không ai nhắn gì. WebSocket: không có request nào cho tới khi có tin mới.</p>
+      <p>Con số 1.000 người là minh hoạ thêm; nguồn nói "mỗi người đang hoạt động gửi request mỗi giây".</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Mở một channel <span class="t">09:10–11:50</span></div>
+    <h2 class="c-avg">Mở channel: phân trang khoảng 10 tin mỗi lần, bắt đầu từ tin chưa đọc — mỗi user thấy khác nhau; số mention phải hiện ngay khi tải trang</h2>
+    <p class="desc">User gửi request xem channel, nhận về các tin nhắn — không phải tất cả, mà <b>paginate</b> bằng <b>page token</b>. Đã đọc hết thì bắt đầu ở khoảng 10 tin cuối theo thứ tự thời gian, cuộn lên lấy thêm 10; ít ai cuộn tới tận đầu. Có <b>50 tin chưa đọc</b> thì bắt đầu ở tin chưa đọc đầu tiên. Trải nghiệm <b>khác nhau với mỗi user</b>, tuỳ tin (hay timestamp) cuối cùng họ đã đọc.</p>
+    <p class="desc">Truy vấn chỉ cần tin trong <b>một channel</b> và trong một khoảng thời gian. Số mention (vd "3") cần có ngay khi tải trang, trước khi mở channel — nên phải tính nhanh. Có thể tách một <b>WebSocket server</b> đẩy tin mới, và server HTTP để lấy tin nhắn và số thông báo (WebSocket endpoint cũng có thể nằm trên HTTP server).</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai user cùng channel</div>
+      <div class="ba">
+        <div><b>Đã đọc hết</b>Thấy 10 tin mới nhất; cuộn lên lấy thêm 10.</div>
+        <div><b>Còn 50 tin chưa đọc</b>Bắt đầu ở tin chưa đọc đầu tiên, cuộn xuống để đọc tiếp.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Schema và sharding <span class="t">11:50–15:00</span></div>
+    <h2 class="c-cmd">Bảng Messages lớn nhất: shard theo channel ID để một channel nằm trên một shard, rồi index theo sent_at; cache cho channel đông</h2>
+    <p class="desc">Quy mô không quá lớn nên dùng <b>SQL</b>, có chiến lược shard rõ ràng theo channel ID; cũng bàn phương án non-relational như <b>MongoDB</b> (Discord dùng lúc đầu) và <b>Cassandra</b> (họ chuyển sang sau).</p>
+    <p class="desc">Bảng <b>Messages</b>: <b>id</b>, <b>uid</b> (người gửi), <b>mentionId</b> (để đếm mention), <b>serverId</b>, <b>channelId</b>, <b>sent_at</b> (để sắp xếp). Bảng sẽ có hàng triệu, hàng tỷ tin mỗi tuần/tháng nên phải <b>sharding</b>, tốt nhất theo <b>channel ID</b>: xem một channel chỉ chạm một shard; channel khác cùng server nằm shard khác cũng không sao. Theo server ID cũng khá tốt, nhưng theo channel ID đảm bảo mọi tin của channel ở cùng một shard. Đã chia shard thì mỗi shard không quá nhiều dữ liệu, có thể <b>index</b> theo ngày giờ vì chỉ cần tin gần đây.</p>
+    <p class="desc">Thêm <b>caching layer</b> cho channel có nhiều request, nhưng cache bị <b>stale</b> rất nhanh vì tin mới liên tục; có cập nhật cache cùng lúc gửi tin không là chuyện bàn thêm. Với thiết kế này, query tin gần đây vốn đã không lâu.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai bảng trên bảng vẽ</div>
+      <pre>Messages(id, uid, mentionId, serverId, channelId, sent_at: Date)
+UserActivity(id, uid, serverId, channelId, last_read_at: Date)</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Tiếp tục từ tin chưa đọc <span class="t">15:00–17:00</span></div>
+    <h2 class="c-spec">Bảng UserActivity lưu last_read_at cho mỗi user và channel; lấy tin có sent_at lớn hơn mốc đó, LIMIT 10, rồi cập nhật mốc khi đọc tiếp</h2>
+    <p class="desc">Bảng thứ hai <b>UserActivity</b>: với mỗi user và mỗi channel đã ghé, lưu lần đọc cuối — <b>last_read_at</b>. Truy vấn có <b>sub query</b>: lấy last_read_at của tôi, rồi lấy tin của channel có <b>sent_at</b> lớn hơn mốc đó → mọi tin chưa đọc. Thêm <b>LIMIT</b> 10 để phân trang; cuộn xuống thì chạy lại — nhưng phải <b>UPDATE</b> last_read_at bằng sent_at của tin cuối đã đọc, không thì cứ trả về 10 tin cũ.</p>
+    <p class="desc">Thực tế Discord làm khéo hơn: <b>ID</b> mỗi tin đã <b>sắp theo thời gian</b> sẵn, và họ không dùng database quan hệ. Thiết kế ở đây có điểm yếu nhưng khả thi ở quy mô vừa.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 280" style="min-width:758px" role="img" aria-label="Tin chưa đọc lấy theo last_read_at; số mention tính trước và lưu cache để tải server nhanh"><rect x="20" y="30" width="310" height="64" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="175.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">UserActivity</text><text x="175.0" y="75" text-anchor="middle" class="bb-s">last_read_at của tôi ở kênh này</text><path class="bb-ar" d="M334,62 H396" marker-end="url(#bb-ah)"/><rect x="400" y="30" width="330" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="565.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Messages của kênh</text><text x="565.0" y="75" text-anchor="middle" class="bb-s">sent_at &gt; last_read_at · LIMIT 10</text><path class="bb-ar" d="M734,62 H796" marker-end="url(#bb-ah)"/><rect x="800" y="30" width="280" height="64" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="940.0" y="59" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Hiện 10 tin chưa đọc</text><text x="940.0" y="75" text-anchor="middle" class="bb-s">theo thứ tự thời gian</text><path class="bb-ar d" d="M940,98 V150 H170 V100" marker-end="url(#bb-ah)"/><text x="555" y="140" text-anchor="middle" class="bb-a">cuộn tiếp → UPDATE last_read_at = sent_at tin cuối đã đọc</text><rect x="20" y="200" width="330" height="64" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="185.0" y="229" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Tin mới có mention</text><text x="185.0" y="245" text-anchor="middle" class="bb-s">server nhận message có mentionId</text><path class="bb-ar" d="M354,232 H416" marker-end="url(#bb-ah)"/><rect x="420" y="200" width="310" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="575.0" y="229" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">Đếm mention chưa đọc</text><text x="575.0" y="245" text-anchor="middle" class="bb-s">dựa vào last_read_at</text><path class="bb-ar" d="M734,232 H796" marker-end="url(#bb-ah)"/><rect x="800" y="200" width="280" height="64" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="940.0" y="229" text-anchor="middle" fill="#1e293b" style="fill:#1e293b;font-weight:700;font-size:13px">KV cache</text><text x="940.0" y="245" text-anchor="middle" class="bb-s">(user, server, channel) → count</text></svg></div></div><div class="fig-cap">Hình 3 — Tin chưa đọc và đếm mention</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — câu SQL trên bảng vẽ</div>
+      <pre><span class="kw">SELECT</span> * <span class="kw">FROM</span> Messages
+<span class="kw">WHERE</span> channelId = 'example'
+<span class="kw">AND</span> sent_at &gt;
+  (<span class="kw">SELECT</span> last_read_at <span class="kw">FROM</span> UserActivity
+   <span class="kw">WHERE</span> uid = 'neetcode')
+<span class="kw">LIMIT</span> 10;   <span class="cm">// LIMIT và UPDATE được nói thêm bằng lời</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. Đếm mention <span class="t">17:00–19:40</span></div>
+    <h2 class="c-grow">Đếm mention bằng query thì mở server còn chậm hơn mở channel; nên tính sẵn khi có tin mention và lưu trong cache key-value</h2>
+    <p class="desc">Có thể <b>COUNT</b> tương tự, thêm điều kiện mentionId = user ID. Nhưng chậm như mở một channel, mà mở một server có thể có <b>10 channel</b> — phải làm nhiều lần, nên lấy số thông báo còn chậm hơn mở channel. Có khi chấp nhận server tải xong, số đếm hiện sau vài giây.</p>
+    <p class="desc">Nhanh hơn: <b>in-memory cache</b>. Mỗi tin gửi tới server có thể có mentionId. Nếu có, application server đọc database, dùng last_read_at của người <b>được mention</b> để đếm số tin chưa đọc có mention họ trong channel, rồi ghi vào cache <b>key value</b> — key ghép <b>user ID + server ID + channel ID</b> → <b>notification count</b>. Lần sau người đó tải server, số mention có ngay. Nếu họ đang online, <b>WebSocket</b> đẩy thông báo, ping và hiện biểu tượng.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — khi có tin @mention</div>
+      <ol class="steps">
+        <li>Server nhận tin có mentionId = user B.</li>
+        <li>Đếm tin chưa đọc có mention B trong channel (dựa vào last_read_at của B).</li>
+        <li>Ghi count vào cache theo key (B, server, channel); B đang online thì đẩy qua WebSocket.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">09. Discord thực tế: MongoDB → Cassandra <span class="t">19:40–23:10</span></div>
+    <h2 class="c-avg">MongoDB index theo channel và thời gian cho tới khi index không vừa RAM; năm 2017 Discord chuyển sang Cassandra: partition key là channel ID, cluster key theo message ID</h2>
+    <p class="desc">Discord có lẽ chưa từng dùng database quan hệ. Ban đầu dùng <b>MongoDB</b>, index collection theo <b>channel ID</b> và thời gian gửi — giống chiến lược ở trên. Tin nhắn tăng thì <b>index không vừa memory</b>: index nhỏ thì nằm trong RAM, query nhanh; index trên disk thì query chậm hẳn. Sao không shard MongoDB theo channel ID? Thực tế sharding không đơn giản; vào <b>2017</b> họ thấy không đáng công, và MongoDB không ổn định khi shard thủ công.</p>
+    <p class="desc">Họ chọn <b>Cassandra</b> — phân tán sẵn, có hai loại key. <b>Partition key</b> quyết định dữ liệu nằm partition nào: Discord chọn <b>channel ID</b>, để tin của một channel ở cùng partition nếu có thể. <b>Cluster key</b> quyết định dữ liệu xếp thế nào trong partition: không phải sent_at vì vài tin có thể <b>trùng thời gian gửi</b>, mà là channel ID kết hợp <b>message ID</b> — ID đã sắp theo thời gian tạo. Discord giờ xử lý lượng traffic rất lớn mà vẫn dùng kiến trúc này. Phần này tóm từ <b>blog post</b> của Discord — nên đọc để thấy bài toán thật phức tạp ra sao.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Discord chuyển từ MongoDB sang Cassandra: partition theo channel ID, sắp xếp trong partition theo message ID"><g class="bb-node" transform="translate(20,100)"><rect width="230" height="96" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="12" width="34" height="34" style="color:#16a34a"/><text x="115.0" y="66" text-anchor="middle" class="bb-l">MongoDB</text><text x="115.0" y="84" text-anchor="middle" class="bb-s">index channelId + sent_at</text></g><text x="135" y="230" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">index quá lớn, không vừa RAM</text><text x="135" y="252" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">→ query đọc disk, chậm</text><path class="bb-ar" d="M254,148 H316" marker-end="url(#bb-ah)"/><text x="285" y="136" text-anchor="middle" class="bb-a">2017</text><rect class="bb-grp" x="320" y="20" width="760" height="270" rx="18"/><g class="bb-gtag" transform="translate(338,8)"><rect width="110" height="24" rx="12" fill="#1e293b"/><text x="55.0" y="16.5" text-anchor="middle">CASSANDRA</text></g><g class="bb-node" transform="translate(340,60)"><rect width="230" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-split" x="103.0" y="14" width="24" height="24" style="color:#0d9488"/><text x="115.0" y="58" text-anchor="middle" class="bb-l">Partition key</text><text x="115.0" y="76" text-anchor="middle" class="bb-s">channel ID → partition</text></g><g class="bb-node" transform="translate(340,180)"><rect width="230" height="90" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-list" x="103.0" y="14" width="24" height="24" style="color:#0d9488"/><text x="115.0" y="58" text-anchor="middle" class="bb-l">Cluster key</text><text x="115.0" y="76" text-anchor="middle" class="bb-s">message ID (sắp theo thời gian)</text></g><rect x="620" y="60" width="130" height="200" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="685" y="86" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:12.5px">Partition 1</text><rect x="635" y="104" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="635" y="140" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="635" y="176" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="635" y="212" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="780" y="60" width="130" height="200" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="845" y="86" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:12.5px">Partition 2</text><rect x="795" y="104" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="795" y="140" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="795" y="176" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="795" y="212" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="940" y="60" width="130" height="200" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="1005" y="86" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:12.5px">Partition 3</text><rect x="955" y="104" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="955" y="140" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="955" y="176" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="955" y="212" width="100" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="685" y="276" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">tin của một kênh ở chung partition, xếp theo message ID</text></svg></div></div><div class="fig-cap">Hình 4 — Từ MongoDB sang Cassandra</div></div>
+    <div class="note">Theo bài blog "How Discord Stores Billions of Messages" (2017), primary key là <code>((channel_id, bucket), message_id)</code>: partition key gồm channel ID và một "bucket" thời gian để partition không phình quá lớn; message_id là Snowflake ID sắp theo thời gian. Video đơn giản hoá thành "partition key = channel ID". Thuật ngữ chuẩn của Cassandra là <i>clustering key</i>.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vì sao không xếp theo sent_at</div>
+      <p>Hai tin gửi cùng một mốc thời gian sẽ có sent_at trùng nhau; message ID duy nhất mà vẫn tăng theo thời gian nên dùng làm key sắp xếp an toàn hơn.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Availability cao là đủ cho app chat.</div><div><span class="v">✓</span> Trễ 60 giây thì vô dụng; latency là ưu tiên (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Polling mỗi giây là cách tốt để nhận tin.</div><div><span class="v">✓</span> Lãng phí request; WebSocket để server push (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Shard theo server ID là tối ưu.</div><div><span class="v">✓</span> Theo channel ID đảm bảo một channel một shard (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Chạy lại query với LIMIT 10 là đọc tiếp được.</div><div><span class="v">✓</span> Phải UPDATE last_read_at, không thì trả 10 tin cũ (→ 07).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Đếm mention bằng COUNT mỗi lần tải là ổn.</div><div><span class="v">✓</span> Nhiều channel → chậm; tính sẵn và lưu cache (→ 08).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Các lựa chọn chính</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">HTTP polling</td><td>Cập nhật thưa, cần đơn giản</td><td>Chat real-time nhiều người</td><td>Dễ làm; lãng phí request, trễ theo chu kỳ</td></tr>
+      <tr><td class="k">WebSocket</td><td>Tin phải đến ngay</td><td>Chỉ cần request/response</td><td>Latency thấp; giữ nhiều kết nối mở</td></tr>
+      <tr><td class="k">SQL shard theo channel</td><td>Quy mô vừa, truy vấn theo channel</td><td>Index vượt RAM, shard thủ công khó</td><td>Quen thuộc; scale thủ công</td></tr>
+      <tr><td class="k">Cassandra</td><td>Hàng tỷ tin, truy vấn theo partition</td><td>Cần join, transaction phức tạp</td><td>Phân tán sẵn; mô hình dữ liệu theo query</td></tr>
+      <tr><td class="k">Cache mention count</td><td>Phải hiện badge ngay khi tải</td><td>—</td><td>Đọc nhanh; thêm việc khi có tin mention</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Vì sao polling không hợp cho chat?</summary><p>Mỗi người đang hoạt động gửi request mỗi giây dù thường không có tin; giãn chu kỳ thì latency tăng. (→ 04)</p></details>
+    <details><summary>Vì sao shard Messages theo channel ID?</summary><p>Xem một channel chỉ chạm một shard; rồi index theo sent_at trong shard. (→ 06)</p></details>
+    <details><summary>Lấy tin chưa đọc bằng gì?</summary><p>last_read_at trong UserActivity; lấy tin có sent_at lớn hơn, LIMIT 10, rồi cập nhật last_read_at. (→ 07)</p></details>
+    <details><summary>Key của cache số mention gồm những gì?</summary><p>User ID, server ID, channel ID → notification count. (→ 08)</p></details>
+    <details><summary>Vì sao Discord rời MongoDB?</summary><p>Index theo channel và thời gian không còn vừa RAM nên query chậm; shard MongoDB thủ công không ổn định. (→ 09)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">workspace / server</td><td>Nhóm chứa các channel</td><td>01</td></tr>
+      <tr><td class="k">mention</td><td>Gọi tên một user bằng @</td><td>01</td></tr>
+      <tr><td class="k">polling</td><td>Client hỏi server định kỳ</td><td>04</td></tr>
+      <tr><td class="k">WebSocket</td><td>Kết nối hai chiều giữ mở, server đẩy dữ liệu</td><td>04</td></tr>
+      <tr><td class="k">page token</td><td>Mốc để lấy trang dữ liệu tiếp theo</td><td>05</td></tr>
+      <tr><td class="k">last_read_at</td><td>Thời điểm đọc cuối của user ở một channel</td><td>07</td></tr>
+      <tr><td class="k">partition key</td><td>Quyết định dữ liệu nằm ở partition nào (Cassandra)</td><td>09</td></tr>
+      <tr><td class="k">cluster key</td><td>Quyết định thứ tự dữ liệu trong partition</td><td>09</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design Interview (Advanced) · “4 - Design Discord” (<a href="https://drive.google.com/file/d/1ILmyR96xv0dHUV2H2NAdwb-dUT8E5qRp/view">drive.google.com/file/d/1ILmyR96xv0dHUV2H2NAdwb-dUT8E5qRp</a>) · khoảng 23 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; đã xem khung hình mỗi phút (schema và câu SQL lấy từ bảng vẽ).</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-advanced/na-04.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
