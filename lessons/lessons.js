@@ -442,5 +442,18 @@ window.LESSONS = [
     "title": "Consistent Hashing",
     "description": "Băm IP mod n và vấn đề khi số server đổi, vòng tròn consistent hashing, khi nào cần dùng và ba thành phần hash key, hash function, nodes.",
     "readTime": "14 phút đọc"
+  },
+  {
+    "id": "nc-14",
+    "path": "system-design/neetcode-beginner/nc-14.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 14,
+    "title": "SQL: cơ sở dữ liệu quan hệ, B+ tree và ACID",
+    "description": "RDBMS lưu trên disk bằng B+ tree, index, bảng và schema, khoá và join, rồi ACID: durability, atomicity, isolation, consistency.",
+    "readTime": "17 phút đọc"
   }
 ];

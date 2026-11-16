@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL và cơ sở dữ liệu quan hệ — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-14">
+  <meta name="lesson:title" content="SQL: cơ sở dữ liệu quan hệ, B+ tree và ACID">
+  <meta name="lesson:description" content="RDBMS lưu trên disk bằng B+ tree, index, bảng và schema, khoá và join, rồi ACID: durability, atomicity, isolation, consistency.">
+  <meta name="lesson:order" content="14">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="17 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:SQL và cơ sở dữ liệu quan hệ — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 14</div>
+  <h1>Cơ sở dữ liệu quan hệ lưu trên disk bằng <span class="a">B+ tree</span>, ràng buộc bằng schema và khoá, và bảo đảm <span class="b">ACID</span> — đổi lại phải chậm hơn một chút</h1>
+  <div class="sub">Lướt nhanh phần cơ bản, tập trung vào trade-off của RDBMS trong system design.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="B+ tree với m = 3: node trong dẫn đường, leaf chứa dữ liệu và nối thành danh sách"><rect x="486" y="30" width="64" height="46" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="518.0" y="59" text-anchor="middle" class="bb-m" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:16px">2</text><rect x="550" y="30" width="64" height="46" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="582.0" y="59" text-anchor="middle" class="bb-m" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:16px">5</text><text x="780" y="60" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:700">node trong: chỉ để dẫn đường</text><rect x="170" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="202.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">0</text><rect x="234" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="266.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">1</text><rect x="486" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="518.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">3</text><rect x="550" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="582.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">4</text><rect x="802" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="834.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">6</text><rect x="866" y="190" width="64" height="46" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="898.0" y="219" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">7</text><path class="bb-ar" d="M500,78 H270 V186" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M550,78 V186" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M600,78 H866 V186" marker-end="url(#bb-ah)"/><text x="300" y="130" text-anchor="middle" class="bb-a">&lt; 2</text><text x="550" y="130" text-anchor="middle" class="bb-a">2 … 5</text><text x="800" y="130" text-anchor="middle" class="bb-a">&gt; 5</text><path class="bb-ar" d="M302,213 H482" marker-end="url(#bb-ah-teal)" style="stroke:#0d9488"/><path class="bb-ar" d="M618,213 H798" marker-end="url(#bb-ah-teal)" style="stroke:#0d9488"/><text x="550" y="280" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:13px">leaf chứa dữ liệu, nối nhau như linked list đã sắp xếp → đọc một khoảng (range) dễ</text><text x="550" y="306" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:13px">m = 3 → mỗi node tối đa m − 1 = 2 key · nhiều nhánh hơn cây nhị phân → cây thấp hơn → ít lần đọc disk</text></svg></div></div><div class="fig-cap">Hình 1 — B+ tree với m = 3</div></div>
+  <div class="toc">
+    <span>01 <b>RDBMS &amp; SQL</b></span><span>02 <b>B+ tree</b></span><span>03 <b>Index</b></span><span>04 <b>Bảng &amp; schema</b></span><span>05 <b>Khoá &amp; join</b></span><span>06 <b>Durability &amp; transaction</b></span><span>07 <b>Atomicity</b></span><span>08 <b>Isolation</b></span><span>09 <b>Consistency</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. RDBMS &amp; SQL <span class="t">~00:00–02:00</span></div>
+    <h2 class="c-avg">SQL là ngôn ngữ truy vấn; thứ thật sự học ở đây là hệ quản trị cơ sở dữ liệu quan hệ (RDBMS)</h2>
+    <p class="desc">Database là một trong những cách chính để ứng dụng lưu dữ liệu. Bài tên là SQL nhưng tập trung vào <b>relational database management system (RDBMS)</b>; SQL là một thành phần chính của đa số RDBMS. Người ta hay chia database thành <b>SQL và NoSQL</b>, nên tạm gọi là SQL. SQL là <b>ngôn ngữ truy vấn</b>: cách truy cập dữ liệu trong RDBMS.</p>
+    <div class="note"><b>Đính chính nguồn:</b> video nói SQL là "standard query language". Tên thường dùng là <b>Structured Query Language</b>.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Mục tiêu của nguồn</div>
+      <p>Đi nhanh phần cơ bản, rồi tập trung vào <b>trade-off</b> của database quan hệ khi thiết kế hệ thống.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. B+ tree trên disk <span class="t">~02:00–07:00</span></div>
+    <h2 class="c-cmd">RDBMS lưu trên disk bằng B+ tree: nhiều nhánh để cây thấp, dữ liệu nằm ở leaf nối thành danh sách đã sắp xếp</h2>
+    <p class="desc">RDBMS lưu trên <b>disk</b> để dữ liệu <b>persistent</b> khi máy crash. Dữ liệu rất lớn nên phải tổ chức để đọc ghi hiệu quả. Cấu trúc thường dùng là <b>B+ tree</b>: giống cây nhị phân, nhưng mỗi node có tới <b>m</b> con (m tuỳ ý). Với m = 3 là cây ba nhánh, mỗi node chứa <b>m − 1</b> = 2 key, vẫn giữ thứ tự: node (2, 5) thì bên phải là các giá trị lớn hơn 5 (6, 7), ở giữa là 3, 4, bên trái là 0, 1.</p>
+    <p class="desc">Dùng cây m nhánh để <b>giảm chiều cao</b> cây: lấy được dữ liệu có thể phải đi hết chiều cao, mà mỗi bước là một lần đọc, nên càng nhiều con thì càng ít lần đọc ghi. Thêm nữa, dữ liệu <b>chỉ nằm ở leaf</b>; các node trên chỉ dẫn đường. Leaf nối nhau kiểu <b>linked list</b> đã sắp xếp, nên tìm được một key thì đọc tiếp cả <b>khoảng (range)</b> dễ dàng.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — cây m = 3</div>
+      <pre>              [ 2 | 5 ]
+        /         |          \
+   [0 | 1] → [3 | 4] →  [6 | 7]     <span class="cm">// leaf chứa dữ liệu, nối nhau</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Index <span class="t">~07:00–09:00</span></div>
+    <h2 class="c-spec">Index là giá trị dùng làm khoá sắp xếp của cây — chọn theo cách ta sẽ tìm dữ liệu</h2>
+    <p class="desc">Ví dụ đơn giản nhất: <b>danh bạ điện thoại</b>, map tên sang số điện thoại. Tìm người thì tìm theo tên hay theo số? Theo tên. Giá trị dùng làm khoá khi lưu cây gọi là <b>index</b>. Không thể key theo mọi thứ, nên phải chọn index khéo; ở đây rõ ràng là tên, đi theo thứ tự chữ cái: tìm người tên bắt đầu bằng B thì đi xuống nhánh đó. Index là về thuộc tính sắp xếp, và B+ tree cho ta sắp xếp theo ít nhất một index. Mục tiêu chính: <b>tìm và đọc dữ liệu nhanh nhất có thể</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — danh bạ</div>
+      <div class="ba">
+        <div><b>Index = tên</b>Tìm "B…" theo thứ tự chữ cái → đi đúng nhánh.</div>
+        <div><b>Index = số điện thoại</b>Không khớp cách người dùng tra danh bạ.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Bảng &amp; schema <span class="t">~09:00–12:00</span></div>
+    <h2 class="c-grow">Dữ liệu nằm trong các bảng có schema định trước; mỗi bản ghi là một hàng phải khớp schema</h2>
+    <p class="desc">Ý tưởng cơ bản: dữ liệu nằm trong nhiều <b>bảng</b>. Lệnh <b>CREATE TABLE</b> tạo bảng People với <b>schema</b> — rất quan trọng với database quan hệ vì nó quy định dữ liệu phải trông thế nào. Ở đây có đúng hai field: <b>phone_number</b> kiểu integer (có thể coi như bỏ dấu gạch; lưu dạng string cũng được), và <b>name</b> kiểu <b>varchar(100)</b> — chuỗi độ dài thay đổi, tối đa 100 ký tự. Mỗi bản ghi là một <b>hàng</b> khớp schema: Alice, Bob… Có thể có bảng khác, ví dụ Homes: mỗi nhà có một phone_number và một address.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tạo bảng</div>
+      <pre><span class="kw">CREATE TABLE</span> People (
+  phone_number <span class="kw">int</span>,
+  name         <span class="kw">varchar</span>(<span class="val">100</span>)
+);</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Ràng buộc, khoá &amp; join <span class="t">~12:00–16:00</span></div>
+    <h2 class="c-avg">Foreign key, not null, primary key là xương sống của database quan hệ — thứ NoSQL thường không có</h2>
+    <p class="desc">People và Homes có quan hệ: mọi phone_number gắn với một nhà phải thuộc về một người. Đó là ràng buộc <b>foreign key</b>: lấy key của bảng này và áp luật theo key của bảng khác. Còn nhiều ràng buộc khác: phone_number <b>không được null</b> — ai cũng phải có số. Mỗi bảng phải có cách định danh duy nhất mỗi hàng: <b>primary key</b>, gồm một hay nhiều cột. Nhiều người có thể trùng tên nhưng khó trùng số, nên dùng phone_number.</p>
+    <p class="desc">Các ràng buộc này là <b>xương sống</b> của database quan hệ, thứ thường không có ở NoSQL. Có quan hệ thì làm được <b>join</b>: với mỗi nhà, tìm người có cùng phone_number trong People để lấy tên. Người nói thừa nhận ví dụ tới đây hơi vô nghĩa, chỉ để lướt qua các khái niệm chính.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Bảng People và Homes liên kết qua phone_number bằng foreign key"><rect x="30" y="40" width="400" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="46" y="66" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:14px">People</text><rect x="30" y="84" width="200" height="34" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="42" y="106" text-anchor="start" class="bb-m" style="font-weight:700;font-size:12.5px">phone_number 🔑</text><rect x="230" y="84" width="200" height="34" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="242" y="106" text-anchor="start" class="bb-m" style="font-weight:700;font-size:12.5px">name</text><rect x="30" y="122" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="42" y="144" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">1234567890</text><rect x="230" y="122" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="242" y="144" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">Alice</text><rect x="30" y="156" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="42" y="178" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">2345678901</text><rect x="230" y="156" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="242" y="178" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">Bob</text><rect x="640" y="40" width="400" height="40" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="656" y="66" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">Homes</text><rect x="640" y="84" width="200" height="34" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="652" y="106" text-anchor="start" class="bb-m" style="font-weight:700;font-size:12.5px">phone_number</text><rect x="840" y="84" width="200" height="34" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="852" y="106" text-anchor="start" class="bb-m" style="font-weight:700;font-size:12.5px">address</text><rect x="640" y="122" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="652" y="144" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">1234567890</text><rect x="840" y="122" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="852" y="144" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">…</text><rect x="640" y="156" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="652" y="178" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">2345678901</text><rect x="840" y="156" width="200" height="34" rx="4" fill="#fff" stroke="#94a3b8" stroke-width="2"/><text x="852" y="178" text-anchor="start" class="bb-m" style="font-weight:600;font-size:12.5px">…</text><path class="bb-ar" d="M636,140 H434" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="535" y="128" text-anchor="middle" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">foreign key</text><text x="230" y="240" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12.5px">primary key: mỗi người một số, định danh duy nhất</text><text x="840" y="240" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">mọi phone_number ở Homes phải thuộc một người</text><text x="550" y="284" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:500">số điện thoại và địa chỉ là minh hoạ thêm</text></svg></div></div><div class="fig-cap">Hình 2 — Hai bảng liên kết bằng foreign key</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — join hai bảng</div>
+      <pre><span class="kw">SELECT</span> People.name, Homes.address
+<span class="kw">FROM</span> People
+<span class="kw">JOIN</span> Homes <span class="kw">ON</span> People.phone_number = Homes.phone_number;</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Durability &amp; transaction <span class="t">~16:00–19:00</span></div>
+    <h2 class="c-cmd">Durability: transaction đã commit thì còn nguyên dù database crash — lý do RDBMS dùng disk, và lý do Redis không ACID</h2>
+    <p class="desc">Đa số RDBMS <b>tuân thủ ACID</b>. Người nói đi không theo thứ tự, bắt đầu bằng chữ cuối: <b>durability</b>, lý do RDBMS dùng disk. <b>Redis</b> tuy được nói như cache, đôi khi cũng là database, nhưng <b>không ACID</b> vì lưu mọi thứ trong memory: nhanh hơn nhưng không durable. Database quan hệ chấp nhận chậm hơn một chút để có các bảo đảm này.</p>
+    <p class="desc"><b>Transaction</b> không chỉ là một query mà có thể là tập query: đọc, chèn, cập nhật, xoá. Bắt đầu bằng <b>BEGIN</b>, chạy các câu SQL, rồi <b>COMMIT</b>. Mọi transaction đã commit phải <b>durable</b>, còn nguyên kể cả khi database crash sau đó. Đã insert nhưng chưa commit thì không kỳ vọng nó được lưu.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — khung một transaction</div>
+      <pre><span class="kw">BEGIN</span>;
+  <span class="kw">INSERT</span> …;   <span class="kw">UPDATE</span> …;   <span class="kw">DELETE</span> …;   <span class="kw">SELECT</span> …;
+<span class="kw">COMMIT</span>;     <span class="cm">// từ đây phải durable</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Atomicity <span class="t">~19:00–22:00</span></div>
+    <h2 class="c-peak">Atomicity: transaction là tất cả hoặc không gì — crash giữa chừng thì cả transaction thất bại</h2>
+    <p class="desc">Chữ <b>atom</b> từ vật lý: ngày trước tưởng nguyên tử không chia được (giờ biết là chia được). <b>Atomicity</b> nghĩa là transaction không chia được, <b>all or nothing</b>. Transaction có phần 1 và phần 2; làm xong phần 1 rồi máy crash, phần 2 chưa xong thì cả transaction thất bại, phần 1 cũng không được commit. Chỉ khi xong toàn bộ mới commit.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 285" style="min-width:758px" role="img" aria-label="Atomicity: transaction chuyển tiền là tất cả hoặc không gì"><text x="40" y="30" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:800">CHUYỂN $500 TỪ ALICE SANG BOB</text><rect x="40" y="50" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="115" y="76" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">Alice $1.000</text><rect x="200" y="50" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="275" y="76" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">Bob $500</text><path class="bb-ar" d="M354,70 H396" marker-end="url(#bb-ah)"/><text x="375" y="50" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800">1</text><rect x="400" y="50" width="150" height="40" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="475" y="76" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:13px">Alice $500</text><rect x="560" y="50" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="635" y="76" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">Bob $500</text><path class="bb-ar" d="M714,70 H756" marker-end="url(#bb-ah)"/><text x="735" y="50" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:800">2</text><rect x="760" y="50" width="150" height="40" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="835" y="76" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">Alice $500</text><rect x="920" y="50" width="150" height="40" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="995" y="76" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">Bob $1.000</text><text x="915" y="116" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">COMMIT ✓</text><text x="40" y="176" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800">CRASH GIỮA BƯỚC 1 VÀ 2</text><rect x="40" y="196" width="480" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="280" y="226" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">không có atomicity: Alice $500 · Bob $500</text><text x="280" y="248" text-anchor="middle" style="font-weight:600">$500 biến mất</text><rect x="580" y="196" width="480" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="820" y="226" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">có atomicity: cả transaction thất bại</text><text x="820" y="248" text-anchor="middle" style="font-weight:600">quay về Alice $1.000 · Bob $500</text></svg></div></div><div class="fig-cap">Hình 3 — Chuyển $500: có và không có atomicity</div></div>
+    <p class="desc">Ví dụ cho thấy atomicity quan trọng thế nào trong một số ứng dụng, dù có lúc không cần.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — chuyển tiền</div>
+      <pre><span class="cm">-- Alice $1.000, Bob $500</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="val">500</span> <span class="kw">WHERE</span> name = <span class="val">'Alice'</span>;  <span class="cm">-- phần 1</span>
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="val">500</span> <span class="kw">WHERE</span> name = <span class="val">'Bob'</span>;    <span class="cm">-- phần 2</span>
+<span class="kw">COMMIT</span>;
+<span class="cm">-- crash giữa phần 1 và 2, không atomicity: $500 biến mất</span></pre>
+      <p>Tên bảng accounts và cột balance là minh hoạ thêm.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. Isolation <span class="t">~22:00–25:00</span></div>
+    <h2 class="c-spec">Isolation: các transaction chạy đồng thời phải trông như chạy lần lượt, để không đọc giá trị chưa commit (dirty read)</h2>
+    <p class="desc">Nhiều transaction chạy <b>đồng thời</b> trên database thì phải trông như chạy theo thứ tự — cái này rồi cái kia, hoặc ngược lại — không ảnh hưởng nhau. Thiếu isolation sinh ra nhiều vấn đề: <b>dirty read</b>, <b>phantom read</b>, <b>non-repeatable read</b>… Bài tập trung vào dirty read.</p>
+    <p class="desc">T1 trừ $500 của Alice, còn 500 (chưa commit). T2 bắt đầu sau, cộng $200 vào giá trị 500 đó thành 700, rồi commit. Database crash trước khi T1 xong: T1 bị huỷ nhưng T2 đã commit, còn lại 700 — sai. T2 đọc giá trị chưa commit: đó là dirty read, dẫn tới trạng thái không nhất quán, và liên quan tới atomicity. Isolation <b>serialize</b> các transaction: T2 đọc giá trị gốc 1.000, cộng 200 thành 1.200, rồi T1 trừ 500 còn 700. Trông đồng thời — <b>concurrent không có nghĩa là parallel</b> — nhưng như thể chạy tuần tự.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Dirty read: transaction 2 đọc giá trị chưa commit của transaction 1"><text x="40" y="60" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:15px">T1</text><text x="40" y="170" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:15px">T2</text><path d="M90,55 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M90,165 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><rect x="120" y="30" width="260" height="50" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><text x="250" y="60" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12.5px">Alice − 500 → 500 (chưa commit)</text><rect x="420" y="140" width="250" height="50" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="545" y="170" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:12.5px">đọc 500 (dirty) + 200 → 700</text><rect x="700" y="140" width="120" height="50" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="760" y="170" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800">COMMIT</text><rect x="860" y="30" width="180" height="50" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="950" y="60" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800">CRASH · T1 hủy</text><path class="bb-ar d" d="M300,84 V112 H545 V136" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="420" y="104" text-anchor="middle" class="bb-a" fill="#dc2626" style="fill:#dc2626">giá trị chưa commit</text><rect x="40" y="230" width="500" height="90" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="290" y="262" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">không isolation: Alice còn $700</text><text x="290" y="290" text-anchor="middle" style="font-weight:600">sai — T1 đã bị hủy, đúng ra phải là $1.200</text><rect x="580" y="230" width="480" height="90" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="820" y="262" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">isolation (serialize): T2 đọc $1.000</text><text x="820" y="290" text-anchor="middle" style="font-weight:600">1.000 + 200 = 1.200, rồi T1 trừ 500 → 700</text></svg></div></div><div class="fig-cap">Hình 4 — Dirty read và cách isolation tránh nó</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai kết quả</div>
+      <div class="ba">
+        <div><b>Không isolation</b>T2 đọc 500 (chưa commit) → 700; T1 bị huỷ do crash → còn 700, sai.</div>
+        <div><b>Có isolation</b>T2 đọc 1.000 → 1.200; T1 trừ 500 → 700, đúng với cả hai transaction.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">09. Consistency <span class="t">~25:00–27:00</span></div>
+    <h2 class="c-grow">Consistency trong ACID là tuân thủ mọi ràng buộc developer đặt ra — và việc kiểm tra đó tốn kém</h2>
+    <p class="desc"><b>Consistency</b> trong ACID là <b>nhất quán dữ liệu</b> (có một "consistency" khác trong một acronym khác). Nghĩa là tuân thủ <b>ràng buộc</b> developer đặt: cột not null, foreign key, cột unique… Có thể tiền trong tài khoản không cần not null (null là 0), nhưng tên thì ai lưu trong database ngân hàng cũng phải có.</p>
+    <p class="desc">Thiếu atomicity hay isolation thì khó giữ ràng buộc: transaction làm nửa chừng rồi restart, hoặc các transaction chen nhau, đều có thể để lại trạng thái không nhất quán. Nhưng consistency <b>tốn kém</b>: có foreign key thì mỗi lần cập nhật phải đọc bảng này rồi bảng kia để chắc không đưa vào giá trị không tồn tại ở bảng kia. Ta đặt luật, RDBMS bảo đảm ta không bao giờ rơi vào trạng thái vi phạm.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — database ngân hàng</div>
+      <pre>name    <span class="kw">varchar</span> <span class="kw">NOT NULL</span>    <span class="cm">-- ai cũng phải có tên</span>
+balance <span class="kw">int</span>                 <span class="cm">-- null có thể hiểu là 0, không cần NOT NULL</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> B+ tree là cây nhị phân.</div><div><span class="v">✓</span> Mỗi node có tới m con và m − 1 key; dữ liệu chỉ ở leaf (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Redis là database nên cũng ACID.</div><div><span class="v">✓</span> Redis lưu trong memory nên không durable, không ACID (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Đã chạy INSERT là dữ liệu được lưu.</div><div><span class="v">✓</span> Chỉ transaction đã COMMIT mới phải durable (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Concurrent nghĩa là chạy song song.</div><div><span class="v">✓</span> Concurrent không nhất thiết parallel; isolation làm chúng trông như tuần tự (→ 08).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Consistency trong ACID và trong CAP là một.</div><div><span class="v">✓</span> ACID consistency là tuân thủ ràng buộc dữ liệu; "consistency" kia thuộc acronym khác (→ 09).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Sáu câu hỏi</h2>
+    <details><summary>Vì sao B+ tree dùng nhiều nhánh thay vì nhị phân?</summary><p>Để cây thấp hơn, giảm số lần đọc ghi khi đi từ gốc xuống dữ liệu. (→ 02)</p></details>
+    <details><summary>Leaf của B+ tree nối nhau giúp gì?</summary><p>Tìm được một key rồi đọc tiếp cả một khoảng (range) theo thứ tự. (→ 02)</p></details>
+    <details><summary>Primary key và foreign key khác nhau thế nào?</summary><p>Primary key định danh duy nhất mỗi hàng trong bảng; foreign key ràng buộc giá trị cột phải tồn tại ở bảng khác. (→ 05)</p></details>
+    <details><summary>Alice $1.000, Bob $500. Chuyển $500, crash sau bước trừ tiền Alice. Có atomicity thì sau khi khởi động lại thế nào?</summary><p>Alice $1.000, Bob $500: cả transaction thất bại. (→ 07)</p></details>
+    <details><summary>Dirty read là gì?</summary><p>Một transaction đọc giá trị mà transaction khác chưa commit. (→ 08)</p></details>
+    <details><summary>Vì sao consistency tốn kém?</summary><p>Mỗi lần cập nhật phải kiểm tra ràng buộc, như foreign key phải đọc thêm bảng khác. (→ 09)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">RDBMS · SQL</td><td>Hệ quản trị CSDL quan hệ · ngôn ngữ truy vấn</td><td>01</td></tr>
+      <tr><td class="k">B+ tree</td><td>Cây m nhánh, dữ liệu ở leaf nối nhau</td><td>02</td></tr>
+      <tr><td class="k">index</td><td>Giá trị dùng làm khoá sắp xếp để tìm nhanh</td><td>03</td></tr>
+      <tr><td class="k">schema · row · varchar</td><td>Cấu trúc bảng · một bản ghi · chuỗi độ dài thay đổi</td><td>04</td></tr>
+      <tr><td class="k">primary key · foreign key · not null</td><td>Các ràng buộc chính</td><td>05</td></tr>
+      <tr><td class="k">join</td><td>Ghép hai bảng theo cột chung</td><td>05</td></tr>
+      <tr><td class="k">ACID</td><td>Atomicity, consistency, isolation, durability</td><td>06–09</td></tr>
+      <tr><td class="k">transaction · BEGIN · COMMIT</td><td>Tập query chạy như một khối</td><td>06</td></tr>
+      <tr><td class="k">dirty / phantom / non-repeatable read</td><td>Các lỗi khi thiếu isolation</td><td>08</td></tr>
+      <tr><td class="k">serialize</td><td>Cho transaction chạy như thể tuần tự</td><td>08</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “14 - SQL” (<a href="https://drive.google.com/file/d/1FtLt4khZOzLDH5634pR7UbMaQKjFCKOa/view">drive.google.com/file/d/1FtLt4khZOzLDH5634pR7UbMaQKjFCKOa</a>) · khoảng 27 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-14.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
