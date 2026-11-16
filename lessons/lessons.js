@@ -429,5 +429,18 @@ window.LESSONS = [
     "title": "Proxy và Load Balancing",
     "description": "Forward proxy, reverse proxy, load balancer, các thuật toán chia tải, layer 4 vs layer 7 và cách tránh load balancer thành single point of failure.",
     "readTime": "13 phút đọc"
+  },
+  {
+    "id": "nc-13",
+    "path": "system-design/neetcode-beginner/nc-13.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 13,
+    "title": "Consistent Hashing",
+    "description": "Băm IP mod n và vấn đề khi số server đổi, vòng tròn consistent hashing, khi nào cần dùng và ba thành phần hash key, hash function, nodes.",
+    "readTime": "14 phút đọc"
   }
 ];

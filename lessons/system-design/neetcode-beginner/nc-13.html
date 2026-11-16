@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consistent Hashing — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-13">
+  <meta name="lesson:title" content="Consistent Hashing">
+  <meta name="lesson:description" content="Băm IP mod n và vấn đề khi số server đổi, vòng tròn consistent hashing, khi nào cần dùng và ba thành phần hash key, hash function, nodes.">
+  <meta name="lesson:order" content="13">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="14 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Consistent Hashing — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 13</div>
+  <h1>Băm <span class="a">mod số server</span> xáo trộn gần hết user khi server thay đổi; <span class="b">consistent hashing</span> chỉ dời phần bị ảnh hưởng</h1>
+  <div class="sub">Khi mỗi server giữ cache hay dữ liệu riêng, việc một user luôn về cùng một server mới quan trọng.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 355" style="min-width:758px" role="img" aria-label="Băm IP mod số server: khi bớt một server, phần lớn user bị chuyển sang server khác"><rect class="bb-grp" x="20" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="176" height="24" rx="12" fill="#1e293b"/><text x="88.0" y="16.5" text-anchor="middle">3 SERVER · IP mod 3</text></g><g class="bb-node" transform="translate(320,76)"><rect width="180" height="62" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="8" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="52" text-anchor="middle" class="bb-l">Server 0</text></g><g class="bb-node" transform="translate(320,152)"><rect width="180" height="62" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="8" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="52" text-anchor="middle" class="bb-l">Server 1</text></g><g class="bb-node" transform="translate(320,228)"><rect width="180" height="62" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="8" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="52" text-anchor="middle" class="bb-l">Server 2</text></g><rect x="44" y="92" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="119" y="118" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 9</text><text x="210" y="118" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">9 mod 3 = 0</text><rect x="44" y="158" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="119" y="184" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 10</text><text x="210" y="184" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">10 mod 3 = 1</text><rect x="44" y="224" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="119" y="250" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 11</text><text x="210" y="250" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">11 mod 3 = 2</text><text x="275" y="326" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">mỗi user luôn về cùng server → dùng được cache riêng</text><rect class="bb-grp" x="570" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="200" height="24" rx="12" fill="#1e293b"/><text x="100.0" y="16.5" text-anchor="middle">BỎ SERVER 2 · IP mod 2</text></g><g class="bb-node" transform="translate(870,76)"><rect width="180" height="62" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="8" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="52" text-anchor="middle" class="bb-l">Server 0</text></g><g class="bb-node" transform="translate(870,152)"><rect width="180" height="62" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="8" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="52" text-anchor="middle" class="bb-l">Server 1</text></g><g class="bb-node" transform="translate(870,228)"><rect width="180" height="62" rx="14" fill="#fee2e2" stroke="#dc2626" stroke-dasharray="8 5"/><text x="90.0" y="29" text-anchor="middle" class="bb-l">Server 2</text><text x="90.0" y="47" text-anchor="middle" class="bb-s">đã sập</text></g><rect x="594" y="92" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="669" y="118" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 9</text><text x="760" y="118" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12px">9 mod 2 = 1</text><rect x="594" y="158" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="669" y="184" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 10</text><text x="760" y="184" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12px">10 mod 2 = 0</text><rect x="594" y="224" width="150" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="669" y="250" text-anchor="middle" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">IP 11</text><text x="760" y="250" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">11 mod 2 = 1</text><text x="825" y="326" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">9 và 10 đổi chỗ → cache của họ thành vô dụng</text></svg></div></div><div class="fig-cap">Hình 1 — mod 3 rồi mod 2: user 9 và 10 bị đổi server dù server của họ vẫn sống</div></div>
+  <div class="toc">
+    <span>01 <b>Hashing cơ bản</b></span><span>02 <b>Vì sao cần cùng server</b></span><span>03 <b>Vấn đề khi bớt server</b></span><span>04 <b>Vòng tròn</b></span><span>05 <b>Khi nào dùng</b></span><span>06 <b>Ba thành phần</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Hashing cơ bản <span class="t">~00:00–03:00</span></div>
+    <h2 class="c-avg">Lấy IP mod số server để chọn server: cùng một IP luôn về cùng một server</h2>
+    <p class="desc">Bên cạnh round robin, load balancer có thể dùng <b>hashing</b>. Ba server, hash theo <b>IP</b> của user. IP là một số nguyên; đơn giản hoá, giả sử IP là 6. Lấy <b>mod</b> — phần dư khi chia cho số server: 6 mod 3 = 0, nên về server 0 (đánh số 0, 1, 2). IP 7 dư 1 → server 1; IP 8 → server 2. IP phân bố khá đều nên tải cũng khá cân.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — 3 server</div>
+      <pre><span class="val">6</span> mod 3 = <span class="val">0</span>   → server 0
+<span class="val">7</span> mod 3 = <span class="val">1</span>   → server 1
+<span class="val">8</span> mod 3 = <span class="val">2</span>   → server 2</pre>
+      <p>IP thật không nhỏ như vậy; đây là ví dụ đơn giản hoá của nguồn.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Vì sao cần cùng server <span class="t">~03:00–06:00</span></div>
+    <h2 class="c-cmd">Nếu mỗi server có cache riêng, user phải luôn về đúng server đó thì cache mới có ích</h2>
+    <p class="desc">Lợi thế so với round robin: user IP 6 <b>luôn</b> về server 0, kể cả khi server đó không phải ít tải nhất. Nếu server là REST stateless thì chẳng quan trọng, vì server nào cũng như nhau. Nhưng nếu mỗi server gắn một <b>Redis cache riêng</b> trong memory (không phải cache dùng chung), và server cache dữ liệu cho user của nó, thì server 0 không bao giờ cache gì cho user 7.</p>
+    <p class="desc">Với round robin, lúc này user 6 vào server 0 và được cache, lần sau lại vào server khác: server đó tra cache, không thấy, làm lại từ đầu. Hashing hợp khi muốn request của một user <b>map nhất quán</b> về cùng server, để làm được những việc như cache ở mức server.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Mỗi server có Redis riêng; round robin làm request rơi vào server không có cache"><g class="bb-node" transform="translate(20,110)"><rect width="170" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="68.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="66" text-anchor="middle" class="bb-l">User IP 6</text></g><path class="bb-ar" d="M194,150 H286" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(290,100)"><rect width="200" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="83.0" y="20" width="34" height="34" style="color:#94a3b8"/><text x="100.0" y="74" text-anchor="middle" class="bb-l">Load balancer</text></g><path class="bb-ar" d="M494,130 H560 V70 H626" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="560" y="56" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">hashing: luôn về đây</text><g class="bb-node" transform="translate(630,30)"><rect width="180" height="76" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="10" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="64" text-anchor="middle" class="bb-l">Server 0</text></g><g class="bb-node" transform="translate(840,40)"><rect width="230" height="60" rx="14" fill="#ffedd5" stroke="#ea580c"/><text x="115.0" y="28" text-anchor="middle" class="bb-l">Redis riêng</text><text x="115.0" y="46" text-anchor="middle" class="bb-s" fill="#16a34a" style="fill:#16a34a">có dữ liệu user 6</text></g><path class="bb-ar d" d="M494,170 H560 V230 H626" marker-end="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="600" y="156" text-anchor="start" class="bb-a" fill="#dc2626" style="fill:#dc2626">round robin: có lúc tới đây</text><g class="bb-node" transform="translate(630,196)"><rect width="180" height="76" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="73.0" y="10" width="34" height="34" style="color:#7c3aed"/><text x="90.0" y="64" text-anchor="middle" class="bb-l">Server 1</text></g><g class="bb-node" transform="translate(840,206)"><rect width="230" height="60" rx="14" fill="#ffedd5" stroke="#ea580c"/><text x="115.0" y="28" text-anchor="middle" class="bb-l">Redis riêng</text><text x="115.0" y="46" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">trống → làm lại từ đầu</text></g><path d="M810,68 H836" fill="none" stroke="#94a3b8" stroke-width="2"/><path d="M810,234 H836" fill="none" stroke="#94a3b8" stroke-width="2"/></svg></div></div><div class="fig-cap">Hình 2 — Cache riêng từng server chỉ có ích khi user luôn về cùng server</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — user 6</div>
+      <div class="ba">
+        <div><b>Hashing</b>User 6 luôn vào server 0, cache ở đó luôn dùng được.</div>
+        <div><b>Round robin</b>User 6 lúc vào server 0, lúc vào server khác; server kia không có cache, phải xử lý lại.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Vấn đề khi bớt server <span class="t">~06:00–11:00</span></div>
+    <h2 class="c-peak">Đổi từ mod 3 sang mod 2 làm cả những user có server vẫn sống bị chuyển đi — cache của họ thành vô dụng</h2>
+    <p class="desc">Ví dụ mới: 9 mod 3 = 0, 10 → 1, 11 → 2. Bỏ server 2 — có thể nó crash, hoặc không đủ tiền nuôi ba server, hoặc hai là đủ cho traffic còn lại. <b>Lý tưởng</b>: user đang ở server 0 và 1 ở yên chỗ cũ; chỉ khoảng <b>một phần ba</b> user của server 2 phải dời, chia đôi <b>50/50</b> sang hai server còn lại. Đó là điều consistent hashing làm.</p>
+    <p class="desc">Nhưng còn hai server thì hàm hash đổi thành <b>mod 2</b>: 9 mod 2 = 1, nên user 9 rời server 0; user 10 sang server 0 — hai người <b>đổi chỗ</b> cho nhau; user 11 sang server 1. Có thể còn user 14, 17… (ví dụ này thậm chí không chia đều). Điều ta muốn xảy ra thì không, mà ngược lại: dữ liệu cache của user 9 ở server 0 và của user 10 ở server 1 đều vô dụng. Tải vẫn đều, nhưng không thông minh. Nếu server không có cache riêng thì consistent hashing chẳng quan trọng; nó không phải giải pháp tốt nhất cho mọi trường hợp.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — từ mod 3 sang mod 2</div>
+      <pre>         mod 3     mod 2
+user  9 → <span class="val">0</span>      → <span class="bad">1</span>   <span class="cm">// bị chuyển dù server 0 vẫn sống</span>
+user 10 → <span class="val">1</span>      → <span class="bad">0</span>   <span class="cm">// bị chuyển dù server 1 vẫn sống</span>
+user 11 → <span class="val">2</span>      → 1   <span class="cm">// phải chuyển vì server 2 đã bỏ</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Vòng tròn consistent hashing <span class="t">~11:00–18:00</span></div>
+    <h2 class="c-spec">Đặt server và request trên một vòng tròn; request đi theo chiều kim đồng hồ tới server đầu tiên, nên bớt hay thêm server chỉ ảnh hưởng một vùng</h2>
+    <p class="desc">Ở mức cao (chi tiết toán học không giúp gì cho system design): server được đặt trên một <b>không gian tròn</b>, ví dụ <b>0°, 120°, 240°</b>. Hàm hash không map request thẳng vào server mà map vào <b>một điểm trên vòng</b>. Từ điểm đó đi <b>theo chiều kim đồng hồ</b> tới server (node) đầu tiên. Lúc đầu kết quả y như hashing cơ bản: tải chia khá đều.</p>
+    <p class="desc">Khác biệt nằm ở khi bỏ server. Hàm hash <b>không</b> phải IP mod n; ví dụ là mod một số cố định như <b>360</b>, và server được đặt khéo cho cách đều. Nên bỏ một server thì hàm hash <b>không đổi</b>: user 9, 10 vẫn về chỗ cũ, cache vẫn dùng được. Chỉ request ở vùng của server đã mất đi tiếp chiều kim đồng hồ tới server kế tiếp — điều tốt nhất có thể, vì cache của server đã sập cũng mất theo. Nhược điểm trong hình: server nhận thêm sẽ gánh khoảng <b>2/3</b> traffic, server kia <b>1/3</b>; có những tối ưu để chia đều hơn.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 370" style="min-width:758px" role="img" aria-label="Consistent hashing đặt server trên vòng tròn; user đi theo chiều kim đồng hồ tới server đầu tiên"><circle cx="300" cy="190" r="130" fill="none" stroke="#94a3b8" stroke-width="3"/><circle cx="300" cy="60" r="15" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="300.0" y="19.0" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">S0 · 0°</text><circle cx="413" cy="255" r="15" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="452.4204710660612" y="283.0" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">S1 · 120°</text><circle cx="187" cy="255" r="15" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/><text x="147.57952893393878" y="283.0" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">S2 · 240°</text><circle cx="365" cy="303" r="7" fill="#3b82f6"/><circle cx="277" cy="318" r="7" fill="#3b82f6"/><circle cx="225" cy="296" r="7" fill="#3b82f6"/><path d="M365,303 A130,130 0 1 1 262,66" fill="none" stroke="#3b82f6" stroke-width="5" marker-end="url(#bb-ah-blue)"/><text x="300" y="182" text-anchor="middle" style="font-weight:700;font-size:12.5px">bỏ S2: user đi theo chiều</text><text x="300" y="202" text-anchor="middle" style="font-weight:700;font-size:12.5px">kim đồng hồ tới</text><text x="300" y="222" text-anchor="middle" style="font-weight:700;font-size:12.5px">server đầu tiên</text><rect x="560" y="40" width="510" height="300" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="584" y="74" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:14px">BỎ S2 (240°)</text><text x="584" y="104" text-anchor="start" style="font-weight:600;font-size:13px">• user trước S0, S1 giữ nguyên server → cache còn dùng được</text><text x="584" y="132" text-anchor="start" style="font-weight:600;font-size:13px">• chỉ vùng của S2 đi tiếp chiều kim đồng hồ tới S0</text><text x="584" y="160" text-anchor="start" style="font-weight:600;font-size:13px">• hàm hash không đổi (vd mod 360, không mod số server)</text><text x="584" y="206" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">THÊM SERVER MỚI</text><text x="584" y="236" text-anchor="start" style="font-weight:600;font-size:13px">• chỉ vùng ngay trước server mới chuyển sang nó</text><text x="584" y="264" text-anchor="start" style="font-weight:600;font-size:13px">• thêm vài server rải đều để chia tải cân</text><text x="584" y="310" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:13px">nhược điểm ví dụ: S0 gánh ~2/3, S1 ~1/3 → cần tối ưu</text></svg></div></div><div class="fig-cap">Hình 3 — Vòng tròn với ba server; bỏ S2 thì chỉ vùng của nó dời sang S0</div></div>
+    <p class="desc">Thêm server cũng vậy: chỉ những request ở vùng ngay trước server mới chuyển sang nó, phần còn lại giữ nguyên. Thêm server thường là để chịu tải lớn hơn, nên có thể thêm vài server rải khéo để mỗi server nhận lượng traffic tương đương. Ít nhất ta giảm tối đa số user phải sang server mới.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — bỏ server ở 240°</div>
+      <p>User 9 về server ở 0°, user 10 về server ở 120°: không đổi. User ở vùng trước 240° đi tiếp chiều kim đồng hồ, gặp server ở 0° (tức 360°). Kết quả: server 0° gánh khoảng 2/3 traffic.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Khi nào dùng <span class="t">~18:00–21:00</span></div>
+    <h2 class="c-grow">Chỉ dùng khi thật cần map nhất quán — load balancer có cache riêng, CDN, database chia thành nhiều node</h2>
+    <p class="desc">Consistent hashing là một công cụ cho một số trường hợp. Nếu server không cần map nhất quán từng user thì dùng cách đơn giản như round robin, vì nhược điểm của consistent hashing là <b>phức tạp</b> và đa số trường hợp không cần. Nó còn dùng để định tuyến request tới <b>CDN</b>, và được dùng nhiều trong <b>database</b>: thay server bằng các database node, mỗi node giữ một phần ba dữ liệu user để chịu thêm traffic; user phải tới đúng node chứa dữ liệu của mình, tới node khác thì chẳng có profile của họ.</p>
+    <p class="desc">Một thuật toán rất giống là <b>rendezvous hashing</b>: cùng mục tiêu, ở vài khía cạnh đơn giản hơn. Theo người nói, consistent hashing là đủ cho phỏng vấn; khác biệt giữa hai cái không lớn.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ba database node</div>
+      <p>Dữ liệu user chia ba: mỗi node một phần ba. Request của một user phải về node chứa dữ liệu của họ; consistent hashing giữ việc map này ổn định khi số node thay đổi.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Ba thành phần <span class="t">~21:00–23:00</span></div>
+    <h2 class="c-avg">Hash key nhận diện user, hash function chuẩn công nghiệp, và tập node có số lượng thay đổi</h2>
+    <p class="desc"><b>Hash key</b>: ở đây là IP, nhưng có thể khác — miễn nhận diện được user để map nhất quán về một node. <b>Hash function</b>: chắc chắn không đơn giản như mod IP, mà là hàm chuẩn công nghiệp như <b>SHA</b> (secure hash algorithm) hay biến thể. <b>Nodes</b>: server khi làm load balancing, hoặc CDN server, hoặc <b>database partition / shard</b>. Số node tăng giảm theo thời gian — đó là lúc cần consistent hashing, nếu cần map request nhất quán về cùng một node.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 200" style="min-width:758px" role="img" aria-label="Ba thành phần của consistent hashing"><g class="bb-node" transform="translate(20,40)"><rect width="300" height="110" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-key" x="133.0" y="19" width="34" height="34" style="color:#3b82f6"/><text x="150.0" y="73" text-anchor="middle" class="bb-l">Hash key</text><text x="150.0" y="91" text-anchor="middle" class="bb-s">vd IP address, nhận diện user</text></g><path class="bb-ar" d="M324,95 H386" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(390,40)"><rect width="300" height="110" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-gear" x="133.0" y="19" width="34" height="34" style="color:#7c3aed"/><text x="150.0" y="73" text-anchor="middle" class="bb-l">Hash function</text><text x="150.0" y="91" text-anchor="middle" class="bb-s">chuẩn công nghiệp, vd SHA</text></g><path class="bb-ar" d="M694,95 H756" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(760,40)"><rect width="320" height="110" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-server" x="143.0" y="11" width="34" height="34" style="color:#16a34a"/><text x="160.0" y="65" text-anchor="middle" class="bb-l">Nodes</text><text x="160.0" y="83" text-anchor="middle" class="bb-s">server · CDN · DB shard</text><text x="160.0" y="99" text-anchor="middle" class="bb-s">số lượng tăng giảm theo thời gian</text></g></svg></div></div><div class="fig-cap">Hình 4 — Ba thành phần</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ráp lại ví dụ load balancer</div>
+      <pre>hash key      = IP của user
+hash function = SHA (không phải IP mod n)
+nodes         = 3 server → còn 2 khi một server sập</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Hash mod số server là đủ ổn định.</div><div><span class="v">✓</span> Đổi số server là đổi phép mod, xáo trộn cả user có server vẫn sống (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Server stateless cũng cần consistent hashing.</div><div><span class="v">✓</span> Server như nhau thì round robin là đủ; consistent hashing phức tạp (→ 02, 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Bỏ một server trên vòng thì phải tính lại hash cho mọi user.</div><div><span class="v">✓</span> Hàm hash không đổi; chỉ vùng của server đó dời đi (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Consistent hashing tự chia tải đều tuyệt đối.</div><div><span class="v">✓</span> Ví dụ cơ bản có thể lệch 2/3 – 1/3; cần tối ưu thêm (→ 04).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Round robin, hash mod n hay consistent hashing</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Round robin</td><td>Server stateless, như nhau</td><td>Server giữ cache / dữ liệu riêng theo user</td><td>Đơn giản nhất</td></tr>
+      <tr><td class="k">Hash mod n</td><td>Cần map nhất quán, số server cố định</td><td>Số server hay thay đổi</td><td>Đơn giản; đổi n là xáo trộn gần hết</td></tr>
+      <tr><td class="k">Consistent hashing</td><td>Cần map nhất quán và số node thay đổi (cache riêng, CDN, DB shard)</td><td>Không cần map nhất quán</td><td>Ít user bị dời; phức tạp, có thể lệch tải nếu không tối ưu</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Ba server, IP = 8. Server nào?</summary><p>8 mod 3 = 2 → server 2. (→ 01)</p></details>
+    <details><summary>Vì sao round robin làm hỏng cache riêng của từng server?</summary><p>Cùng user có thể rơi vào server khác ở request sau; server đó không có cache nên phải xử lý lại. (→ 02)</p></details>
+    <details><summary>Đang có 3 server, còn 2 thì user 10 đi đâu với mod n? Có hợp lý không?</summary><p>10 mod 2 = 0 → server 0, dù server 1 cũ của họ vẫn sống: cache bị lãng phí, không hợp lý. (→ 03)</p></details>
+    <details><summary>Trên vòng tròn, request được gán cho server nào?</summary><p>Server đầu tiên gặp khi đi theo chiều kim đồng hồ từ điểm hash của request. (→ 04)</p></details>
+    <details><summary>Kể ba nơi dùng consistent hashing và ba thành phần của nó.</summary><p>Load balancer có cache riêng, CDN, database shard. Thành phần: hash key, hash function (vd SHA), nodes. (→ 05, 06)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">hashing · mod</td><td>Băm · phép lấy phần dư</td><td>01</td></tr>
+      <tr><td class="k">consistent hashing</td><td>Băm lên vòng tròn để ít key bị dời khi số node đổi</td><td>04</td></tr>
+      <tr><td class="k">clockwise</td><td>Theo chiều kim đồng hồ trên vòng</td><td>04</td></tr>
+      <tr><td class="k">rendezvous hashing</td><td>Thuật toán tương tự, có phần đơn giản hơn</td><td>05</td></tr>
+      <tr><td class="k">hash key</td><td>Giá trị đem băm, vd IP</td><td>06</td></tr>
+      <tr><td class="k">SHA</td><td>Secure hash algorithm</td><td>06</td></tr>
+      <tr><td class="k">node · partition · shard</td><td>Đơn vị nhận request / phần dữ liệu</td><td>05, 06</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “13 - Consistent Hashing” (<a href="https://drive.google.com/file/d/1bH6SQ-rKjNXFcrK-IVu6hF4EoK3olmbM/view">drive.google.com/file/d/1bH6SQ-rKjNXFcrK-IVu6hF4EoK3olmbM</a>) · khoảng 23 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-13.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
