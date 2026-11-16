@@ -351,5 +351,18 @@ window.LESSONS = [
     "title": "HTTP: request–response, method, status code, HTTPS",
     "description": "Client–server, RPC, cấu trúc HTTP request qua DevTools, route và endpoint, GET/POST/PUT/DELETE, status code và SSL/TLS.",
     "readTime": "18 phút đọc"
+  },
+  {
+    "id": "nc-07",
+    "path": "system-design/neetcode-beginner/nc-07.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 7,
+    "title": "WebSockets: khi HTTP polling không đủ",
+    "description": "Các giao thức ứng dụng khác, polling bằng HTTP, WebSocket handshake 101, demo chat Twitch và khi nào nên dùng.",
+    "readTime": "10 phút đọc"
   }
 ];
