@@ -455,5 +455,18 @@ window.LESSONS = [
     "title": "SQL: cơ sở dữ liệu quan hệ, B+ tree và ACID",
     "description": "RDBMS lưu trên disk bằng B+ tree, index, bảng và schema, khoá và join, rồi ACID: durability, atomicity, isolation, consistency.",
     "readTime": "17 phút đọc"
+  },
+  {
+    "id": "nc-15",
+    "path": "system-design/neetcode-beginner/nc-15.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 15,
+    "title": "NoSQL: key-value, document, wide-column, graph",
+    "description": "Bốn loại NoSQL, vì sao ACID làm SQL khó scale ngang, và BASE với eventual consistency qua leader/follower.",
+    "readTime": "16 phút đọc"
   }
 ];

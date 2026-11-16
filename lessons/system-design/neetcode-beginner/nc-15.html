@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoSQL — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-15">
+  <meta name="lesson:title" content="NoSQL: key-value, document, wide-column, graph">
+  <meta name="lesson:description" content="Bốn loại NoSQL, vì sao ACID làm SQL khó scale ngang, và BASE với eventual consistency qua leader/follower.">
+  <meta name="lesson:order" content="15">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="16 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:NoSQL — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 15</div>
+  <h1>NoSQL <span class="b">bỏ bớt ACID</span> để <span class="a">scale ngang</span>, và chấp nhận eventual consistency</h1>
+  <div class="sub">Bốn loại NoSQL, vì sao database quan hệ khó scale ngang, và cái giá của việc đọc từ replica.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 310" style="min-width:758px" role="img" aria-label="Bốn loại NoSQL: key-value, document, wide-column, graph"><rect x="20" y="20" width="255" height="270" rx="14" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><use href="#bi-cache" x="130" y="36" width="34" height="34" style="color:#ea580c"/><text x="147" y="98" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:16px">Key-value</text><text x="147" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">Redis · Memcached · etcd</text><text x="40" y="158" text-anchor="start" style="font-weight:600;font-size:12.5px">• như một hashmap</text><text x="40" y="184" text-anchor="start" style="font-weight:600;font-size:12.5px">• giá trị phẳng, key duy nhất</text><text x="40" y="210" text-anchor="start" style="font-weight:600;font-size:12.5px">• trong RAM → rất nhanh</text><text x="40" y="236" text-anchor="start" style="font-weight:600;font-size:12.5px">• thường làm cache</text><rect x="293" y="20" width="255" height="270" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><use href="#bi-doc" x="403" y="36" width="34" height="34" style="color:#16a34a"/><text x="420" y="98" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:16px">Document</text><text x="420" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">MongoDB</text><text x="313" y="158" text-anchor="start" style="font-weight:600;font-size:12.5px">• collection chứa document</text><text x="313" y="184" text-anchor="start" style="font-weight:600;font-size:12.5px">• document ≈ JSON lồng nhau</text><text x="313" y="210" text-anchor="start" style="font-weight:600;font-size:12.5px">• không cần schema</text><text x="313" y="236" text-anchor="start" style="font-weight:600;font-size:12.5px">• linh hoạt + scale</text><rect x="566" y="20" width="255" height="270" rx="14" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><use href="#bi-layers" x="676" y="36" width="34" height="34" style="color:#ca8a04"/><text x="693" y="98" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:800;font-size:16px">Wide-column</text><text x="693" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">Cassandra · Google Bigtable</text><text x="586" y="158" text-anchor="start" style="font-weight:600;font-size:12.5px">• tối ưu cho ghi rất nhiều</text><text x="586" y="184" text-anchor="start" style="font-weight:600;font-size:12.5px">• vd dữ liệu time series</text><text x="586" y="210" text-anchor="start" style="font-weight:600;font-size:12.5px">• ít đọc, ít cập nhật</text><text x="586" y="236" text-anchor="start" style="font-weight:600;font-size:12.5px">• schema tuỳ chọn</text><rect x="839" y="20" width="255" height="270" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><use href="#bi-people" x="949" y="36" width="34" height="34" style="color:#7c3aed"/><text x="966" y="98" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:16px">Graph</text><text x="966" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600;font-size:12px">quan hệ là trung tâm</text><text x="859" y="158" text-anchor="start" style="font-weight:600;font-size:12.5px">• node = người, edge = follow</text><text x="859" y="184" text-anchor="start" style="font-weight:600;font-size:12.5px">• directed graph</text><text x="859" y="210" text-anchor="start" style="font-weight:600;font-size:12.5px">• bạn của bạn, mutual friend</text><text x="859" y="236" text-anchor="start" style="font-weight:600;font-size:12.5px">• tránh join nhiều bảng</text></svg></div></div><div class="fig-cap">Hình 1 — Bốn biến thể NoSQL trong video</div></div>
+  <div class="toc">
+    <span>01 <b>NoSQL là gì</b></span><span>02 <b>Key-value</b></span><span>03 <b>Document</b></span><span>04 <b>Wide-column</b></span><span>05 <b>Graph</b></span><span>06 <b>Vì sao scale tốt</b></span><span>07 <b>BASE &amp; eventual consistency</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. NoSQL là gì <span class="t">~00:00–02:30</span></div>
+    <h2 class="c-avg">NoSQL là "not only SQL", đúng hơn là non-relational; nó phổ biến từ thập niên 2010 chủ yếu để giải bài toán scale</h2>
+    <p class="desc"><b>NoSQL</b> là <b>not only SQL</b>, rất mở: không có ngôn ngữ truy vấn chuẩn. Tên đúng hơn là <b>non-relational</b>: không có quan hệ như database SQL, nên không dùng SQL để join hay làm các thao tác phức tạp. Có rất nhiều hình dạng, kích cỡ.</p>
+    <p class="desc">SQL được dùng suốt nhiều thập kỷ; NoSQL phổ biến từ <b>những năm 2010</b> để vượt vài giới hạn của SQL. Không có nghĩa NoSQL vượt trội: có trade-off. Giới hạn lớn nhất NoSQL vượt qua được là <b>scale</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — tên gọi</div>
+      <div class="ba">
+        <div><b>NoSQL</b>"Not only SQL": tên phổ biến.</div>
+        <div><b>Non-relational</b>Tên đúng bản chất: không có quan hệ, không join như SQL.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Key-value store <span class="t">~02:30–05:00</span></div>
+    <h2 class="c-spec">Key-value store như một hashmap: key duy nhất ánh xạ tới giá trị phẳng; chạy trong RAM nên rất nhanh và hay làm cache</h2>
+    <p class="desc">Loại đơn giản nhất. Có thể cãi rằng nó không hẳn là database vì đa số chạy <b>trong memory</b>, không dùng disk: <b>Redis</b>, <b>Memcached</b>, <b>etcd</b>. Hoạt động như <b>hashmap</b>: key (ví dụ ID của ai đó) ánh xạ tới một object <b>phẳng</b>. Không quan hệ, không foreign key; chỉ có key phải <b>duy nhất</b>, giống primary key.</p>
+    <p class="desc">Lợi ích: kịch bản đơn giản, cần đọc ghi rất nhiều rất nhanh. Redis và Memcached dùng RAM nên cực nhanh — đó là trade-off so với SQL. Thường dùng <b>cùng với database chính</b>, chủ yếu làm <b>cache</b> như mấy bài trước.</p>
+    <div class="note"><b>Đính chính nguồn:</b> transcript ghi "memached" và "CD"; tên đúng là <b>Memcached</b> và <b>etcd</b>.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — giống hashmap</div>
+      <pre>user:<span class="val">42</span>  →  { name: <span class="val">"John"</span>, plan: <span class="val">"pro"</span> }   <span class="cm">// giá trị phẳng</span></pre>
+      <p>Key và các field là minh hoạ thêm.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Document store <span class="t">~05:00–08:00</span></div>
+    <h2 class="c-cmd">Document DB chứa collection các document dạng JSON lồng nhau, không cần schema — linh hoạt và scale được</h2>
+    <p class="desc">Một bậc trên key-value. SQL có bảng và hàng; document DB có <b>collection</b> — vỏ chứa các <b>document</b>. Cách nghĩ đơn giản nhất: document là một <b>object JSON</b>, các cặp key–value có thể <b>lồng nhau</b>. Mỗi document có primary key, từ đó ra một object không phẳng: field là object, object chứa list, list chứa object, rồi tới cặp key–value như id là 1, name là John Doe.</p>
+    <p class="desc">Lợi ích: <b>linh hoạt</b> hơn SQL — SQL phải định nghĩa schema cho mỗi hàng của bảng, còn document <b>không có schema</b>: trộn kiểu, thêm field chưa có, bỏ field, gần như không ràng buộc. Lý do còn lại, như hầu hết NoSQL, là <b>scale</b>. Document database mã nguồn mở phổ biến nhất là <b>MongoDB</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — document lồng nhau</div>
+      <pre>{
+  <span class="kw">"_id"</span>: <span class="val">…</span>,
+  <span class="kw">"info"</span>: {
+    <span class="kw">"people"</span>: [
+      { <span class="kw">"id"</span>: <span class="val">1</span>, <span class="kw">"name"</span>: <span class="val">"John Doe"</span>, … }
+    ]
+  }
+}</pre>
+      <p>Tên field info, people là minh hoạ thêm cho cấu trúc người nói mô tả.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Wide-column <span class="t">~08:00–10:00</span></div>
+    <h2 class="c-grow">Wide-column DB tối ưu cho lượng ghi khổng lồ, hợp với dữ liệu ghi một lần như time series</h2>
+    <p class="desc">Không đi sâu vì khá phức tạp. Ở mức cao: chịu được <b>scale cực lớn</b> nhưng thiên về <b>ghi rất nhiều</b>, ví dụ <b>time series</b>. Linh hoạt như document (không bắt buộc schema), nhưng đôi khi cũng có schema. Tốt khi ít đọc, ít cập nhật — ghi xong không định sửa lại. Trong các loại đã nói, đây là loại tối ưu nhất cho lượng ghi khổng lồ. Phổ biến nhất có lẽ là <b>Cassandra</b> (mã nguồn mở); còn có <b>Google Bigtable</b>, nguồn cảm hứng cho Cassandra.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — time series</div>
+      <p>Dữ liệu ghi liên tục theo thời gian, ghi xong không cập nhật lại: đúng chỗ của wide-column.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Graph database <span class="t">~10:00–14:00</span></div>
+    <h2 class="c-spec">Graph DB biểu diễn quan hệ như follow bằng node và edge, thay cho những join nhiều bảng đắt đỏ</h2>
+    <p class="desc">Graph DB xoay quanh <b>quan hệ</b>. Với SQL: bảng people, bảng cities, một bảng giữa nối người với thành phố, rồi join để ra địa chỉ kèm thông tin thành phố. Ở mạng xã hội như <b>Twitter</b> hay <b>Facebook</b>, mọi thứ là quan hệ: người này <b>follow</b> người kia, có thể được follow lại hoặc không; có người được hàng nghìn người follow mà không follow ai.</p>
+    <p class="desc">Lưu hết vào bảng SQL rồi hỏi "người này follow ai, và giữa những người đó có kết nối cấp hai nào" — như Facebook gợi ý <b>bạn của bạn</b>, <b>mutual friend</b> — thì khó biểu diễn và rất đắt khi join nhiều bảng với hàng nghìn, hàng triệu bản ghi. Cấu trúc tự nhiên là <b>đồ thị có hướng</b>: node là người, edge là quan hệ như follows. Graph DB phần nào vẫn giữ tính quan hệ, nên không hoàn toàn non-relational.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — follow trên mạng xã hội</div>
+      <pre>(A) ──follows──▶ (B)
+(B) ──follows──▶ (A)          <span class="cm">// follow lại</span>
+(nghìn người) ──follows──▶ (C)  <span class="cm">// C không follow ai</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Vì sao NoSQL scale tốt hơn <span class="t">~14:00–19:00</span></div>
+    <h2 class="c-peak">ACID làm database quan hệ khó scale ngang; NoSQL bỏ bớt các bảo đảm đó nên chia dữ liệu ra nhiều node được</h2>
+    <p class="desc">NoSQL thường <b>scale tốt hơn</b> vì không có các ràng buộc của database quan hệ, nhất là <b>ACID</b>: transaction atomic, isolated như chạy tuần tự, dữ liệu consistent với foreign key, not null, unique. Một database rất lớn nhận hàng nghìn request mỗi giây: cách dễ nhất để scale SQL là <b>vertical</b>. Horizontal mạnh hơn, ít giới hạn hơn, nhưng rất khó với database quan hệ.</p>
+    <p class="desc">Chia database thành hai — không phải sao chép, mà nửa dữ liệu ở node này, nửa ở node kia. Làm sao route request tới đúng node? Request cần dữ liệu ở node kia thì sao? Cần <b>join</b> giữa hai nửa, kiểm tra foreign key phải tham chiếu cả hai database: giữ consistency cực khó. NoSQL thường không theo các nguyên tắc này: hay có transaction atomic, nhưng không bảo đảm consistency (không có foreign key), không nhất thiết isolated; thường <b>durable</b> (trừ loại in-memory như Redis). Không có foreign key, không join chéo, nên chia dữ liệu ra nhiều node và scale ngang được — lợi ích lớn nhất.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 360" style="min-width:758px" role="img" aria-label="Chia đôi database quan hệ khó vì routing, join và foreign key; NoSQL bỏ các ràng buộc này nên chia được"><rect class="bb-grp" x="20" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="220" height="24" rx="12" fill="#1e293b"/><text x="110.0" y="16.5" text-anchor="middle">SQL · CHIA ĐÔI DỮ LIỆU</text></g><g class="bb-node" transform="translate(44,140)"><rect width="150" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="58.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="75.0" y="66" text-anchor="middle" class="bb-l">Request</text></g><path class="bb-ar" d="M198,165 H240 V100 H276" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M198,195 H240 V260 H276" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(280,66)"><rect width="220" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="12" width="24" height="24" style="color:#16a34a"/><text x="110.0" y="56" text-anchor="middle" class="bb-l">Nửa dữ liệu 1</text></g><g class="bb-node" transform="translate(280,226)"><rect width="220" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="12" width="24" height="24" style="color:#16a34a"/><text x="110.0" y="56" text-anchor="middle" class="bb-l">Nửa dữ liệu 2</text></g><path class="bb-ar d" d="M390,140 V222" marker-end="url(#bb-ah-red)" marker-start="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="408" y="176" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12px">join · foreign key</text><text x="408" y="194" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12px">phải chạm cả hai</text><text x="275" y="326" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">request vào nhầm nửa? ràng buộc ACID khó giữ</text><rect class="bb-grp" x="570" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="200" height="24" rx="12" fill="#1e293b"/><text x="100.0" y="16.5" text-anchor="middle">NOSQL · BỎ BỚT ACID</text></g><g class="bb-node" transform="translate(594,140)"><rect width="150" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="58.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="75.0" y="66" text-anchor="middle" class="bb-l">Request</text></g><path class="bb-ar" d="M748,165 H790 V100 H826" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M748,195 H790 V260 H826" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(830,66)"><rect width="220" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-doc" x="98.0" y="12" width="24" height="24" style="color:#16a34a"/><text x="110.0" y="56" text-anchor="middle" class="bb-l">Node 1</text></g><g class="bb-node" transform="translate(830,226)"><rect width="220" height="70" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-doc" x="98.0" y="12" width="24" height="24" style="color:#16a34a"/><text x="110.0" y="56" text-anchor="middle" class="bb-l">Node 2</text></g><text x="825" y="326" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">không foreign key, không join chéo → scale ngang</text></svg></div></div><div class="fig-cap">Hình 2 — Chia đôi dữ liệu: SQL vướng join và foreign key, NoSQL thì không</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — chia database thành hai node</div>
+      <div class="ba">
+        <div><b>SQL</b>Nửa request vào node 1, nửa vào node 2; nhưng join và foreign key buộc phải chạm cả hai.</div>
+        <div><b>NoSQL</b>Không ràng buộc chéo: mỗi node tự phục vụ phần dữ liệu của mình.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. BASE &amp; eventual consistency <span class="t">~19:00–25:00</span></div>
+    <h2 class="c-avg">Ghi chỉ vào leader, đọc từ nhiều replica: thêm năng lực đọc, đổi lại có lúc đọc phải dữ liệu cũ</h2>
+    <p class="desc">NoSQL có acronym riêng là <b>BASE</b>; người nói thấy nó không hay bằng ACID — thậm chí "ăn gian" khi chữ E đứng cho cả <b>eventual consistency</b> — nên rút gọn về eventual consistency. Ngoài chia dữ liệu, NoSQL còn <b>replicate</b> node: tạo bản sao. Ghi vào một bản thì bản kia có thể chưa có: <b>consistency</b> ở đây là các bản sao có đồng bộ không — khác nghĩa consistency trong ACID (tuân thủ ràng buộc).</p>
+    <p class="desc">Thường một node là <b>leader</b>, các node khác là <b>follower</b>. Mọi lệnh ghi chỉ vào leader; leader chịu trách nhiệm chép dữ liệu sang mọi follower. Ta chấp nhận một số người trong chốc lát thấy dữ liệu cũ — giống <b>stale cache</b>. Không có bảo đảm sẽ mất bao lâu, nhưng thường hợp lý: cỡ <b>mili giây hay giây</b>.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Leader nhận mọi lệnh ghi rồi chép sang follower; follower có thể trả dữ liệu cũ trong chốc lát"><g class="bb-node" transform="translate(20,40)"><rect width="170" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="73.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="85.0" y="53" text-anchor="middle" class="bb-l">Ghi</text><text x="85.0" y="71" text-anchor="middle" class="bb-s">chỉ vào leader</text></g><path class="bb-ar" d="M194,80 H346" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(350,30)"><rect width="240" height="100" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="103.0" y="14" width="34" height="34" style="color:#16a34a"/><text x="120.0" y="68" text-anchor="middle" class="bb-l">Leader</text><text x="120.0" y="86" text-anchor="middle" class="bb-s">nhận mọi lệnh ghi</text></g><path class="bb-ar d" d="M594,80 H760" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="677" y="70" text-anchor="middle" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">chép dần (ms–s)</text><g class="bb-node" transform="translate(764,30)"><rect width="300" height="100" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-copy" x="133.0" y="14" width="34" height="34" style="color:#0d9488"/><text x="150.0" y="68" text-anchor="middle" class="bb-l">Follower (replica)</text><text x="150.0" y="86" text-anchor="middle" class="bb-s">có thể đang stale</text></g><g class="bb-node" transform="translate(20,200)"><rect width="170" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="73.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="85.0" y="53" text-anchor="middle" class="bb-l">Đọc</text><text x="85.0" y="71" text-anchor="middle" class="bb-s">nhiều người</text></g><path class="bb-ar" d="M194,225 H300 V134 H346" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M194,255 H700 V134 H760" marker-end="url(#bb-ah)"/><text x="470" y="300" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:13px">đọc chia cho nhiều replica → thêm read capacity; write capacity giữ nguyên</text><text x="914" y="170" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700">vd thấy số follower</text><text x="914" y="190" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700">nhỏ hơn thực tế</text><text x="914" y="210" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700">một chút</text></svg></div></div><div class="fig-cap">Hình 3 — Leader, follower và đọc từ replica</div></div>
+    <p class="desc">Ghi chỉ vào một node, nhưng đọc từ nhiều replica được, nên tăng <b>read capacity</b> dù write capacity không đổi — mà phần lớn là đọc: mở Twitter thì cuộn timeline chứ không viết <b>100 tweet</b>. SQL cũng có replica, và chia dữ liệu với SQL gọi là <b>sharding</b>, nhưng rất phức tạp do ràng buộc nên ít phổ biến; NoSQL thường có sẵn những thứ này.</p>
+    <div class="note">BASE thường được giải là <b>basically available, soft state, eventual consistency</b> (video không đọc đủ các chữ này).</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — số follower</div>
+      <p>Bạn xem một tweet và thấy số follower của ai đó nhỏ hơn thực tế một chút vì đọc từ follower chưa cập nhật. Hầu hết trường hợp chẳng sao; sau ít mili giây hay giây replica sẽ có giá trị mới.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> NoSQL tốt hơn SQL.</div><div><span class="v">✓</span> Chỉ khác trade-off; lợi thế chính của NoSQL là scale (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Document DB vẫn cần schema như bảng SQL.</div><div><span class="v">✓</span> Không có schema; thêm bớt field tuỳ ý (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> NoSQL không bao giờ durable.</div><div><span class="v">✓</span> Đa số durable; chỉ loại in-memory như Redis là không (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Consistency trong BASE giống consistency trong ACID.</div><div><span class="v">✓</span> BASE: các replica đồng bộ; ACID: tuân thủ ràng buộc dữ liệu (→ 07).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Ghi vào follower nào cũng được.</div><div><span class="v">✓</span> Ghi chỉ vào leader; leader chép sang follower (→ 07).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Chọn loại NoSQL</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Key-value</td><td>Đọc ghi đơn giản, cực nhanh; cache</td><td>Cần quan hệ, truy vấn phức tạp</td><td>Rất nhanh (RAM); không durable nếu in-memory</td></tr>
+      <tr><td class="k">Document</td><td>Dữ liệu dạng JSON, hay đổi cấu trúc, cần scale</td><td>Cần join, foreign key</td><td>Linh hoạt; không ràng buộc</td></tr>
+      <tr><td class="k">Wide-column</td><td>Ghi khổng lồ, ghi một lần (time series)</td><td>Đọc và cập nhật nhiều</td><td>Ghi rất tốt; phức tạp</td></tr>
+      <tr><td class="k">Graph</td><td>Quan hệ dày đặc: follow, bạn của bạn</td><td>Dữ liệu ít quan hệ</td><td>Truy vấn quan hệ nhanh hơn join nhiều bảng</td></tr>
+      <tr><td class="k">SQL (so sánh)</td><td>Cần ACID, ràng buộc, join</td><td>Cần scale ngang lớn</td><td>Đúng đắn; khó scale ngang</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Kể ba key-value store được nhắc trong video và vì sao chúng nhanh.</summary><p>Redis, Memcached, etcd; chạy trong RAM, không dùng disk. (→ 02)</p></details>
+    <details><summary>Lưu log sự kiện IoT ghi liên tục, gần như không sửa. Loại NoSQL nào hợp?</summary><p>Wide-column (như Cassandra), tối ưu cho ghi nhiều, ghi một lần. (Tình huống minh hoạ thêm → 04)</p></details>
+    <details><summary>Vì sao gợi ý "bạn của bạn" hợp với graph DB hơn SQL?</summary><p>Đó là duyệt quan hệ nhiều cấp; với SQL phải join nhiều bảng trên hàng triệu bản ghi, rất đắt. (→ 05)</p></details>
+    <details><summary>Vì sao chia một database quan hệ thành hai node lại khó?</summary><p>Phải biết route request tới đúng node, và join, foreign key có thể phải chạm cả hai node, khó giữ ACID. (→ 06)</p></details>
+    <details><summary>Eventual consistency là gì, và đổi được gì?</summary><p>Follower có thể trả dữ liệu cũ trong chốc lát (ms–s) rồi mới đồng bộ; đổi lại đọc được từ nhiều replica, tăng read capacity. (→ 07)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">NoSQL · non-relational</td><td>Not only SQL · không có quan hệ</td><td>01</td></tr>
+      <tr><td class="k">key-value store</td><td>Kho key → giá trị phẳng, như hashmap</td><td>02</td></tr>
+      <tr><td class="k">collection · document</td><td>Vỏ chứa · object JSON lồng nhau</td><td>03</td></tr>
+      <tr><td class="k">wide-column</td><td>Database tối ưu cho ghi khổng lồ</td><td>04</td></tr>
+      <tr><td class="k">graph DB · node · edge</td><td>Database đồ thị · thực thể · quan hệ</td><td>05</td></tr>
+      <tr><td class="k">replica · leader · follower</td><td>Bản sao · node nhận ghi · node nhận bản chép</td><td>07</td></tr>
+      <tr><td class="k">BASE · eventual consistency</td><td>Acronym của NoSQL · cuối cùng các replica sẽ đồng bộ</td><td>07</td></tr>
+      <tr><td class="k">stale</td><td>Dữ liệu cũ, chưa cập nhật</td><td>07</td></tr>
+      <tr><td class="k">sharding</td><td>Chia dữ liệu ra nhiều phần trên nhiều node</td><td>07</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “15 - NoSQL” (<a href="https://drive.google.com/file/d/1bmyuq_SV8zilyLrwWU3oMC2MxilZ7Wqz/view">drive.google.com/file/d/1bmyuq_SV8zilyLrwWU3oMC2MxilZ7Wqz</a>) · khoảng 25 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-15.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
