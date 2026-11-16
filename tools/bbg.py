@@ -31,6 +31,7 @@ CSS = """<!-- bbg:css -->
   .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
   .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
   .bbg svg text:not([fill]){fill:#1e293b}
   .bbg svg text.bb-l{font-size:16px;font-weight:700}
   .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Paradigms — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-08">
+  <meta name="lesson:title" content="API Paradigms: REST, GraphQL, gRPC">
+  <meta name="lesson:description" content="REST stateless và pagination, JSON; GraphQL giải over/under-fetching; gRPC với protocol buffers, HTTP/2 và các trade-off.">
+  <meta name="lesson:order" content="8">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="22 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:API Paradigms — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 8</div>
+  <h1><span class="a">REST</span> phổ biến nhất, <span class="b">GraphQL</span> lấy đúng thứ cần, <span class="a">gRPC</span> nhanh nhất — mỗi cái có trade-off riêng</h1>
+  <div class="sub">Không cần là chuyên gia cả ba, nhưng nên nói được một hai trade-off cho mỗi paradigm.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Ba paradigm API: REST, GraphQL, gRPC"><rect x="20" y="20" width="343" height="260" rx="14" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><use href="#bi-list" x="174" y="36" width="34" height="34" style="color:#3b82f6"/><text x="192" y="98" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:18px">REST</text><text x="192" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">phổ biến nhất</text><text x="44" y="158" text-anchor="start" style="font-weight:600;font-size:13px">• trên HTTP, theo resource</text><text x="44" y="184" text-anchor="start" style="font-weight:600;font-size:13px">• stateless → scale ngang</text><text x="44" y="210" text-anchor="start" style="font-weight:600;font-size:13px">• thường dùng JSON, dễ đọc</text><text x="44" y="236" text-anchor="start" style="font-weight:600;font-size:13px">• method HTTP là động từ</text><rect x="378" y="20" width="343" height="260" rx="14" fill="#fce7f3" stroke="#db2777" stroke-width="2"/><use href="#bi-search" x="532" y="36" width="34" height="34" style="color:#db2777"/><text x="550" y="98" text-anchor="middle" fill="#db2777" style="fill:#db2777;font-weight:800;font-size:18px">GraphQL</text><text x="550" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">Facebook · công khai 2015</text><text x="402" y="158" text-anchor="start" style="font-weight:600;font-size:13px">• một endpoint, chỉ HTTP POST</text><text x="402" y="184" text-anchor="start" style="font-weight:600;font-size:13px">• lấy đúng field cần (over-fetch)</text><text x="402" y="210" text-anchor="start" style="font-weight:600;font-size:13px">• gộp nhiều request (under-fetch)</text><text x="402" y="236" text-anchor="start" style="font-weight:600;font-size:13px">• có schema · cache kém hơn</text><rect x="736" y="20" width="343" height="260" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><use href="#bi-net" x="890" y="36" width="34" height="34" style="color:#16a34a"/><text x="908" y="98" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:18px">gRPC</text><text x="908" y="120" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">Google · trên HTTP/2</text><text x="760" y="158" text-anchor="start" style="font-weight:600;font-size:13px">• protocol buffers nhị phân → nhanh</text><text x="760" y="184" text-anchor="start" style="font-weight:600;font-size:13px">• streaming một / hai chiều</text><text x="760" y="210" text-anchor="start" style="font-weight:600;font-size:13px">• chủ yếu server ↔ server</text><text x="760" y="236" text-anchor="start" style="font-weight:600;font-size:13px">• ít tooling, không dùng status code</text></svg></div></div><div class="fig-cap">Hình 1 — Ba paradigm API hiện đại phổ biến nhất</div></div>
+  <div class="toc">
+    <span><b>Phần A · REST</b></span><span>01 <b>API là gì</b></span><span>02 <b>Ba paradigm</b></span><span>03 <b>REST</b></span><span>04 <b>Resource</b></span><span>05 <b>Stateless &amp; pagination</b></span><span>06 <b>Vì sao stateless</b></span><span>07 <b>JSON</b></span>
+    <span><b>Phần B · GraphQL</b></span><span>08 <b>Over/under-fetching</b></span><span>09 <b>Demo SpaceX</b></span>
+    <span><b>Phần C · gRPC</b></span><span>10 <b>gRPC</b></span><span>11 <b>Nhược điểm</b></span><span>12 <b>Protocol buffers</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. API là gì <span class="t">~00:00–03:00</span></div>
+    <h2 class="c-avg">API là bất kỳ giao diện lập trình nào; trong khóa này, API chủ yếu là dịch vụ bên ngoài như HTTP API</h2>
+    <p class="desc">Có HTTP, WebSockets hay giao thức khác thì ta tạo được <b>API</b> (application programming interface). Thuật ngữ này rất lỏng: bất kỳ giao diện lập trình nào cũng là API. Trình duyệt có <b>local storage</b> — lưu thông tin bền vững nhưng chỉ trên một máy — và có API để đọc ghi nó. Một object trong lập trình hướng đối tượng định nghĩa các method để truy cập dữ liệu, đó cũng là API.</p>
+    <p class="desc">Phổ biến nhất, API chỉ một <b>dịch vụ bên ngoài</b>, ví dụ <b>HTTP API</b> phục vụ request của user; đó là nghĩa dùng trong khóa. Bàn về <b>API paradigm</b> là bàn về các cách khác nhau để xây cùng một thứ.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — theme sáng/tối của YouTube</div>
+      <p>Bật light theme hay dark theme trên youtube.com, lựa chọn thường được lưu trong <b>local storage</b> của trình duyệt. Giao diện đọc/ghi local storage chính là một API, dù rất đơn giản.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Ba paradigm <span class="t">~03:00–05:00</span></div>
+    <h2 class="c-cmd">REST quan trọng nhất; GraphQL do Facebook tạo ra để sửa vài vấn đề của REST; gRPC có trade-off riêng</h2>
+    <p class="desc">Ba paradigm hiện đại phổ biến nhất: <b>REST</b> — phổ biến và quan trọng nhất; <b>GraphQL</b> — mới hơn, do <b>Facebook</b> tạo ra, ít phổ biến hơn REST nhưng giải quyết vài vấn đề của REST, ít nhất nên biết nó tồn tại; và <b>gRPC</b>. Điều quan trọng là ưu nhược điểm. Không cần đã làm cả chục API bằng mỗi cái, nhưng nên bàn được một hai trade-off.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Mục tiêu nguồn đặt ra cho người học</div>
+      <p>Với mỗi paradigm, trả lời được: nó giải quyết vấn đề gì, và đánh đổi gì. Bảng "Khi nào dùng" ở cuối trang gom lại các trade-off đó.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. REST <span class="t">~05:00–07:00</span></div>
+    <h2 class="c-spec">REST không phải giao thức mà là một bộ ràng buộc áp lên HTTP API để chúng chuẩn hoá và dễ scale</h2>
+    <p class="desc"><b>REST</b> là viết tắt của <b>representational state transfer</b>. REST API thường xây trên HTTP, nhưng REST <b>không phải giao thức</b>; nó là tập ràng buộc lỏng — hay <b>chuẩn hoá</b> — áp lên HTTP API. Mục tiêu: API chuẩn hoá mà ai cũng nhận ra, dễ dùng, và có lợi ích khác như <b>scale</b> được.</p>
+    <p class="desc">Ngày nay "HTTP API" gần như đồng nghĩa với REST; nhiều người tưởng REST là HTTP. Không phải vậy, nhưng cũng dễ hiểu: rất có thể bạn chỉ từng dùng REST API. REST bám sát HTTP: dùng các method GET, POST… và status code như 404 hay 201.</p>
+    <div class="note"><b>Đính chính nguồn:</b> transcript có chỗ nghe thành "2011"; ý người nói là status code <b>201</b>.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — nhầm lẫn phổ biến</div>
+      <div class="ba">
+        <div><b>Nhiều người nghĩ</b>REST = HTTP.</div>
+        <div><b>Thực ra</b>REST là các ràng buộc áp lên HTTP API; HTTP là giao thức.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Resource &amp; endpoint <span class="t">~07:00–10:00</span></div>
+    <h2 class="c-grow">Mỗi REST endpoint gắn với một resource (danh từ); hành động là HTTP method, không viết động từ vào URL</h2>
+    <p class="desc">Mỗi REST endpoint gắn với một <b>resource</b> — một danh từ, một "thứ". Trên YouTube, video là resource; user cũng vậy. Lấy một video: <code>GET youtube.com/videos/:id</code>. Lấy mọi comment của video: thêm resource <code>/comments</code>.</p>
+    <p class="desc">Không đặt động từ vào tên resource, kiểu "getVideos", "postVideo", "createVideo", "uploadVideo". <b>HTTP method</b> — GET, POST, DELETE… — chính là động từ: hành động gì trên resource này. Phần thiết kế API tốt sẽ nói thêm ở video sau.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — URL theo resource</div>
+      <pre>GET youtube.com/videos/<span class="val">:id</span>            <span class="cm">// một video</span>
+GET youtube.com/videos/<span class="val">:id</span>/comments   <span class="cm">// mọi comment của video</span>
+<span class="bad">GET youtube.com/getVideos</span>           <span class="cm">// ✗ có động từ trong URL</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Stateless &amp; pagination <span class="t">~10:00–17:00</span></div>
+    <h2 class="c-avg">Stateless nghĩa là server không giữ state của user; client gửi đủ thông tin trong mỗi request, ví dụ limit và offset</h2>
+    <p class="desc">Điều lớn nhất của REST: <b>stateless</b>. Trang chủ YouTube trả mặc định 10 video; cuộn xuống hay sang trang sau (thời chưa có news feed) muốn thêm 10. Cách thứ nhất: server giữ một <b>session</b> cho từng user ở <b>phía server</b>, nhớ bạn đã xem 10 video, rồi trả 10 video mới. Đó là <b>stateful</b>, không phải REST.</p>
+    <p class="desc">Stateless không có nghĩa là không lưu gì: server vẫn được đọc ghi <b>database</b> — dữ liệu bền vững ở đó vẫn là REST. Chỉ là bản thân server không giữ state. Trình duyệt thì gần như luôn có state: <b>cookies</b>, <b>session storage</b>; chúng nằm trên máy bạn và được gửi lên server, không lưu ở server.</p>
+    <p class="desc">Cách đúng là <b>pagination</b>: mỗi request tự mang thông tin phân trang. GET không có body nên đặt trong URL. <code>:id</code> là <b>URL parameter</b> (giá trị thật kiểu XYZ, không phải chữ "id"); dấu <code>?</code> mở đầu <b>query parameter</b>. <b>limit</b> = lấy bao nhiêu (10, hay 100 nếu muốn); <b>offset</b> = bắt đầu từ đâu.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 235" style="min-width:758px" role="img" aria-label="Pagination bằng limit và offset"><text x="40" y="34" text-anchor="start" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:14px">GET youtube.com/videos?offset=0&amp;limit=10</text><rect x="40" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="90" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="140" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="190" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="240" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="290" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="340" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="390" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="440" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="490" y="48" width="42" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><rect x="540" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="590" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="640" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="690" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="740" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="790" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="840" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="890" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="940" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="990" y="48" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="40" y="134" text-anchor="start" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:14px">GET youtube.com/videos?offset=10&amp;limit=10</text><rect x="40" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="90" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="140" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="190" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="240" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="290" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="340" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="390" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="440" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="490" y="148" width="42" height="34" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><rect x="540" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="590" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="640" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="690" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="740" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="790" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="840" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="890" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="940" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="990" y="148" width="42" height="34" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><path d="M40,192 v8 h492 v-8" fill="none" stroke="#64748b" stroke-width="2"/><text x="286" y="220" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">offset = 10: bỏ qua 10 video đã xem</text><path d="M540,192 v8 h492 v-8" fill="none" stroke="#16a34a" stroke-width="2"/><text x="786" y="220" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700">limit = 10: lấy 10 video tiếp</text></svg></div></div><div class="fig-cap">Hình 2 — Lần đầu offset 0, lần sau offset 10; server không cần nhớ gì</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — 10 video rồi 10 video nữa</div>
+      <pre>GET youtube.com/videos?<span class="val">offset=0</span>&amp;<span class="val">limit=10</span>    <span class="cm">// 10 video đầu</span>
+GET youtube.com/videos?<span class="val">offset=10</span>&amp;<span class="val">limit=10</span>   <span class="cm">// bỏ 10 đã xem, lấy 10 tiếp</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Vì sao cần stateless <span class="t">~17:00–19:00</span></div>
+    <h2 class="c-cmd">Server không giữ state thì request rơi vào server nào cũng được — nên scale ngang bao nhiêu server cũng được</h2>
+    <p class="desc">Lý do chính: khi có <b>nhiều server</b>, ví dụ ba server sau một <b>load balancer</b>. Nếu một server giữ session của bạn, request kế tiếp có thể rơi vào server khác và hỏng. REST stateless thì không server nào giữ state; chúng có thể cùng nói chuyện với một <b>database trung tâm</b> chứa mọi dữ liệu. Nhờ vậy ta <b>scale ngang</b> bao nhiêu server cũng được — lợi ích lớn nhất của REST.</p>
+    <p class="desc">Phần còn lại đã học ở bài HTTP: status code như <b>400</b> lỗi client, <b>500</b> lỗi server rất quan trọng với REST, là cách báo request tốt hay xấu.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 355" style="min-width:758px" role="img" aria-label="Stateful giữ session trên server; stateless gửi đủ thông tin trong request"><rect class="bb-grp" x="20" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="290" height="24" rx="12" fill="#1e293b"/><text x="145.0" y="16.5" text-anchor="middle">STATEFUL · SESSION TRÊN SERVER</text></g><g class="bb-node" transform="translate(44,150)"><rect width="130" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="48.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="65.0" y="66" text-anchor="middle" class="bb-l">Client</text></g><g class="bb-node" transform="translate(214,150)"><rect width="110" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="38.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="55.0" y="66" text-anchor="middle" class="bb-l">LB</text></g><path class="bb-ar" d="M178,190 H210" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M328,180 H350 V110 H368" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M328,200 H350 V250 H368" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(372,76)"><rect width="150" height="70" rx="14" fill="#ede9fe" stroke="#7c3aed"/><text x="75.0" y="33" text-anchor="middle" class="bb-l">Server A</text><text x="75.0" y="51" text-anchor="middle" class="bb-s" fill="#16a34a" style="fill:#16a34a">nhớ: đã xem 10 video</text></g><g class="bb-node" transform="translate(372,216)"><rect width="150" height="70" rx="14" fill="#fee2e2" stroke="#dc2626"/><text x="75.0" y="33" text-anchor="middle" class="bb-l">Server B</text><text x="75.0" y="51" text-anchor="middle" class="bb-s" fill="#dc2626" style="fill:#dc2626">không biết gì</text></g><text x="275" y="324" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">request sau rơi vào B → mất session</text><rect class="bb-grp" x="570" y="40" width="510" height="300" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="170" height="24" rx="12" fill="#1e293b"/><text x="85.0" y="16.5" text-anchor="middle">STATELESS · REST</text></g><g class="bb-node" transform="translate(594,150)"><rect width="130" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-browser" x="53.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="65.0" y="53" text-anchor="middle" class="bb-l">Client</text><text x="65.0" y="71" text-anchor="middle" class="bb-s" fill="#3b82f6" style="fill:#3b82f6">gửi offset=10</text></g><g class="bb-node" transform="translate(764,150)"><rect width="110" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="38.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="55.0" y="66" text-anchor="middle" class="bb-l">LB</text></g><path class="bb-ar" d="M728,190 H760" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M878,180 H900 V110 H918" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M878,200 H900 V250 H918" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(922,76)"><rect width="140" height="70" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="58.0" y="12" width="24" height="24" style="color:#7c3aed"/><text x="70.0" y="56" text-anchor="middle" class="bb-l">Server A</text></g><g class="bb-node" transform="translate(922,216)"><rect width="140" height="70" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="58.0" y="12" width="24" height="24" style="color:#7c3aed"/><text x="70.0" y="56" text-anchor="middle" class="bb-l">Server B</text></g><text x="825" y="324" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12.5px">server nào cũng trả đúng → thêm server thoải mái</text></svg></div></div><div class="fig-cap">Hình 3 — Session trên server làm hỏng khi load balancer chuyển sang server khác</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ba server sau load balancer</div>
+      <p>Request đầu tới server A, A biết bạn đã xem bao nhiêu video. Request sau load balancer chuyển sang server khác: nếu là stateful thì hỏng; stateless thì offset đã nằm trong request, server nào cũng trả đúng.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. JSON <span class="t">~19:00–21:00</span></div>
+    <h2 class="c-spec">JSON là định dạng phổ biến nhất của REST: cặp key–value dễ đọc, lồng nhau được, nhưng hiệu năng không tốt nhất</h2>
+    <p class="desc"><b>JSON</b> là <b>JavaScript object notation</b> vì trông giống object JavaScript, dù không hoàn toàn giống. Ưu điểm lớn: <b>rất dễ đọc</b>. Nó là tập cặp key–value, mỗi key là chuỗi. Giá trị có thể là kiểu nguyên thuỷ (string, boolean, integer, double), <b>object lồng nhau</b>, <b>mảng</b>, hoặc <b>null</b>. Về hiệu năng thì làm tốt hơn được, như sẽ thấy ở gRPC.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — object JSON trong video</div>
+      <pre>{
+  <span class="kw">"firstName"</span>: <span class="val">"John"</span>,
+  <span class="kw">"address"</span>: { … },                  <span class="cm">// object lồng nhau</span>
+  <span class="kw">"phoneNumbers"</span>: [                    <span class="cm">// mảng các object</span>
+    { <span class="kw">"type"</span>: <span class="val">"home"</span>, … },
+    { <span class="kw">"type"</span>: <span class="val">"office"</span>, … }
+  ],
+  <span class="kw">"spouse"</span>: <span class="val">null</span>                       <span class="cm">// giá trị null</span>
+}</pre>
+      <p>Các key ngoài firstName, address, phoneNumbers là minh hoạ thêm.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">08. GraphQL <span class="t">~21:00–27:00</span></div>
+    <h2 class="c-peak">GraphQL dùng một endpoint, chỉ HTTP POST, cho client chọn đúng field và gộp nhiều lần lấy dữ liệu vào một query</h2>
+    <p class="desc"><b>GraphQL</b> công khai khoảng <b>2015</b>, do Facebook tạo ra. Không phải giao thức; xây trên HTTP nhưng <b>chỉ dùng POST</b>, vì phải gửi <b>query</b> trong body mà GET thì không có body. Query cho server biết chính xác cần những resource nào.</p>
+    <p class="desc">Vấn đề thứ nhất của REST: <b>over-fetching</b>. Hiển thị năm comment, mỗi comment là một thẻ có ảnh đại diện, username và nội dung. Nhưng resource user có rất nhiều thứ khác, như tài khoản tạo năm nào (2020…). REST trả hết; muốn bớt thì phải thêm logic riêng ở server mỗi lần gặp chuyện tương tự. GraphQL chỉ định từng field cần, server chỉ trả đúng các field đó: ít dữ liệu qua network, app nhanh hơn.</p>
+    <p class="desc">Vấn đề thứ hai: <b>under-fetching</b>, phải gọi nhiều request nối tiếp — lấy video, rồi comment của video, rồi thông tin user của từng comment. GraphQL có <b>một endpoint</b> với hai loại thao tác: <b>query</b> (đọc, không đổi dữ liệu) và <b>mutation</b> (tạo, cập nhật, xoá). Cả chuỗi trên gói trong một query. Nhược điểm: POST không idempotent nên GraphQL <b>cache kém hơn</b>, kém chính xác hơn REST.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 380" style="min-width:758px" role="img" aria-label="REST phải gọi nhiều request và nhận thừa field; GraphQL một query lấy đúng field"><rect class="bb-grp" x="20" y="40" width="510" height="320" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="290" height="24" rx="12" fill="#1e293b"/><text x="145.0" y="16.5" text-anchor="middle">REST · NHIỀU REQUEST, THỪA DỮ LIỆU</text></g><rect x="44" y="76" width="300" height="44" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="60" y="104" text-anchor="start" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:700">GET /videos/:id</text><rect x="44" y="132" width="300" height="44" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="60" y="160" text-anchor="start" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:700">GET /videos/:id/comments</text><rect x="44" y="188" width="300" height="44" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="60" y="216" text-anchor="start" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:700">GET /users/:id  × 5 comment</text><rect x="44" y="244" width="300" height="44" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="60" y="272" text-anchor="start" class="bb-m" fill="#3b82f6" style="fill:#3b82f6;font-weight:700">→ cả user: năm tạo tài khoản…</text><text x="370" y="104" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:800">under-fetching:</text><text x="370" y="124" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:600">phải gọi nối tiếp</text><text x="370" y="272" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:800">over-fetching:</text><text x="370" y="292" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:600">chỉ cần avatar + tên</text><rect class="bb-grp" x="570" y="40" width="510" height="320" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="270" height="24" rx="12" fill="#1e293b"/><text x="135.0" y="16.5" text-anchor="middle">GRAPHQL · MỘT POST, ĐÚNG FIELD</text></g><rect x="594" y="76" width="460" height="260" rx="10" fill="#fce7f3" stroke="#db2777" stroke-width="2"/><text x="614" y="104" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">POST /graphql</text><text x="614" y="126" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">query {</text><text x="614" y="148" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">  video(id: &quot;…&quot;) {</text><text x="614" y="170" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">    comments {</text><text x="614" y="192" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">      body</text><text x="614" y="214" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">      user { username  profilePicture }</text><text x="614" y="236" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">    }</text><text x="614" y="258" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">  }</text><text x="614" y="280" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">}</text><text x="614" y="302" text-anchor="start" class="bb-m" fill="#1e293b" style="fill:#1e293b;font-weight:600">← chỉ trả về đúng các field này</text></svg></div></div><div class="fig-cap">Hình 4 — Cùng một màn hình comment: REST và GraphQL</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — thẻ comment</div>
+      <p>Năm comment, mỗi thẻ chỉ cần <b>ảnh đại diện + username + nội dung</b>. REST: gọi video, gọi comments, rồi gọi user cho từng comment và nhận cả đống field thừa. GraphQL: một query, đúng các field đó.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">09. Demo SpaceX GraphQL <span class="t">~27:00–30:00</span></div>
+    <h2 class="c-avg">GraphQL Explorer cho tick chọn từng field; khác REST, GraphQL có schema nên không hỏi được field không tồn tại</h2>
+    <p class="desc">GraphQL có tooling khá tốt, ví dụ <b>GraphQL Explorer</b> với <b>SpaceX GraphQL API</b>. Dù chạy trên HTTP, ta không thấy phần HTTP, chỉ thấy query và response. Lấy <b>launches past</b> giới hạn <b>10</b> — GraphQL cũng có kiểu pagination. Mỗi launch chọn field: <b>mission name</b>, <b>launch site</b>…</p>
+    <p class="desc">Bỏ tick gần hết rocket, chỉ giữ <b>first stage</b>: lỗi, vì phải chọn sub-field; chọn <b>cores</b>, rồi bỏ reuse count và flight, chỉ giữ <b>status</b>. Có thể thêm missions, flight number, cả <b>ships</b> — lấy đúng thứ cần mà không cần dựng nhiều REST endpoint. Cú pháp lồng nhau giống JSON. Nhưng GraphQL có <b>schema</b>: đây là SpaceX nên không có field <b>Tesla</b>, và không tự thêm được — khác REST với JSON truyền gì cũng được.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — query trong demo (viết lại gần đúng)</div>
+      <pre>query {
+  launchesPast(limit: <span class="val">10</span>) {
+    mission_name
+    launch_site { … }
+    rocket { first_stage { cores { status } } }
+    ships { … }
+  }
+}</pre>
+      <p>Tên field theo những gì người nói đọc trong video; cú pháp chính xác có thể khác API thật.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">10. gRPC <span class="t">~30:00–34:00</span></div>
+    <h2 class="c-cmd">gRPC chạy trên HTTP/2 và gửi protocol buffers nhị phân theo schema, nên nhanh hơn REST và hỗ trợ streaming</h2>
+    <p class="desc"><b>gRPC</b> cũng xây trên HTTP, cụ thể là <b>HTTP/2</b> (HTTP đi từ <b>1.0</b>, <b>1.1</b>, lên 2, gần đây là 3), vì cần vài tính năng của HTTP/2. Trình duyệt <b>không gọi gRPC trực tiếp</b> được do gRPC cần kiểm soát HTTP/2 rất chi tiết mà trình duyệt không cho; phải qua proxy, thường là <b>gRPC-Web</b>. Vì vậy gRPC chủ yếu dùng cho <b>server ↔ server</b>.</p>
+    <p class="desc">gRPC <b>khách quan là nhanh và hiệu quả hơn REST</b> trong gần như mọi trường hợp. Lý do: thay vì gửi JSON — chỉ là chuỗi ký tự — nó gửi <b>protocol buffers</b>: object có <b>schema</b> (JSON không phải schema), được <b>serialize</b> thành <b>nhị phân</b>, nên gửi ít dữ liệu hơn. Nhờ HTTP/2, gRPC còn có <b>streaming</b>: một chiều client → server, server → client, hoặc <b>hai chiều</b> — đúng việc của WebSocket.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="JSON của REST so với protocol buffers nhị phân của gRPC"><rect class="bb-grp" x="20" y="40" width="510" height="260" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="230" height="24" rx="12" fill="#1e293b"/><text x="115.0" y="16.5" text-anchor="middle">REST · JSON (CHUỖI KÝ TỰ)</text></g><rect x="44" y="76" width="460" height="120" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="64" y="104" text-anchor="start" class="bb-m" style="font-weight:600">{ &quot;firstName&quot;: &quot;John&quot;,</text><text x="64" y="126" text-anchor="start" class="bb-m" style="font-weight:600">  &quot;address&quot;: { … },</text><text x="64" y="148" text-anchor="start" class="bb-m" style="font-weight:600">  &quot;phoneNumbers&quot;: [ … ],</text><text x="64" y="170" text-anchor="start" class="bb-m" style="font-weight:600">  &quot;spouse&quot;: null }</text><text x="275" y="240" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:13px">dễ đọc · linh hoạt · lớn hơn khi gửi</text><rect class="bb-grp" x="570" y="40" width="510" height="260" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="300" height="24" rx="12" fill="#1e293b"/><text x="150.0" y="16.5" text-anchor="middle">gRPC · PROTOCOL BUFFERS (NHỊ PHÂN)</text></g><rect x="594" y="76" width="460" height="120" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="824" y="122" text-anchor="middle" class="bb-m" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:15px">01101000 10100111 00010110 …</text><text x="824" y="158" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:600">theo schema định sẵn · không đọc được bằng mắt</text><text x="825" y="240" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:13px">nhỏ hơn · nhanh hơn · trên HTTP/2: streaming hai chiều</text></svg></div></div><div class="fig-cap">Hình 5 — JSON dạng chuỗi so với protocol buffers nhị phân</div></div>
+    <div class="note"><b>Nhắc lại từ người nói:</b> HTTP/2 về kỹ thuật làm WebSocket gần như lỗi thời, nhưng phần lớn kỹ sư không biết điều này. Điều cần nắm là trade-off và mỗi công nghệ làm được gì, không phải chi tiết đó.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — nhiều server nói chuyện với nhau</div>
+      <p>Nhiều server trong hệ thống cần gọi nhau: đó là chỗ của gRPC — nhanh, có schema, và stream được cả hai chiều.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">11. Nhược điểm của gRPC <span class="t">~34:00–36:00</span></div>
+    <h2 class="c-peak">gRPC mới hơn, ít tooling, khó dùng từ trình duyệt, và không dùng status code HTTP — phải tự xử lý lỗi</h2>
+    <p class="desc">gRPC mới hơn — người nói nói được tạo năm <b>2016</b> bởi <b>Google</b> và open-source. Nhược điểm: <b>ít tooling</b> hơn nhiều, kém chuẩn hoá, khó hơn. Protocol buffers nhanh nhưng <b>schema</b> có thể phiền khi phát triển; gRPC cần tooling tốt; và khó dùng từ trình duyệt. REST phổ biến hơn, dễ hơn, cộng đồng lớn hơn.</p>
+    <p class="desc">Dù chạy trên HTTP, gRPC <b>không thật sự dùng status code</b> của HTTP. Thay vào đó là <b>error message</b>: bạn tự định nghĩa ở server và tự xử lý ở client theo cách mình chọn.</p>
+    <div class="note"><b>Đính chính nguồn:</b> transcript nói dựng API tương đương bằng gRPC "chắc chắn tốn ít thời gian hơn REST" — ngược với mạch lập luận ngay trước đó; ý người nói nhiều khả năng là gRPC <b>tốn nhiều thời gian hơn</b>. Về mốc thời gian: gRPC được Google công bố mã nguồn mở năm 2015, bản 1.0 ra năm 2016.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — xử lý lỗi</div>
+      <div class="ba">
+        <div><b>REST</b>Nhìn status code (200, 404, 500…) là biết kết quả.</div>
+        <div><b>gRPC</b>Server trả error message tự định nghĩa; client tự quyết cách xử lý.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">12. Protocol buffers &amp; service <span class="t">~36:00–38:00</span></div>
+    <h2 class="c-grow">File .proto định nghĩa message có field đánh số và service có RPC — mỗi endpoint là một động từ, như gọi hàm</h2>
+    <p class="desc">Ví dụ từ tài liệu công khai của Google: <b>message</b> là từ khoá định nghĩa schema. <b>SearchRequest</b> có ba field <b>đánh số thứ tự</b>: query (1), page_number (2), results_per_page (3). Phải đánh số vì dữ liệu được serialize thành nhị phân, không đọc được; khi deserialize nó thành object trong ngôn ngữ bạn chọn (<b>Python</b>, <b>Go</b>, <b>Java</b>…). Cú pháp <b>proto3</b> là mới nhất, nằm trong file <b>.proto</b>.</p>
+    <p class="desc">Định nghĩa <b>service</b>, ví dụ <b>Greeter</b>, với một endpoint gọi là <b>RPC</b>: <b>SayHello</b> nhận <b>HelloRequest</b> (một field string name) và trả <b>HelloReply</b>. Request và response đều có schema nên biết chính xác sẽ nhận gì. Logic thì viết bằng Java hay Python, không trong file proto. Khác REST — resource là danh từ, method HTTP là động từ — mỗi RPC là một <b>hành động</b>, một hàm chạy trên máy khác; ta không quan tâm HTTP method hay status code nữa.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai đoạn proto trong video</div>
+      <pre><span class="kw">syntax</span> = <span class="val">"proto3"</span>;
+<span class="kw">message</span> SearchRequest {
+  string query = <span class="val">1</span>;
+  int32 page_number = <span class="val">2</span>;
+  int32 results_per_page = <span class="val">3</span>;
+}
+<span class="kw">service</span> Greeter {
+  <span class="kw">rpc</span> SayHello (HelloRequest) <span class="kw">returns</span> (HelloReply) {}
+}
+<span class="kw">message</span> HelloRequest { string name = <span class="val">1</span>; }
+<span class="kw">message</span> HelloReply { string message = <span class="val">1</span>; }</pre>
+      <p>Kiểu dữ liệu của page_number, results_per_page và field của HelloReply theo tài liệu gốc của Google; video chỉ đọc tên.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> REST là một giao thức, hay chính là HTTP.</div><div><span class="v">✓</span> REST là bộ ràng buộc áp lên HTTP API (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Stateless nghĩa là không lưu gì cả.</div><div><span class="v">✓</span> Vẫn lưu trong database; chỉ server không giữ state của user (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Endpoint REST nên có tên như /getVideos.</div><div><span class="v">✓</span> Resource là danh từ; HTTP method là động từ (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> GraphQL dùng GET cho query.</div><div><span class="v">✓</span> GraphQL chỉ dùng POST vì query nằm trong body; do đó cache kém hơn (→ 08).</div></div>
+    <div class="mis"><div><span class="x">✗</span> gRPC gọi thẳng từ trình duyệt như REST.</div><div><span class="v">✓</span> Cần proxy như gRPC-Web; chủ yếu dùng server ↔ server (→ 10).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>REST, GraphQL hay gRPC</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">REST</td><td>Mặc định cho API công khai, cần đơn giản, dễ dùng, nhiều tooling</td><td>Client cần ghép nhiều resource với đúng vài field</td><td>Dễ đọc (JSON), stateless scale ngang; dễ over/under-fetch</td></tr>
+      <tr><td class="k">GraphQL</td><td>Màn hình cần nhiều resource, mỗi cái vài field</td><td>Cần cache theo request</td><td>Đúng dữ liệu cần, một request; chỉ POST nên cache kém, phải theo schema</td></tr>
+      <tr><td class="k">gRPC</td><td>Server ↔ server cần nhanh, cần streaming</td><td>Gọi trực tiếp từ trình duyệt; đội cần tooling phong phú</td><td>Nhanh, có schema; ít tooling, không status code, khó hơn</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Sáu câu hỏi</h2>
+    <details><summary>REST là viết tắt của gì, và ràng buộc quan trọng nhất là gì?</summary><p>Representational state transfer; quan trọng nhất là stateless. (→ 03, 05)</p></details>
+    <details><summary>Đã xem 20 video, mỗi trang 10. Request tiếp theo có query param gì?</summary><p>offset=20&amp;limit=10 (tính toán minh hoạ thêm theo cùng cách của nguồn). (→ 05)</p></details>
+    <details><summary>Vì sao stateless giúp scale ngang?</summary><p>Không server nào giữ session, nên load balancer chuyển request tới server nào cũng trả đúng; thêm server bao nhiêu cũng được. (→ 06)</p></details>
+    <details><summary>Over-fetching và under-fetching khác nhau thế nào? GraphQL giải quyết ra sao?</summary><p>Over: nhận thừa field; under: phải gọi nhiều request nối tiếp. GraphQL cho chọn đúng field và gộp vào một query ở một endpoint. (→ 08)</p></details>
+    <details><summary>Vì sao gRPC nhanh hơn REST?</summary><p>Gửi protocol buffers nhị phân theo schema thay vì chuỗi JSON, nên ít dữ liệu hơn; chạy trên HTTP/2. (→ 10)</p></details>
+    <details><summary>Vì sao field trong protocol buffer phải đánh số?</summary><p>Dữ liệu serialize thành nhị phân không đọc được; số thứ tự giúp deserialize đúng field thành object trong ngôn ngữ đích. (→ 12)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">API · local storage</td><td>Giao diện lập trình · nơi lưu bền vững trong trình duyệt</td><td>01</td></tr>
+      <tr><td class="k">REST</td><td>Representational state transfer</td><td>03</td></tr>
+      <tr><td class="k">resource</td><td>Danh từ mà endpoint REST thao tác (video, user)</td><td>04</td></tr>
+      <tr><td class="k">stateless / stateful</td><td>Server không giữ / có giữ state của user</td><td>05</td></tr>
+      <tr><td class="k">session · cookies · session storage</td><td>Cách giữ state; ở REST nằm phía trình duyệt</td><td>05</td></tr>
+      <tr><td class="k">pagination · limit · offset</td><td>Chia trang · số phần tử · vị trí bắt đầu</td><td>05</td></tr>
+      <tr><td class="k">URL parameter · query parameter</td><td>/videos/:id · ?limit=10</td><td>05</td></tr>
+      <tr><td class="k">JSON</td><td>JavaScript object notation</td><td>07</td></tr>
+      <tr><td class="k">over-fetching · under-fetching</td><td>Nhận thừa dữ liệu · phải gọi nhiều request</td><td>08</td></tr>
+      <tr><td class="k">query · mutation</td><td>Thao tác đọc · thao tác thay đổi dữ liệu của GraphQL</td><td>08</td></tr>
+      <tr><td class="k">schema</td><td>Định nghĩa trước cấu trúc dữ liệu được phép</td><td>09, 10</td></tr>
+      <tr><td class="k">gRPC-Web</td><td>Proxy để gọi gRPC từ trình duyệt</td><td>10</td></tr>
+      <tr><td class="k">protocol buffers · serialize</td><td>Định dạng nhị phân có schema · chuyển object thành byte</td><td>10, 12</td></tr>
+      <tr><td class="k">proto3 · .proto · message · service · rpc</td><td>Cú pháp và các khối định nghĩa API gRPC</td><td>12</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “8 - API Paradigms” (<a href="https://drive.google.com/file/d/1FOElbXGMQKHKcjL5_638_CjWrC0Z3z2Z/view">drive.google.com/file/d/1FOElbXGMQKHKcjL5_638_CjWrC0Z3z2Z</a>) · khoảng 38 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-08.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

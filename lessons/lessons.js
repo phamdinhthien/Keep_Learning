@@ -364,5 +364,18 @@ window.LESSONS = [
     "title": "WebSockets: khi HTTP polling không đủ",
     "description": "Các giao thức ứng dụng khác, polling bằng HTTP, WebSocket handshake 101, demo chat Twitch và khi nào nên dùng.",
     "readTime": "10 phút đọc"
+  },
+  {
+    "id": "nc-08",
+    "path": "system-design/neetcode-beginner/nc-08.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 8,
+    "title": "API Paradigms: REST, GraphQL, gRPC",
+    "description": "REST stateless và pagination, JSON; GraphQL giải over/under-fetching; gRPC với protocol buffers, HTTP/2 và các trade-off.",
+    "readTime": "22 phút đọc"
   }
 ];
