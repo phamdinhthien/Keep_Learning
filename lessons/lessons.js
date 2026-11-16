@@ -507,5 +507,18 @@ window.LESSONS = [
     "title": "Object Storage: lưu file lớn như một hashmap",
     "description": "Object storage phẳng, blob, giống hashmap với key duy nhất, và khi nào để file lớn ở S3 còn metadata ở database.",
     "readTime": "7 phút đọc"
+  },
+  {
+    "id": "nc-19",
+    "path": "system-design/neetcode-beginner/nc-19.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 19,
+    "title": "Message Queue và Pub/Sub",
+    "description": "Queue bền vững tách rời bên tạo và bên xử lý event, push/pull và ack, pub/sub với topic và subscription, RabbitMQ, Kafka, Pub/Sub.",
+    "readTime": "8 phút đọc"
   }
 ];

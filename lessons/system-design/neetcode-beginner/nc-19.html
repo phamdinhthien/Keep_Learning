@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Message Queue — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-19">
+  <meta name="lesson:title" content="Message Queue và Pub/Sub">
+  <meta name="lesson:description" content="Queue bền vững tách rời bên tạo và bên xử lý event, push/pull và ack, pub/sub với topic và subscription, RabbitMQ, Kafka, Pub/Sub.">
+  <meta name="lesson:order" content="19">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="8 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Message Queue — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 19</div>
+  <h1><span class="a">Message queue</span> tách bên tạo event khỏi bên xử lý, để xử lý <span class="b">bất đồng bộ</span> và chịu được lượng event lớn</h1>
+  <div class="sub">Khái niệm đơn giản nhưng rất mạnh: queue bền vững, push/pull, ack, và biến thể pub/sub với topic và subscription.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 80 1100 210" style="min-width:758px" role="img" aria-label="Producer đẩy event vào queue bền vững trên disk; server xử lý dần, rồi ghi vào database"><g class="bb-node" transform="translate(20,100)"><rect width="220" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-gear" x="93.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">Producer</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">vd sự kiện thanh toán, game</text></g><path class="bb-ar" d="M244,148 H296" marker-end="url(#bb-ah)"/><rect x="300" y="96" width="360" height="108" rx="14" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="330" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="374" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="418" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="462" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="506" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="550" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><rect x="594" y="128" width="34" height="44" rx="5" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/><text x="480" y="120" text-anchor="middle" fill="#ca8a04" style="fill:#ca8a04;font-weight:800;font-size:13px">Message queue · lưu trên disk</text><text x="480" y="194" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700">FIFO · durable</text><path class="bb-ar" d="M664,148 H716" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(720,100)"><rect width="200" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">App server</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">xử lý dần (async)</text></g><path class="bb-ar" d="M924,148 H956" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(960,106)"><rect width="120" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="43.0" y="14" width="34" height="34" style="color:#16a34a"/><text x="60.0" y="68" text-anchor="middle" class="bb-l">Database</text></g><text x="550" y="270" text-anchor="middle" fill="#64748b" style="fill:#64748b;font-weight:700;font-size:13px">hai service tách rời (decoupled): bên tạo event và bên xử lý event</text></svg></div></div><div class="fig-cap">Hình 1 — Event đi qua queue rồi mới tới server</div></div>
+  <div class="toc">
+    <span>01 <b>Vì sao cần queue</b></span><span>02 <b>Push, pull &amp; ack</b></span><span>03 <b>Pub/sub</b></span><span>04 <b>Công cụ</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vì sao cần message queue <span class="t">~00:00–03:30</span></div>
+    <h2 class="c-avg">Event tới nhanh hơn khả năng xử lý mà không cần làm ngay thì xếp hàng trong queue — tách rời hai service và xử lý dần</h2>
+    <p class="desc">Ứng dụng có rất nhiều <b>event</b>, tới nhanh đến mức không kham hết cùng lúc, và ta muốn xử lý chúng <b>bất đồng bộ</b>. Có thể scale server, nhưng nếu không cần làm tất cả ngay, tốt hơn là <b>xếp hàng</b> rồi xử lý sau: event được gửi tới <b>message queue</b>, từ queue tới application server để xử lý.</p>
+    <p class="desc">Điểm chính: ta đã <b>decouple</b> hai service — bên <b>tạo</b> event (có thể là một ứng dụng, một server riêng tạo user event, dữ liệu game…) và bên <b>nhận và xử lý</b>. Message trong queue là <b>durable</b>: được lưu bền vững, thường trên <b>disk</b> chứ không phải RAM, queue crash cũng không mất. Kiến trúc này cho xử lý bất đồng bộ và chịu được <b>scale</b> lớn hơn vì không cần xử lý ngay. Với ví dụ này, có lẽ xử lý <b>FIFO</b>, nhưng còn cách khác.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — thanh toán</div>
+      <p>Xử lý thanh toán có thể lâu trên server: có thể phải chạy <b>analytics</b> trên đó; xử lý xong thì ghi transaction vào <b>database</b>. Event thanh toán vào queue trước, server lấy ra xử lý dần.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Push, pull &amp; acknowledgement <span class="t">~03:30–06:00</span></div>
+    <h2 class="c-cmd">Server tự kéo message (polling) hoặc queue đẩy xuống (push); ack báo đã xử lý, không có ack thì queue gửi lại</h2>
+    <p class="desc">Ngoài durable — nên phần nào giống database — cách dữ liệu đi từ queue tới đích có thể khác nhau. <b>Pull / polling</b>: server định kỳ kiểm tra queue có message mới không; có thì lấy một ít, không thì vài phút thử lại. <b>Push</b>: queue đẩy message thẳng xuống server ngay khi có.</p>
+    <p class="desc">Khi push, server có thể chưa xử lý ngay được, hoặc lỡ mất message, hoặc có lỗi. Nên server có cách <b>acknowledge (ack)</b> rằng đã nhận và xử lý xong một message; queue biết thì thôi gửi. Không nhận được ack, queue <b>gửi lại</b>, một số lần nhất định hoặc tới khi server ack. Nhờ vậy message không bị mất: không có chuyện gửi cho server thứ nó không xử lý được rồi rơi mất luôn. Queue có nhiều tính năng như vậy để bền vững và đáng tin cậy.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 320" style="min-width:758px" role="img" aria-label="Pull: server tự hỏi queue; push: queue đẩy xuống; ack báo đã xử lý xong"><g class="bb-node" transform="translate(20,110)"><rect width="240" height="96" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="103.0" y="20" width="34" height="34" style="color:#ca8a04"/><text x="120.0" y="74" text-anchor="middle" class="bb-l">Message queue</text></g><path class="bb-ar" d="M264,128 H836" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="550" y="116" text-anchor="middle" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">push: đẩy ngay khi có message</text><path class="bb-ar d" d="M836,170 H264" marker-end="url(#bb-ah)"/><text x="550" y="160" text-anchor="middle" class="bb-a">pull (polling): định kỳ hỏi “có gì mới không?”</text><path class="bb-ar d" d="M836,200 H264" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="550" y="220" text-anchor="middle" class="bb-a" fill="#16a34a" style="fill:#16a34a">ack: đã nhận và xử lý xong message</text><g class="bb-node" transform="translate(840,110)"><rect width="240" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="103.0" y="20" width="34" height="34" style="color:#7c3aed"/><text x="120.0" y="74" text-anchor="middle" class="bb-l">App server</text></g><rect x="260" y="250" width="580" height="50" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="550" y="280" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:13px">không nhận được ack → queue gửi lại, vài lần hoặc tới khi có ack</text></svg></div></div><div class="fig-cap">Hình 2 — Push, pull và ack</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — server lỡ một message</div>
+      <div class="ba">
+        <div><b>Không có ack</b>Message gửi đi rồi rơi mất, không ai thấy lại.</div>
+        <div><b>Có ack</b>Queue chưa nhận ack thì gửi lại cho tới khi server báo đã xử lý xong.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Pub/sub <span class="t">~06:00–09:00</span></div>
+    <h2 class="c-spec">Pub/sub cho quan hệ nhiều–nhiều: publisher gửi vào topic, topic fan-out tới nhiều subscription, mỗi ứng dụng nhận từ subscription</h2>
+    <p class="desc">Tới giờ là một–một: một ứng dụng gửi vào queue, một ứng dụng nhận. Nhưng có thể nhiều ứng dụng gửi và nhiều ứng dụng nhận: <b>pub/sub</b> — <b>publisher / subscriber</b>. Publisher tạo event, event vào một tầng giữa (thuộc message queue) là các <b>topic</b>, nơi nhận và lưu message bền vững. Topic đưa tới các <b>subscription</b>, một topic có thể tới nhiều subscription.</p>
+    <p class="desc"><b>Topic</b> là cách <b>phân tách dữ liệu</b>: một topic nhận mọi dữ liệu thanh toán, topic khác nhận mọi dữ liệu analytics — giống có nhiều message queue, chia theo chủ đề. <b>Subscription</b> là cách <b>fan-out</b>: không chỉ một mà nhiều ứng dụng cần message của topic đó. Một ứng dụng cũng có thể nhận từ nhiều subscription. Mọi logic nằm trong queue nên ứng dụng đơn giản, ráp nối tuỳ ý: bỏ một server không phải đổi cả kiến trúc, có thể thay vào một API hoàn toàn khác.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-legend" aria-hidden="true"><span><i class="sw" style="background:#dbeafe;border-color:#3b82f6"></i>Publisher</span><span><i class="sw" style="background:#fef9c3;border-color:#ca8a04"></i>Topic</span><span><i class="sw" style="background:#ffedd5;border-color:#ea580c"></i>Subscription</span><span><i class="sw" style="background:#ede9fe;border-color:#7c3aed"></i>Subscriber / ứng dụng</span></div><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 330" style="min-width:758px" role="img" aria-label="Pub/sub: publisher gửi vào topic, topic fan-out ra nhiều subscription cho nhiều ứng dụng"><g class="bb-node" transform="translate(20,50)"><rect width="200" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-gear" x="88.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="100.0" y="53" text-anchor="middle" class="bb-l">Publisher A</text><text x="100.0" y="71" text-anchor="middle" class="bb-s">sự kiện thanh toán</text></g><g class="bb-node" transform="translate(20,210)"><rect width="200" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-gear" x="88.0" y="9" width="24" height="24" style="color:#3b82f6"/><text x="100.0" y="53" text-anchor="middle" class="bb-l">Publisher B</text><text x="100.0" y="71" text-anchor="middle" class="bb-s">sự kiện analytics</text></g><rect class="bb-grp" x="270" y="20" width="330" height="300" rx="18"/><g class="bb-gtag" transform="translate(288,8)"><rect width="150" height="24" rx="12" fill="#1e293b"/><text x="75.0" y="16.5" text-anchor="middle">MESSAGE QUEUE</text></g><g class="bb-node" transform="translate(290,50)"><rect width="290" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="128.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="145.0" y="66" text-anchor="middle" class="bb-l">Topic: payments</text></g><g class="bb-node" transform="translate(290,210)"><rect width="290" height="80" rx="14" fill="#fef9c3" stroke="#ca8a04"/><use href="#bi-queue" x="128.0" y="12" width="34" height="34" style="color:#ca8a04"/><text x="145.0" y="66" text-anchor="middle" class="bb-l">Topic: analytics</text></g><path class="bb-ar" d="M224,90 H286" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M224,250 H286" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(650,20)"><rect width="190" height="60" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-list" x="83.0" y="7" width="24" height="24" style="color:#ea580c"/><text x="95.0" y="51" text-anchor="middle" class="bb-l">Subscription 1</text></g><g class="bb-node" transform="translate(650,100)"><rect width="190" height="60" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-list" x="83.0" y="7" width="24" height="24" style="color:#ea580c"/><text x="95.0" y="51" text-anchor="middle" class="bb-l">Subscription 2</text></g><g class="bb-node" transform="translate(650,220)"><rect width="190" height="60" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-list" x="83.0" y="7" width="24" height="24" style="color:#ea580c"/><text x="95.0" y="51" text-anchor="middle" class="bb-l">Subscription 3</text></g><path class="bb-ar" d="M584,80 H620 V50 H646" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M584,100 H620 V130 H646" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M584,250 H646" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,20)"><rect width="200" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-money" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Xử lý thanh toán</text></g><g class="bb-node" transform="translate(880,100)"><rect width="200" height="60" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="88.0" y="7" width="24" height="24" style="color:#16a34a"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Backup · warehouse</text></g><g class="bb-node" transform="translate(880,220)"><rect width="200" height="60" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-doc" x="88.0" y="7" width="24" height="24" style="color:#7c3aed"/><text x="100.0" y="51" text-anchor="middle" class="bb-l">Ghi logs DB</text></g><path class="bb-ar" d="M844,50 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M844,130 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M844,250 H876" marker-end="url(#bb-ah)"/><text x="745" y="314" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12.5px">fan-out: một topic tới nhiều subscription</text></svg></div></div><div class="fig-cap">Hình 3 — Hai topic, ba subscription</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — payments và analytics</div>
+      <ul class="plain">
+        <li><b>Topic analytics</b> → một subscription → một app server ghi mọi event vào <b>logs database</b>.</li>
+        <li><b>Topic payments</b> → hai subscription → một service <b>xử lý thanh toán</b>, một service <b>backup</b> vào database hoặc <b>data warehouse</b>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Công cụ <span class="t">~09:00–10:00</span></div>
+    <h2 class="c-grow">RabbitMQ, Kafka và Google Cloud Pub/Sub đều cung cấp message queue cơ bản, với khác biệt và trade-off riêng</h2>
+    <p class="desc">Message queue có đủ hình dạng, kích cỡ. Mã nguồn mở phổ biến: <b>RabbitMQ</b>, và nay còn phổ biến hơn là <b>Kafka</b> — rất phổ biến, rất mạnh, phát triển tương đối gần đây. Trên cloud, Google Cloud có <b>Pub/Sub</b>. Chúng có khác biệt và trade-off, nhưng đều cung cấp chức năng message queue cơ bản. Với phỏng vấn system design, message queue mạnh mà đơn giản cho các use case của nó.</p>
+    <div class="note"><b>Đính chính nguồn:</b> transcript ghi "AFA", ý người nói là <b>Kafka</b>.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ba lựa chọn</div>
+      <div class="ba">
+        <div><b>Mã nguồn mở</b>RabbitMQ; Kafka (phổ biến hơn, rất mạnh).</div>
+        <div><b>Cloud</b>Google Cloud Pub/Sub.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Message trong queue nằm trong RAM, crash là mất.</div><div><span class="v">✓</span> Queue durable, thường lưu trên disk (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Quá tải thì chỉ có cách scale server.</div><div><span class="v">✓</span> Việc không cần làm ngay thì xếp vào queue xử lý dần (→ 01).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Queue gửi message một lần là xong.</div><div><span class="v">✓</span> Không có ack thì queue gửi lại (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Một topic chỉ phục vụ được một ứng dụng.</div><div><span class="v">✓</span> Topic fan-out ra nhiều subscription cho nhiều ứng dụng (→ 03).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Push hay pull, queue một–một hay pub/sub</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Pull (polling)</td><td>Server muốn tự lấy khi rảnh</td><td>Cần xử lý ngay khi có message</td><td>Server chủ động; có độ trễ theo chu kỳ hỏi</td></tr>
+      <tr><td class="k">Push</td><td>Muốn message tới ngay</td><td>Server dễ bị dồn khi không kịp xử lý</td><td>Nhanh; cần ack để không mất message</td></tr>
+      <tr><td class="k">Queue một–một</td><td>Một bên tạo, một bên xử lý</td><td>Nhiều ứng dụng cần cùng dữ liệu</td><td>Đơn giản</td></tr>
+      <tr><td class="k">Pub/sub</td><td>Nhiều publisher, nhiều subscriber, dữ liệu chia theo chủ đề</td><td>—</td><td>Linh hoạt, decouple mạnh; thêm khái niệm topic/subscription</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Bốn câu hỏi</h2>
+    <details><summary>Ba lợi ích chính của message queue trong phỏng vấn?</summary><p>Decouple service, xử lý event bất đồng bộ, và chịu scale lớn hơn. (→ 01)</p></details>
+    <details><summary>Ack dùng để làm gì?</summary><p>Server báo đã nhận và xử lý xong message; không có ack thì queue gửi lại để message không bị mất. (→ 02)</p></details>
+    <details><summary>Topic và subscription khác nhau thế nào?</summary><p>Topic phân tách dữ liệu theo chủ đề và lưu message; subscription fan-out một topic ra nhiều ứng dụng. (→ 03)</p></details>
+    <details><summary>Đơn hàng mới cần gửi email xác nhận, cập nhật kho và ghi analytics. Thiết kế với pub/sub ra sao?</summary><p>Một topic "orders"; ba subscription cho ba service email, kho, analytics; mỗi service xử lý và ack độc lập. (Tình huống minh hoạ thêm → 03)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">message queue</td><td>Hàng đợi bền vững giữa bên tạo và bên xử lý event</td><td>01</td></tr>
+      <tr><td class="k">decouple · asynchronous</td><td>Tách rời · xử lý không đồng bộ</td><td>01</td></tr>
+      <tr><td class="k">durable · FIFO</td><td>Lưu bền vững · vào trước ra trước</td><td>01</td></tr>
+      <tr><td class="k">pull (polling) · push</td><td>Server tự lấy · queue đẩy xuống</td><td>02</td></tr>
+      <tr><td class="k">ack</td><td>Xác nhận đã nhận và xử lý xong</td><td>02</td></tr>
+      <tr><td class="k">pub/sub · publisher · subscriber</td><td>Mô hình nhiều–nhiều · bên gửi · bên nhận</td><td>03</td></tr>
+      <tr><td class="k">topic · subscription · fan-out</td><td>Kênh theo chủ đề · đường nhận · phát ra nhiều nơi</td><td>03</td></tr>
+      <tr><td class="k">data warehouse</td><td>Kho dữ liệu để phân tích</td><td>03</td></tr>
+      <tr><td class="k">RabbitMQ · Kafka · Pub/Sub</td><td>Các message queue phổ biến</td><td>04</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “19 - Message Queues” (<a href="https://drive.google.com/file/d/1HUVpGE_WGZZJsjSxuevRLisMyoMBzcRr/view">drive.google.com/file/d/1HUVpGE_WGZZJsjSxuevRLisMyoMBzcRr</a>) · khoảng 10 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-19.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
