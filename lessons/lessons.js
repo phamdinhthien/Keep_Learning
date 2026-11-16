@@ -377,5 +377,18 @@ window.LESSONS = [
     "title": "API Paradigms: REST, GraphQL, gRPC",
     "description": "REST stateless và pagination, JSON; GraphQL giải over/under-fetching; gRPC với protocol buffers, HTTP/2 và các trade-off.",
     "readTime": "22 phút đọc"
+  },
+  {
+    "id": "nc-09",
+    "path": "system-design/neetcode-beginner/nc-09.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 9,
+    "title": "Thiết kế API: contract, backwards compatibility, pagination",
+    "description": "Thiết kế API Twitter: endpoint tạo/đọc/xoá/liệt kê tweet, tham số tuỳ chọn, versioning, pagination, rate limit và ví dụ Twitter API v2, Stripe.",
+    "readTime": "20 phút đọc"
   }
 ];
