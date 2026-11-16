@@ -494,5 +494,18 @@ window.LESSONS = [
     "title": "CAP Theorem và PACELC",
     "description": "CAP chỉ áp dụng khi có replication; P được ngầm định nên chọn C hoặc A; nghĩa thật của consistency, availability; và PACELC.",
     "readTime": "12 phút đọc"
+  },
+  {
+    "id": "nc-18",
+    "path": "system-design/neetcode-beginner/nc-18.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 18,
+    "title": "Object Storage: lưu file lớn như một hashmap",
+    "description": "Object storage phẳng, blob, giống hashmap với key duy nhất, và khi nào để file lớn ở S3 còn metadata ở database.",
+    "readTime": "7 phút đọc"
   }
 ];
