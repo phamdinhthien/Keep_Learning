@@ -390,5 +390,18 @@ window.LESSONS = [
     "title": "Thiết kế API: contract, backwards compatibility, pagination",
     "description": "Thiết kế API Twitter: endpoint tạo/đọc/xoá/liệt kê tweet, tham số tuỳ chọn, versioning, pagination, rate limit và ví dụ Twitter API v2, Stripe.",
     "readTime": "20 phút đọc"
+  },
+  {
+    "id": "nc-10",
+    "path": "system-design/neetcode-beginner/nc-10.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 10,
+    "title": "Caching: browser cache, Redis, chiến lược ghi, eviction",
+    "description": "Cache trình duyệt với Cache-Control, hit/miss/hit ratio, Redis trước database, write-around/through/back và FIFO, LRU, LFU.",
+    "readTime": "16 phút đọc"
   }
 ];
