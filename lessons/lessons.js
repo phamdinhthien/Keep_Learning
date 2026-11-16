@@ -481,5 +481,18 @@ window.LESSONS = [
     "title": "Replication và Sharding",
     "description": "Leader-follower, async và sync replication, multi-leader theo vùng địa lý; sharding, shard key range/hash và sharding ở SQL so với NoSQL.",
     "readTime": "16 phút đọc"
+  },
+  {
+    "id": "nc-17",
+    "path": "system-design/neetcode-beginner/nc-17.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 17,
+    "title": "CAP Theorem và PACELC",
+    "description": "CAP chỉ áp dụng khi có replication; P được ngầm định nên chọn C hoặc A; nghĩa thật của consistency, availability; và PACELC.",
+    "readTime": "12 phút đọc"
   }
 ];
