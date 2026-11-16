@@ -403,5 +403,18 @@ window.LESSONS = [
     "title": "Caching: browser cache, Redis, chiến lược ghi, eviction",
     "description": "Cache trình duyệt với Cache-Control, hit/miss/hit ratio, Redis trước database, write-around/through/back và FIFO, LRU, LFU.",
     "readTime": "16 phút đọc"
+  },
+  {
+    "id": "nc-11",
+    "path": "system-design/neetcode-beginner/nc-11.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 11,
+    "title": "CDN: đưa nội dung tĩnh tới gần user",
+    "description": "Origin và CDN server, nội dung tĩnh, push CDN và pull CDN, demo Apple ID JS trên twitter.com và Cache-Control public/private.",
+    "readTime": "11 phút đọc"
   }
 ];
