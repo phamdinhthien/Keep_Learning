@@ -416,5 +416,18 @@ window.LESSONS = [
     "title": "CDN: đưa nội dung tĩnh tới gần user",
     "description": "Origin và CDN server, nội dung tĩnh, push CDN và pull CDN, demo Apple ID JS trên twitter.com và Cache-Control public/private.",
     "readTime": "11 phút đọc"
+  },
+  {
+    "id": "nc-12",
+    "path": "system-design/neetcode-beginner/nc-12.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 12,
+    "title": "Proxy và Load Balancing",
+    "description": "Forward proxy, reverse proxy, load balancer, các thuật toán chia tải, layer 4 vs layer 7 và cách tránh load balancer thành single point of failure.",
+    "readTime": "13 phút đọc"
   }
 ];

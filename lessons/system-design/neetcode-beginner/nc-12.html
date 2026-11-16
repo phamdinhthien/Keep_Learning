@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxy và Load Balancing — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-12">
+  <meta name="lesson:title" content="Proxy và Load Balancing">
+  <meta name="lesson:description" content="Forward proxy, reverse proxy, load balancer, các thuật toán chia tải, layer 4 vs layer 7 và cách tránh load balancer thành single point of failure.">
+  <meta name="lesson:order" content="12">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="13 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Proxy và Load Balancing — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 12</div>
+  <h1><span class="a">Forward proxy</span> che client, <span class="a">reverse proxy</span> che server — và <span class="b">load balancer</span> là reverse proxy chia đều tải</h1>
+  <div class="sub">Chủ đề lớn, nhiều sắc thái, nhưng developer và người thiết kế hệ thống chỉ cần nắm khái niệm và vài trade-off.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 420" style="min-width:758px" role="img" aria-label="Forward proxy che client; reverse proxy che server đích"><rect class="bb-grp" x="20" y="40" width="1060" height="160" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">FORWARD PROXY · CHE CLIENT</text></g><g class="bb-node" transform="translate(44,80)"><rect width="170" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="68.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="85.0" y="71" text-anchor="middle" class="bb-l">Client</text></g><path class="bb-ar" d="M218,125 H366" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(370,70)"><rect width="280" height="110" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-shield" x="123.0" y="19" width="34" height="34" style="color:#94a3b8"/><text x="140.0" y="73" text-anchor="middle" class="bb-l">Forward proxy</text><text x="140.0" y="91" text-anchor="middle" class="bb-s">VPN · proxy công ty</text></g><path class="bb-ar" d="M654,125 H836" marker-end="url(#bb-ah)"/><text x="745" y="113" text-anchor="middle" class="bb-a">đi thay client</text><g class="bb-node" transform="translate(840,80)"><rect width="220" height="90" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="14" width="24" height="24" style="color:#7c3aed"/><text x="110.0" y="58" text-anchor="middle" class="bb-l">Server</text><text x="110.0" y="76" text-anchor="middle" class="bb-s">chỉ thấy proxy</text></g><rect class="bb-grp" x="20" y="240" width="1060" height="160" rx="18"/><g class="bb-gtag" transform="translate(38,228)"><rect width="250" height="24" rx="12" fill="#1e293b"/><text x="125.0" y="16.5" text-anchor="middle">REVERSE PROXY · CHE SERVER</text></g><g class="bb-node" transform="translate(44,280)"><rect width="170" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="73.0" y="14" width="24" height="24" style="color:#3b82f6"/><text x="85.0" y="58" text-anchor="middle" class="bb-l">Client</text><text x="85.0" y="76" text-anchor="middle" class="bb-s">chỉ biết proxy</text></g><path class="bb-ar" d="M218,325 H366" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(370,270)"><rect width="280" height="110" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="123.0" y="19" width="34" height="34" style="color:#94a3b8"/><text x="140.0" y="73" text-anchor="middle" class="bb-l">Reverse proxy</text><text x="140.0" y="91" text-anchor="middle" class="bb-s">CDN · load balancer</text></g><path class="bb-ar" d="M654,305 H760 V290 H836" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M654,345 H760 V360 H836" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(840,262)"><rect width="220" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="110.0" y="49" text-anchor="middle" class="bb-l">Server A</text></g><g class="bb-node" transform="translate(840,332)"><rect width="220" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="98.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="110.0" y="49" text-anchor="middle" class="bb-l">Server B</text></g></svg></div></div><div class="fig-cap">Hình 1 — Hai loại proxy</div></div>
+  <div class="toc">
+    <span>01 <b>Forward proxy</b></span><span>02 <b>Reverse proxy</b></span><span>03 <b>Load balancer</b></span><span>04 <b>Thuật toán chia tải</b></span><span>05 <b>Layer 4 / 7</b></span><span>06 <b>LB sập thì sao</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Forward proxy <span class="t">~00:00–04:30</span></div>
+    <h2 class="c-avg">Forward proxy đứng giữa, gửi request thay client và che danh tính client; nó cũng dùng để vượt hoặc áp đặt chặn truy cập</h2>
+    <p class="desc">Có hai loại proxy chính. Nói "proxy" thường là <b>forward proxy</b>, nhưng không phải lúc nào cũng vậy, dễ nhầm. Client gửi request tới server qua một server ở giữa: server giữa nhận request rồi <b>chuyển tiếp thay mặt</b> client, đóng vai người dùng, và <b>che client</b> khỏi server đích. Request của bạn vốn mang IP của bạn; proxy giống một người bạn làm hộ. (Ví dụ người đưa thư không chuẩn lắm vì địa chỉ vẫn ghi trên phong bì.)</p>
+    <p class="desc">Vì mọi traffic đi qua proxy, nó còn dùng vào việc khác. <b>Vượt chặn</b>: quốc gia, máy hay mạng của bạn không được vào server đó, nhưng được vào proxy, thì proxy đi hộ. <b>Chặn</b>: mạng công ty hay trường học buộc mọi thiết bị đi qua proxy, và proxy đặt luật chặn một số trang, tài nguyên. Ví dụ thực tế: <b>proxy công ty</b>, và <b>VPN</b> — che IP, giả như bạn ở nước khác.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — chặn YouTube</div>
+      <p>Mạng công ty đôi khi chặn <b>YouTube</b> (người nói thấy khá bực). Proxy công ty thấy bạn định vào YouTube và từ chối, vì mọi traffic phải đi qua nó.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Reverse proxy <span class="t">~04:30–07:30</span></div>
+    <h2 class="c-cmd">Reverse proxy che server đích: client chỉ biết proxy, không biết có những server nào phía sau — CDN là một ví dụ</h2>
+    <p class="desc">Forward proxy che client; <b>reverse proxy</b> không che client mà che <b>server đích</b>. User gửi request tới server này, nhưng nó không xử lý: nó nhận request cùng mọi thông tin (như IP — không bắt buộc nhưng thường có), chuyển cho server khác; server đó xử lý, trả về reverse proxy, reverse proxy trả cho client. Client <b>không biết</b> server đích tồn tại; server thường (không nhất thiết) biết client.</p>
+    <p class="desc">Ví dụ đã học: <b>CDN</b>. Forward hay reverse? User đi thẳng tới CDN để đọc dữ liệu; CDN có thể gọi origin server mà ta không biết và không quan tâm, lấy dữ liệu, cache rồi trả lại. CDN trừu tượng hoá origin khỏi ta: đó là reverse proxy. Một ví dụ phổ biến khác là <b>load balancer</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Câu hỏi nguồn đặt ra — CDN là loại proxy nào?</div>
+      <p>Reverse proxy: user chỉ nói chuyện với CDN; origin phía sau bị ẩn đi.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Load balancer <span class="t">~07:30–09:30</span></div>
+    <h2 class="c-spec">Load balancer là reverse proxy đứng trước nhiều server giống nhau để chia đều traffic khi scale ngang</h2>
+    <p class="desc">Load balancer rất quan trọng nhưng khái niệm khá đơn giản; cài đặt thật thì không, vì nhiều chi tiết networking. User gửi request tới load balancer trước; phía sau là nhiều server chạy cùng ứng dụng, cùng API, vì một server không kham nổi. Ta muốn <b>scale ngang</b> và <b>chia đều</b> traffic — "cân bằng tải".</p>
+    <p class="desc">Theo người nói, trong phỏng vấn điều này gần như buồn cười: load balancer cực phức tạp, nhưng ta chỉ nói "đặt một load balancer phía trước rồi scale ngang server" — giả định server viết bằng REST, <b>stateless</b>, nên scale được.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Mẹo từ nguồn — câu nói quen trong phỏng vấn</div>
+      <p>"Tôi đặt một load balancer phía trước, scale ngang các server stateless." Đủ cho phỏng vấn, nhưng nên biết vài thuật toán và trade-off bên dưới.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Thuật toán chia tải <span class="t">~09:30–14:00</span></div>
+    <h2 class="c-grow">Round robin chia lần lượt; weighted round robin theo sức máy; least connections tránh máy đang bận; ngoài ra còn theo vị trí và hashing</h2>
+    <p class="desc"><b>Round robin</b> đơn giản nhất: request 1 tới server 1, request 2 tới server 2, request 3 tới server 3, request 4 quay lại server 1 — mỗi server nhận lượng traffic bằng nhau. Nhưng có thể vài server yếu hơn (ví dụ có <b>100 server</b> mà một số yếu hơn): dùng <b>weighted round robin</b>. Server điểm 10, hai server điểm 5 — tức <b>50%, 25%, 25%</b>: request 1 và 2 tới server 1, request 3 tới server 2, request 4 tới server 3. Server 1 mạnh gấp đôi nên xử lý gấp đôi: nếu nó nhận 4 request thì mỗi server kia nhận 2.</p>
+    <p class="desc"><b>Least connections</b>: chuyển tới server ít connection nhất. Round robin chia đều số request, nhưng có request lâu hơn — ví dụ request đầu đòi rất nhiều dữ liệu, xử lý lâu. Request thứ hai đã xong, request mới tới: server 1 vẫn đang bận, nên gửi sang server không có connection. Server ở nhiều nơi thì chia <b>theo vị trí user</b>: user Bắc Mỹ tới server Bắc Mỹ, châu Âu tới châu Âu, châu Á tới châu Á. Còn <b>hashing</b>: hash một trường của request — IP, nội dung, user ID… — lợi ích sẽ bàn ở bài sau.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 360" style="min-width:758px" role="img" aria-label="Bốn cách chia tải: round robin, weighted round robin, least connections, theo vị trí"><rect class="bb-grp" x="20" y="40" width="255" height="300" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="112" height="24" rx="12" fill="#1e293b"/><text x="56.0" y="16.5" text-anchor="middle">ROUND ROBIN</text></g><rect x="40" y="80" width="215" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="60" y="111" text-anchor="start" style="font-weight:800;font-size:13px">Server 1</text><text x="242" y="111" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">req 1, 4</text><rect x="40" y="146" width="215" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="60" y="177" text-anchor="start" style="font-weight:800;font-size:13px">Server 2</text><text x="242" y="177" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">req 2, 5</text><rect x="40" y="212" width="215" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="60" y="243" text-anchor="start" style="font-weight:800;font-size:13px">Server 3</text><text x="242" y="243" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">req 3, 6</text><text x="147" y="324" text-anchor="middle" fill="#7c3aed" style="fill:#7c3aed;font-weight:700;font-size:12px">lần lượt theo vòng</text><rect class="bb-grp" x="288" y="40" width="255" height="300" rx="18"/><g class="bb-gtag" transform="translate(306,28)"><rect width="88" height="24" rx="12" fill="#1e293b"/><text x="44.0" y="16.5" text-anchor="middle">WEIGHTED</text></g><rect x="308" y="80" width="215" height="52" rx="8" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="328" y="111" text-anchor="start" style="font-weight:800;font-size:13px">Server 1 · 10</text><text x="510" y="111" text-anchor="end" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:13px">50% · 4 req</text><rect x="308" y="146" width="215" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="328" y="177" text-anchor="start" style="font-weight:800;font-size:13px">Server 2 · 5</text><text x="510" y="177" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">25% · 2 req</text><rect x="308" y="212" width="215" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="328" y="243" text-anchor="start" style="font-weight:800;font-size:13px">Server 3 · 5</text><text x="510" y="243" text-anchor="end" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:13px">25% · 2 req</text><text x="415" y="324" text-anchor="middle" fill="#0d9488" style="fill:#0d9488;font-weight:700;font-size:12px">máy mạnh nhận nhiều hơn</text><rect class="bb-grp" x="556" y="40" width="255" height="300" rx="18"/><g class="bb-gtag" transform="translate(574,28)"><rect width="104" height="24" rx="12" fill="#1e293b"/><text x="52.0" y="16.5" text-anchor="middle">LEAST CONN</text></g><rect x="576" y="80" width="215" height="52" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="596" y="111" text-anchor="start" style="font-weight:800;font-size:13px">Server 1</text><text x="778" y="111" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">đang bận</text><rect x="576" y="146" width="215" height="52" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="596" y="177" text-anchor="start" style="font-weight:800;font-size:13px">Server 2</text><text x="778" y="177" text-anchor="end" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">0 conn ← đây</text><rect x="576" y="212" width="215" height="52" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/><text x="596" y="243" text-anchor="start" style="font-weight:800;font-size:13px">Server 3</text><text x="778" y="243" text-anchor="end" fill="#dc2626" style="fill:#dc2626;font-weight:800;font-size:13px">đang bận</text><text x="683" y="324" text-anchor="middle" fill="#16a34a" style="fill:#16a34a;font-weight:700;font-size:12px">tới máy ít connection nhất</text><rect class="bb-grp" x="824" y="40" width="255" height="300" rx="18"/><g class="bb-gtag" transform="translate(842,28)"><rect width="112" height="24" rx="12" fill="#1e293b"/><text x="56.0" y="16.5" text-anchor="middle">THEO VỊ TRÍ</text></g><rect x="844" y="80" width="215" height="52" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="864" y="111" text-anchor="start" style="font-weight:800;font-size:13px">Bắc Mỹ</text><text x="1046" y="111" text-anchor="end" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">user Bắc Mỹ</text><rect x="844" y="146" width="215" height="52" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="864" y="177" text-anchor="start" style="font-weight:800;font-size:13px">Châu Âu</text><text x="1046" y="177" text-anchor="end" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">user châu Âu</text><rect x="844" y="212" width="215" height="52" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="864" y="243" text-anchor="start" style="font-weight:800;font-size:13px">Châu Á</text><text x="1046" y="243" text-anchor="end" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">user châu Á</text><text x="951" y="324" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">gửi tới server gần user</text></svg></div></div><div class="fig-cap">Hình 2 — Bốn thuật toán chia tải trong video</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — weighted round robin 10 · 5 · 5</div>
+      <pre>trọng số:  S1 = <span class="val">10</span>   S2 = <span class="val">5</span>   S3 = <span class="val">5</span>   → <span class="val">50% / 25% / 25%</span>
+thứ tự:    req1 → S1, req2 → S1, req3 → S2, req4 → S3, …
+S1 nhận <span class="val">4</span> request thì S2, S3 mỗi máy nhận <span class="val">2</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Layer 4 &amp; layer 7 <span class="t">~14:00–17:30</span></div>
+    <h2 class="c-peak">Load balancer layer 4 chỉ nhìn IP nên nhanh; layer 7 đọc được HTTP nên định tuyến thông minh nhưng đắt hơn</h2>
+    <p class="desc"><b>Layer 4</b> ở tầng network thấp hơn — tầng <b>transport</b>, TCP. <b>Layer 7</b> là tầng <b>application</b>: load balancer giống một HTTP server. Layer 4 thường <b>nhanh hơn</b> vì chỉ nhìn IP để chia (theo vị trí hoặc round robin), nhưng không thông minh được vì không truy cập dữ liệu ứng dụng, không giải mã, không biết user cần resource gì. Nó chỉ thay IP đích bằng IP của một server phía sau, chuyển tiếp, rồi trả response về client.</p>
+    <p class="desc">Layer 7 đọc được dữ liệu ứng dụng. Giả sử (người nói tự đặt ra) một server lo tweet, một server lo profile, một server lo authentication: layer 7 thấy request về tweet thì gửi server tweet, request auth thì gửi server auth. Mạnh hơn, nhưng có <b>hai TCP connection</b> (client–LB và LB–server), phải giải mã mỗi request rồi tạo request mới, nên <b>đắt hơn</b>. Phân biệt này nhiều khả năng sẽ không xuất hiện trong phỏng vấn.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 340" style="min-width:758px" role="img" aria-label="Layer 4 chỉ nhìn IP nên nhanh; layer 7 đọc HTTP nên định tuyến thông minh hơn"><rect class="bb-grp" x="20" y="40" width="510" height="280" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="240" height="24" rx="12" fill="#1e293b"/><text x="120.0" y="16.5" text-anchor="middle">LAYER 4 · TRANSPORT (TCP)</text></g><g class="bb-node" transform="translate(44,140)"><rect width="220" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="93.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">LB layer 4</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">chỉ thấy IP, không đọc dữ liệu</text></g><path class="bb-ar" d="M268,170 H300 V100 H326" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M268,188 H326" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M268,206 H300 V276 H326" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(330,72)"><rect width="180" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Server</text></g><g class="bb-node" transform="translate(330,160)"><rect width="180" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Server</text></g><g class="bb-node" transform="translate(330,248)"><rect width="180" height="56" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="78.0" y="5" width="24" height="24" style="color:#7c3aed"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Server</text></g><text x="275" y="336" text-anchor="middle" fill="#3b82f6" style="fill:#3b82f6;font-weight:700;font-size:12px">thay IP đích rồi chuyển tiếp · nhanh · kém linh hoạt</text><rect class="bb-grp" x="570" y="40" width="510" height="280" rx="18"/><g class="bb-gtag" transform="translate(588,28)"><rect width="260" height="24" rx="12" fill="#1e293b"/><text x="130.0" y="16.5" text-anchor="middle">LAYER 7 · APPLICATION (HTTP)</text></g><g class="bb-node" transform="translate(594,140)"><rect width="220" height="96" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="93.0" y="12" width="34" height="34" style="color:#94a3b8"/><text x="110.0" y="66" text-anchor="middle" class="bb-l">LB layer 7</text><text x="110.0" y="84" text-anchor="middle" class="bb-s">giải mã, đọc request</text></g><path class="bb-ar" d="M818,170 H850 V100 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M818,188 H876" marker-end="url(#bb-ah)"/><path class="bb-ar" d="M818,206 H850 V276 H876" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(880,72)"><rect width="180" height="56" rx="14" fill="#ffedd5" stroke="#ea580c"/><use href="#bi-list" x="78.0" y="5" width="24" height="24" style="color:#ea580c"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Tweets</text></g><g class="bb-node" transform="translate(880,160)"><rect width="180" height="56" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-user" x="78.0" y="5" width="24" height="24" style="color:#16a34a"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Profile</text></g><g class="bb-node" transform="translate(880,248)"><rect width="180" height="56" rx="14" fill="#fce7f3" stroke="#db2777"/><use href="#bi-key" x="78.0" y="5" width="24" height="24" style="color:#db2777"/><text x="90.0" y="49" text-anchor="middle" class="bb-l">Auth</text></g><text x="825" y="336" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:12px">định tuyến theo nội dung · 2 TCP connection · đắt hơn</text></svg></div></div><div class="fig-cap">Hình 3 — Layer 4 so với layer 7</div></div>
+    <div class="note"><b>Đính chính nguồn:</b> câu tổng kết trong transcript là "layer 7 is faster but less flexible, layer 7 is slower but much more powerful" — người nói nhầm ở vế đầu. Đúng là: <b>layer 4</b> nhanh hơn nhưng kém linh hoạt; <b>layer 7</b> chậm hơn nhưng mạnh hơn nhiều.</div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ba server, ba việc</div>
+      <div class="ba">
+        <div><b>Layer 4</b>Chỉ thấy IP: chỉ chia được theo round robin hay vị trí.</div>
+        <div><b>Layer 7</b>Thấy request là về tweet → server tweet; về auth → server auth.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Load balancer sập thì sao <span class="t">~17:30–20:00</span></div>
+    <h2 class="c-cmd">Một load balancer là single point of failure; giải pháp đơn giản là nhiều bản sao hoặc một bản dự phòng</h2>
+    <p class="desc">Scale ngang server đã tăng availability và reliability: một server sập, load balancer chuyển request sang server khác. Nhưng chính load balancer sập thì sao? Nó là <b>single point of failure</b>. Dễ nhất là có <b>nhiều bản sao</b> load balancer nhận request, hoặc một <b>load balancer dự phòng</b>: bản chính sập thì chuyển sang bản kia. Load balancer chịu được lượng traffic và throughput rất lớn vì thường chỉ chuyển tiếp request, nên hiếm khi quá tải.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 280" style="min-width:758px" role="img" aria-label="Load balancer cũng có thể là single point of failure; thêm bản sao hoặc bản dự phòng"><g class="bb-node" transform="translate(20,90)"><rect width="160" height="96" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="63.0" y="20" width="34" height="34" style="color:#3b82f6"/><text x="80.0" y="74" text-anchor="middle" class="bb-l">User</text></g><path class="bb-ar" d="M184,120 H260 V70 H346" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M184,156 H260 V200 H346" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(350,30)"><rect width="240" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8"/><use href="#bi-lb" x="108.0" y="9" width="24" height="24" style="color:#94a3b8"/><text x="120.0" y="53" text-anchor="middle" class="bb-l">Load balancer</text><text x="120.0" y="71" text-anchor="middle" class="bb-s">chính</text></g><g class="bb-node" transform="translate(350,160)"><rect width="240" height="80" rx="14" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="8 5"/><use href="#bi-lb" x="108.0" y="9" width="24" height="24" style="color:#94a3b8"/><text x="120.0" y="53" text-anchor="middle" class="bb-l">Load balancer</text><text x="120.0" y="71" text-anchor="middle" class="bb-s">dự phòng / bản sao</text></g><path class="bb-ar" d="M594,70 H700 V140 H746" marker-end="url(#bb-ah)"/><path class="bb-ar d" d="M594,200 H700 V140 H746" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(750,92)"><rect x="10" y="-10" width="260" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect x="5" y="-5" width="260" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><rect width="260" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="113.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="130.0" y="66" text-anchor="middle" class="bb-l">Các server</text><text x="130.0" y="84" text-anchor="middle" class="bb-s">đã scale ngang</text></g></svg></div></div><div class="fig-cap">Hình 4 — Bản chính và bản dự phòng của load balancer</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Mẹo từ nguồn — đọc thêm và công cụ</div>
+      <ul class="plain">
+        <li>Muốn tìm hiểu sâu: đọc paper <b>Maglev</b> của <b>Google</b> về cách cài đặt load balancer.</li>
+        <li>Mã nguồn mở phổ biến nhất: <b>NGINX</b>, rất mạnh, dùng được cho nhiều việc khác.</li>
+        <li>Phổ biến hơn cả: dùng load balancer có sẵn của cloud như <b>AWS</b> hay <b>GCP</b>, vì tự cài rất khó.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Proxy nào cũng che client.</div><div><span class="v">✓</span> Forward proxy che client; reverse proxy che server (→ 01, 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Round robin luôn chia tải đều thực sự.</div><div><span class="v">✓</span> Đều số request, nhưng request dài làm server bận; least connections xử lý chuyện này (→ 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Layer 7 nhanh hơn layer 4.</div><div><span class="v">✓</span> Layer 4 nhanh hơn; layer 7 linh hoạt hơn nhưng đắt hơn (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Có load balancer là hết single point of failure.</div><div><span class="v">✓</span> Chính load balancer cũng cần bản sao hoặc bản dự phòng (→ 06).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Chọn thuật toán và loại load balancer</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Round robin</td><td>Server giống nhau, request tương tự nhau</td><td>Server mạnh yếu khác nhau</td><td>Đơn giản nhất</td></tr>
+      <tr><td class="k">Weighted round robin</td><td>Server mạnh yếu khác nhau</td><td>—</td><td>Phải biết trọng số mỗi máy</td></tr>
+      <tr><td class="k">Least connections</td><td>Thời gian xử lý request chênh lệch</td><td>—</td><td>Phải theo dõi số connection</td></tr>
+      <tr><td class="k">Theo vị trí</td><td>Server đặt ở nhiều khu vực</td><td>—</td><td>Giảm latency cho user</td></tr>
+      <tr><td class="k">Layer 4</td><td>Cần nhanh, chia theo IP là đủ</td><td>Cần định tuyến theo nội dung</td><td>Nhanh, kém linh hoạt</td></tr>
+      <tr><td class="k">Layer 7</td><td>Mỗi server lo một loại resource</td><td>Chi phí giải mã quá đắt</td><td>Mạnh, chậm và đắt hơn</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>VPN là forward proxy hay reverse proxy?</summary><p>Forward proxy: che IP của client, giả như ở nước khác. (→ 01)</p></details>
+    <details><summary>CDN là forward proxy hay reverse proxy, vì sao?</summary><p>Reverse proxy: user chỉ nói chuyện với CDN, origin phía sau bị ẩn. (→ 02)</p></details>
+    <details><summary>Ba server trọng số 10, 5, 5. Trong 8 request, mỗi server nhận bao nhiêu?</summary><p>4, 2, 2 (tức 50%, 25%, 25%). (→ 04)</p></details>
+    <details><summary>Vì sao layer 7 đắt hơn layer 4?</summary><p>Phải giải mã từng request, có hai TCP connection và tạo request mới; layer 4 chỉ đổi IP rồi chuyển tiếp. (→ 05)</p></details>
+    <details><summary>Muốn tránh load balancer là single point of failure, làm gì?</summary><p>Chạy nhiều bản sao load balancer, hoặc có bản dự phòng nhận request khi bản chính sập. (→ 06)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">forward proxy</td><td>Gửi request thay client, che client</td><td>01</td></tr>
+      <tr><td class="k">VPN</td><td>Ví dụ forward proxy, che IP người dùng</td><td>01</td></tr>
+      <tr><td class="k">reverse proxy</td><td>Nhận request thay server, che server đích</td><td>02</td></tr>
+      <tr><td class="k">load balancer</td><td>Reverse proxy chia tải cho nhiều server</td><td>03</td></tr>
+      <tr><td class="k">round robin · weighted round robin</td><td>Chia lần lượt · chia theo trọng số</td><td>04</td></tr>
+      <tr><td class="k">least connections</td><td>Gửi tới server ít connection nhất</td><td>04</td></tr>
+      <tr><td class="k">hashing</td><td>Chọn server theo hash của một trường request</td><td>04</td></tr>
+      <tr><td class="k">layer 4 · layer 7</td><td>Load balancer tầng transport · tầng application</td><td>05</td></tr>
+      <tr><td class="k">single point of failure</td><td>Thành phần mà hỏng là cả hệ thống hỏng</td><td>06</td></tr>
+      <tr><td class="k">Maglev · NGINX</td><td>Paper load balancer của Google · load balancer mã nguồn mở</td><td>06</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “12 - Proxies and Load Balancing” (<a href="https://drive.google.com/file/d/1C_N5mKUNltUVmR9bdaV6Ttq-Krq-RJly/view">drive.google.com/file/d/1C_N5mKUNltUVmR9bdaV6Ttq-Krq-RJly</a>) · khoảng 20 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-12.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
