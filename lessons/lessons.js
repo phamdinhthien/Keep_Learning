@@ -468,5 +468,18 @@ window.LESSONS = [
     "title": "NoSQL: key-value, document, wide-column, graph",
     "description": "Bốn loại NoSQL, vì sao ACID làm SQL khó scale ngang, và BASE với eventual consistency qua leader/follower.",
     "readTime": "16 phút đọc"
+  },
+  {
+    "id": "nc-16",
+    "path": "system-design/neetcode-beginner/nc-16.html",
+    "khoa": "System Design",
+    "khoaSlug": "system-design",
+    "lop": "NeetCode - Beginner",
+    "lopSlug": "neetcode-beginner",
+    "lopOrder": 2,
+    "order": 16,
+    "title": "Replication và Sharding",
+    "description": "Leader-follower, async và sync replication, multi-leader theo vùng địa lý; sharding, shard key range/hash và sharding ở SQL so với NoSQL.",
+    "readTime": "16 phút đọc"
   }
 ];

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replication và Sharding — Bản đầy đủ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="nc-16">
+  <meta name="lesson:title" content="Replication và Sharding">
+  <meta name="lesson:description" content="Leader-follower, async và sync replication, multi-leader theo vùng địa lý; sharding, shard key range/hash và sharding ở SQL so với NoSQL.">
+  <meta name="lesson:order" content="16">
+  <meta name="lesson:khoa" content="System Design">
+  <meta name="lesson:lop" content="NeetCode - Beginner">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="16 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/system-design">System Design</a><span>›</span><a href="../../../index.html#/system-design/neetcode-beginner">NeetCode - Beginner</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Replication và Sharding — Bản đầy đủ-->
+<header>
+  <div class="eyebrow">NeetCode · System Design Beginner · Video 16</div>
+  <h1><span class="a">Replication</span> sao chép cả database để đọc được nhiều hơn; <span class="b">sharding</span> chia nhỏ dữ liệu để mỗi máy giữ một phần</h1>
+  <div class="sub">Hai thứ khác nhau nhưng liên quan: cả hai đều là cách scale ngang database, mỗi cái một bộ trade-off.</div>
+  <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 330" style="min-width:758px" role="img" aria-label="Leader-follower: ghi vào leader, đọc từ leader hoặc follower; leader chép dữ liệu sang follower"><g class="bb-node" transform="translate(20,110)"><rect width="140" height="80" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-user" x="53.0" y="12" width="34" height="34" style="color:#3b82f6"/><text x="70.0" y="66" text-anchor="middle" class="bb-l">User</text></g><path class="bb-ar" d="M164,150 H216" marker-end="url(#bb-ah)"/><g class="bb-node" transform="translate(220,100)"><rect width="210" height="100" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="88.0" y="14" width="34" height="34" style="color:#7c3aed"/><text x="105.0" y="68" text-anchor="middle" class="bb-l">Ứng dụng</text><text x="105.0" y="86" text-anchor="middle" class="bb-s">user không gọi DB trực tiếp</text></g><path class="bb-ar" d="M434,130 H520 V70 H566" marker-end="url(#bb-ah)"/><text x="500" y="56" text-anchor="middle" class="bb-a">đọc + ghi</text><g class="bb-node" transform="translate(570,30)"><rect width="220" height="80" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="98.0" y="9" width="24" height="24" style="color:#16a34a"/><text x="110.0" y="53" text-anchor="middle" class="bb-l">Leader</text><text x="110.0" y="71" text-anchor="middle" class="bb-s">nhận mọi lệnh ghi</text></g><path class="bb-ar" d="M434,170 H520 V250 H566" marker-end="url(#bb-ah)"/><text x="500" y="278" text-anchor="middle" class="bb-a">chỉ đọc</text><g class="bb-node" transform="translate(570,210)"><rect width="220" height="80" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-copy" x="98.0" y="9" width="24" height="24" style="color:#0d9488"/><text x="110.0" y="53" text-anchor="middle" class="bb-l">Follower</text><text x="110.0" y="71" text-anchor="middle" class="bb-s">không nhận ghi</text></g><path class="bb-ar d" d="M680,114 V206" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="700" y="160" text-anchor="start" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">replicate</text><path class="bb-ar d" d="M794,250 H866" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><g class="bb-node" transform="translate(870,210)"><rect width="210" height="80" rx="14" fill="#ccfbf1" stroke="#0d9488"/><use href="#bi-copy" x="93.0" y="9" width="24" height="24" style="color:#0d9488"/><text x="105.0" y="53" text-anchor="middle" class="bb-l">Follower 2</text><text x="105.0" y="71" text-anchor="middle" class="bb-s">follower cũng có thể chép tiếp</text></g></svg></div></div><div class="fig-cap">Hình 1 — Leader-follower replication</div></div>
+  <div class="toc">
+    <span>01 <b>Vì sao replicate</b></span><span>02 <b>Leader-follower</b></span><span>03 <b>Async / sync</b></span><span>04 <b>Multi-leader</b></span><span>05 <b>Sharding</b></span><span>06 <b>Shard key</b></span><span>07 <b>SQL vs NoSQL</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Vì sao cần replication <span class="t">~00:00–02:00</span></div>
+    <h2 class="c-avg">Một database node gánh mọi đọc ghi; khi quá nhiều connection hoặc quá nhiều dữ liệu phải đọc, ta tạo bản sao</h2>
+    <p class="desc">Một database node duy nhất — SQL hay NoSQL không quan trọng lắm — chứa mọi dữ liệu, mọi đọc ghi đi qua nó. Traffic ít thì ổn. Traffic tăng: có thể <b>quá nhiều connection</b> cùng lúc, hoặc mỗi query phải đọc quá nhiều dữ liệu nên không xử lý kịp. Đó là lúc cần <b>replication</b>: tạo bản sao để xử lý nhiều request hơn. Nhưng không đơn giản; có nhiều sắc thái và quyết định.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai dấu hiệu quá tải</div>
+      <div class="ba">
+        <div><b>Quá nhiều connection</b>Database không nhận thêm được kết nối cùng lúc.</div>
+        <div><b>Query quá nặng</b>Mỗi query phải đọc quá nhiều dữ liệu, không kịp phục vụ.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">02. Leader-follower <span class="t">~02:00–06:00</span></div>
+    <h2 class="c-cmd">Ghi chỉ vào leader, đọc được từ leader và follower — cách đơn giản để scale phần đọc vốn chiếm đa số</h2>
+    <p class="desc"><b>Leader-follower replication</b>, còn gọi là <b>master-slave</b> — tên đang dần lỗi thời, nên người nói dùng leader-follower. Leader chịu trách nhiệm chép dữ liệu sang một hay nhiều follower; follower cũng có thể chép tiếp cho follower khác, đỡ bớt việc cho leader. User không nói chuyện thẳng với database mà qua <b>ứng dụng</b>; từ phía client, ta đọc và ghi được vào leader.</p>
+    <p class="desc">Follower <b>chỉ cho đọc</b>, không cho ghi: follower không chép dữ liệu của nó sang node khác, nên ghi vào follower thì leader không có, ai đọc leader sẽ thấy dữ liệu cũ. Cách này scale được <b>đọc</b>, thường quan trọng hơn: bạn dùng app chủ yếu là tải trang và đọc dữ liệu người khác, ít khi ghi.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — vì sao không ghi vào follower</div>
+      <p>Ghi vào follower: dữ liệu đó không được chép về leader. Người đọc từ leader sẽ không thấy dữ liệu mới nhất — hệ thống hỏng ngay.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">03. Async &amp; sync replication <span class="t">~06:00–11:00</span></div>
+    <h2 class="c-spec">Async trả lời client ngay nhưng follower tạm stale; sync không stale nhưng tăng latency — và replica còn giúp chịu lỗi</h2>
+    <p class="desc">Có nhiều chiến lược, nhưng trade-off chính là <b>asynchronous</b> hay <b>synchronous</b>. <b>Async</b>: client ghi vào leader, rồi đến lúc nào đó leader mới chép sang follower — có thể theo lịch như <b>mỗi giờ</b> (thường nhanh hơn), hoặc vài giây sau leader chạy lại transaction đó trên follower. Follower rồi cũng cập nhật, nhưng trong chốc lát người đọc từ follower thấy <b>stale data</b>; chấp nhận được thì dùng.</p>
+    <p class="desc"><b>Sync</b>: mỗi lần ghi vào leader, leader dừng lại và chép ngay sang follower. Không còn dữ liệu lệch, không ai đọc phải dữ liệu cũ. Nhược điểm là <b>latency</b>: chép ngay vẫn tốn thời gian, và transaction chỉ được coi là xong với client khi đã chép xong. Replica ở nơi khác trên thế giới thì latency tăng đáng kể.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 460" style="min-width:758px" role="img" aria-label="Async trả lời ngay nhưng follower tạm stale; sync không stale nhưng client chờ lâu hơn"><text x="40" y="30" text-anchor="start" fill="#ea580c" style="fill:#ea580c;font-weight:800;font-size:14px">ASYNCHRONOUS</text><text x="40" y="76" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:14px">Client</text><path d="M140,70 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="40" y="126" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">Leader</text><path d="M140,120 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="40" y="176" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">Follower</text><path d="M140,170 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><path class="bb-ar" d="M200,70 V114" marker-end="url(#bb-ah)"/><text x="214" y="94" text-anchor="start" class="bb-a">ghi</text><path class="bb-ar d" d="M260,120 V76" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="274" y="98" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">xong ngay</text><rect x="300" y="160" width="400" height="20" rx="5" fill="url(#bb-hatch)" fill-opacity=".45" stroke="#dc2626" stroke-width="1.5"/><text x="500" y="200" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">follower còn dữ liệu cũ (stale) vài giây, có khi theo lịch mỗi giờ</text><path class="bb-ar" d="M700,120 V164" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="714" y="146" text-anchor="start" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">chép sau</text><text x="40" y="250" text-anchor="start" fill="#7c3aed" style="fill:#7c3aed;font-weight:800;font-size:14px">SYNCHRONOUS</text><text x="40" y="296" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:14px">Client</text><path d="M140,290 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="40" y="346" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:14px">Leader</text><path d="M140,340 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="40" y="396" text-anchor="start" fill="#0d9488" style="fill:#0d9488;font-weight:800;font-size:14px">Follower</text><path d="M140,390 H1060" fill="none" stroke="#94a3b8" stroke-width="2"/><path class="bb-ar" d="M200,290 V334" marker-end="url(#bb-ah)"/><text x="214" y="314" text-anchor="start" class="bb-a">ghi</text><path class="bb-ar" d="M260,340 V384" marker-end="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="274" y="366" text-anchor="start" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">chép ngay</text><path class="bb-ar d" d="M500,390 V346" marker-end="url(#bb-ah-teal)" style="stroke:#0d9488"/><text x="514" y="368" text-anchor="start" class="bb-a" fill="#0d9488" style="fill:#0d9488">follower xác nhận</text><path class="bb-ar d" d="M560,340 V296" marker-end="url(#bb-ah-green)" style="stroke:#16a34a"/><text x="574" y="318" text-anchor="start" class="bb-a" fill="#16a34a" style="fill:#16a34a">mới báo xong</text><path d="M200,420 v8 h360 v-8" fill="none" stroke="#dc2626" stroke-width="2.5"/><text x="380" y="446" text-anchor="middle" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12.5px">client chờ lâu hơn — càng xa về địa lý càng lâu</text></svg></div></div><div class="fig-cap">Hình 2 — Async và sync trên trục thời gian (minh hoạ)</div></div>
+    <p class="desc">Replication còn tăng <b>reliability</b> và <b>availability</b>: leader sập thì vẫn có một replica gần như đầy đủ dữ liệu để thay chỗ leader.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai cách chép</div>
+      <div class="ba">
+        <div><b>Async</b>Ghi xong báo ngay; vài giây sau (hoặc theo lịch, vd mỗi giờ) mới chép. Đọc từ follower có thể cũ vài giây.</div>
+        <div><b>Sync</b>Chép xong mới báo client; không stale, nhưng chậm hơn, nhất là khi replica ở xa.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">04. Multi-leader <span class="t">~11:00–15:00</span></div>
+    <h2 class="c-grow">Nhiều leader cho phép ghi ở mọi node để scale cả ghi, đổi lại các node dễ lệch nhau — hợp với phục vụ từng vùng địa lý</h2>
+    <p class="desc"><b>Leader-leader replication</b>, còn gọi <b>master-master</b> hay <b>multi-master</b>: đọc và ghi ở mọi node, nên scale cả <b>ghi</b> lẫn đọc. Rất mạnh, nhưng chép dữ liệu giữa nhiều leader rất phức tạp: dữ liệu ghi ở node này, ở node kia, rồi phải trao đổi, chắc chắn sẽ <b>lệch nhau</b>. Async thì chỉ nhất quán lỏng; sync thì latency cao, tuỳ số leader và phân bố địa lý.</p>
+    <p class="desc">Lý do chính để dùng: mỗi <b>nửa thế giới</b> (hay mỗi châu lục) một leader. Người mỗi bên chủ yếu dùng leader của mình, nên hai leader lệch nhau một lúc cũng không sao. Thỉnh thoảng có người bay sang bên kia; vẫn ổn vì ta đồng bộ, ví dụ <b>mỗi giờ</b>, không cần ngay lập tức. Đó là use case chính: phục vụ các vùng gần như độc lập.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 318" style="min-width:758px" role="img" aria-label="Multi-leader: mỗi nửa thế giới một leader, đồng bộ với nhau định kỳ"><rect class="bb-grp" x="20" y="40" width="480" height="240" rx="18"/><g class="bb-gtag" transform="translate(38,28)"><rect width="150" height="24" rx="12" fill="#1e293b"/><text x="75.0" y="16.5" text-anchor="middle">NỬA THẾ GIỚI 1</text></g><g class="bb-node" transform="translate(44,100)"><rect width="190" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="78.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="95.0" y="71" text-anchor="middle" class="bb-l">User khu vực 1</text></g><path class="bb-ar" d="M238,145 H286" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(290,90)"><rect width="190" height="110" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="19" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="73" text-anchor="middle" class="bb-l">Leader 1</text><text x="95.0" y="91" text-anchor="middle" class="bb-s">đọc + ghi</text></g><rect class="bb-grp" x="600" y="40" width="480" height="240" rx="18"/><g class="bb-gtag" transform="translate(618,28)"><rect width="150" height="24" rx="12" fill="#1e293b"/><text x="75.0" y="16.5" text-anchor="middle">NỬA THẾ GIỚI 2</text></g><g class="bb-node" transform="translate(620,90)"><rect width="190" height="110" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="78.0" y="19" width="34" height="34" style="color:#16a34a"/><text x="95.0" y="73" text-anchor="middle" class="bb-l">Leader 2</text><text x="95.0" y="91" text-anchor="middle" class="bb-s">đọc + ghi</text></g><path class="bb-ar" d="M814,145 H862" marker-end="url(#bb-ah)" marker-start="url(#bb-ah)"/><g class="bb-node" transform="translate(866,100)"><rect width="190" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6"/><use href="#bi-people" x="78.0" y="17" width="34" height="34" style="color:#3b82f6"/><text x="95.0" y="71" text-anchor="middle" class="bb-l">User khu vực 2</text></g><path class="bb-ar d" d="M484,145 H616" marker-end="url(#bb-ah-purple)" marker-start="url(#bb-ah-purple)" style="stroke:#7c3aed"/><text x="550" y="132" text-anchor="middle" class="bb-a" fill="#7c3aed" style="fill:#7c3aed">sync vd mỗi giờ</text><text x="550" y="306" text-anchor="middle" fill="#ea580c" style="fill:#ea580c;font-weight:700;font-size:13px">scale được cả ghi · hai leader có thể lệch nhau một lúc</text></svg></div></div><div class="fig-cap">Hình 3 — Mỗi nửa thế giới một leader</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — hai nửa thế giới</div>
+      <p>Mỗi nửa thế giới có leader riêng; user mỗi bên đọc ghi vào leader của mình. Hai leader đồng bộ định kỳ (vd mỗi giờ). Người bay sang nửa kia vẫn dùng được, chỉ có thể thấy dữ liệu chưa đồng bộ một lúc.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">05. Sharding <span class="t">~15:00–19:00</span></div>
+    <h2 class="c-peak">Khi dữ liệu lên tới petabyte, ta cắt bảng thành nhiều shard đặt trên các máy khác nhau — vừa chia tải vừa làm query nhanh hơn</h2>
+    <p class="desc">Nói về sharding không khó, nhưng <b>cài đặt rất khó</b>, và trong phỏng vấn nhiều khả năng không đi vào chi tiết. Vấn đề: database nhận quá nhiều đọc hoặc ghi; vertical scale chỉ tới một mức; replication giúp đọc (thậm chí ghi) nhiều hơn, nhưng có khi vẫn chưa đủ. Dữ liệu khổng lồ — không phải terabyte mà <b>petabyte</b> — thì tìm kiếm trên một máy quá khó, query mất nhiều giây: thử tưởng tượng mở Twitter mà <b>5 hay 10 giây</b> mới thấy feed.</p>
+    <p class="desc">Sharding: không chỉ đặt dữ liệu lên nhiều máy, mà <b>cắt chính dữ liệu</b> thành các database nhỏ hơn — lấy một nửa số hàng của bảng cho database này, nửa kia cho database kia, mỗi cái <b>trên một máy riêng</b> (đặt chung một máy thì chẳng giải quyết gì). Mỗi phần là một <b>shard</b>; có thể nhiều hơn hai. Không chỉ chia được traffic, mà query cũng nhanh hơn vì mỗi shard chỉ có nửa dữ liệu; có thể chia nhỏ tiếp.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — feed Twitter chậm</div>
+      <p>Dữ liệu cỡ petabyte trên một máy: một query mất vài giây, feed hiện ra sau 5–10 giây. Chia thành shard trên nhiều máy: mỗi query chỉ quét một phần dữ liệu.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Shard key <span class="t">~19:00–22:30</span></div>
+    <h2 class="c-avg">Shard key quyết định hàng nào vào shard nào: theo range (như họ A–L, M–Z) hoặc theo hash (consistent hashing)</h2>
+    <p class="desc">Giá trị dùng để quyết định cách chia là <b>shard key</b>. Một kiểu là <b>range-based</b>: với một bảng thường chọn primary key, rồi chia theo khoảng giá trị. Ví dụ đơn giản: theo giới tính (nam một shard, nữ một shard) — rời rạc, chỉ hai giá trị. Hoặc theo chữ cái đầu của <b>họ</b>: <b>A–L</b> vào shard 1, <b>M–Z</b> vào shard 2.</p>
+    <p class="desc">Nhưng <b>join</b> giữa hai nửa bảng thì chậm, hoặc không chạy được. Một bảng thì có thể ổn; shard thêm bảng thứ hai có liên quan bảng đầu thì làm sao giữ nhất quán, bảo đảm dữ liệu tương ứng nằm cùng shard? Phải viết rất nhiều logic riêng. Thay cho range còn có <b>hash-based sharding</b>, một use case của <b>consistent hashing</b>.</p>
+    <div class="fig bbg"><div class="bbg-card"><div class="bbg-scroll"><svg class="bbg-svg" viewBox="0 0 1100 300" style="min-width:758px" role="img" aria-label="Sharding theo range họ A–L và M–Z; SQL phải tự viết logic chọn shard"><g class="bb-node" transform="translate(20,110)"><rect width="200" height="96" rx="14" fill="#ede9fe" stroke="#7c3aed"/><use href="#bi-server" x="83.0" y="12" width="34" height="34" style="color:#7c3aed"/><text x="100.0" y="66" text-anchor="middle" class="bb-l">Ứng dụng</text><text x="100.0" y="84" text-anchor="middle" class="bb-s">tự chọn shard (SQL)</text></g><path class="bb-ar" d="M224,140 H300 V80 H346" marker-end="url(#bb-ah)"/><text x="300" y="64" text-anchor="middle" class="bb-a">họ A–L</text><path class="bb-ar" d="M224,176 H300 V236 H346" marker-end="url(#bb-ah)"/><text x="300" y="266" text-anchor="middle" class="bb-a">họ M–Z</text><g class="bb-node" transform="translate(350,40)"><rect width="230" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="103.0" y="11" width="24" height="24" style="color:#16a34a"/><text x="115.0" y="55" text-anchor="middle" class="bb-l">Shard 1</text><text x="115.0" y="73" text-anchor="middle" class="bb-s">máy riêng · nửa số hàng</text></g><g class="bb-node" transform="translate(350,196)"><rect width="230" height="84" rx="14" fill="#dcfce7" stroke="#16a34a"/><use href="#bi-db" x="103.0" y="11" width="24" height="24" style="color:#16a34a"/><text x="115.0" y="55" text-anchor="middle" class="bb-l">Shard 2</text><text x="115.0" y="73" text-anchor="middle" class="bb-s">máy riêng · nửa số hàng</text></g><path class="bb-ar d" d="M465,128 V192" marker-end="url(#bb-ah-red)" marker-start="url(#bb-ah-red)" style="stroke:#dc2626"/><text x="485" y="166" text-anchor="start" fill="#dc2626" style="fill:#dc2626;font-weight:700;font-size:12px">join · ràng buộc chéo shard</text><rect x="660" y="30" width="420" height="260" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="684" y="64" text-anchor="start" fill="#64748b" style="fill:#64748b;font-weight:800">SHARD KEY</text><text x="684" y="98" text-anchor="start" style="font-weight:600;font-size:13px">• range-based: A–L / M–Z, nam / nữ</text><text x="684" y="126" text-anchor="start" style="font-weight:600;font-size:13px">• hash-based: dùng consistent hashing</text><text x="684" y="172" text-anchor="start" fill="#3b82f6" style="fill:#3b82f6;font-weight:800;font-size:13px">MySQL · Postgres</text><text x="684" y="196" text-anchor="start" style="font-weight:600;font-size:13px">không shard sẵn → tự viết logic ở ứng dụng</text><text x="684" y="238" text-anchor="start" fill="#16a34a" style="fill:#16a34a;font-weight:800;font-size:13px">Phần lớn NoSQL</text><text x="684" y="262" text-anchor="start" style="font-weight:600;font-size:13px">shard sẵn trong hệ quản trị database</text></svg></div></div><div class="fig-cap">Hình 4 — Shard theo họ và các cách chọn shard key</div></div>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — range theo họ</div>
+      <pre>shard 1:  họ bắt đầu bằng <span class="val">A … L</span>
+shard 2:  họ bắt đầu bằng <span class="val">M … Z</span>
+<span class="cm">// join giữa shard 1 và shard 2: chậm hoặc không chạy được</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Sharding ở SQL và NoSQL <span class="t">~22:30–25:00</span></div>
+    <h2 class="c-cmd">MySQL và Postgres không shard sẵn — phải tự làm ở tầng ứng dụng; phần lớn NoSQL shard sẵn vì sinh ra để scale ngang</h2>
+    <p class="desc">Các SQL database mã nguồn mở phổ biến như <b>MySQL</b> và <b>Postgres</b> <b>không có sharding mặc định</b>. Muốn shard thì phải tự cài logic ở <b>tầng ứng dụng</b>: tự quyết cách chia, biết shard nào chứa dữ liệu cần tìm. Hợp lý thôi, vì SQL vốn không được thiết kế để phân tán như vậy: phân tán là mất consistency của ACID — foreign key và mọi ràng buộc trong schema không còn được bảo đảm.</p>
+    <p class="desc">Phần lớn <b>NoSQL có sharding sẵn</b> trong hệ quản trị, vì NoSQL sinh ra để scale ngang tốt hơn. Dữ liệu bị chia thành shard cũng không sao: ít join, không foreign key, dữ liệu non-relational, và giữa các node chỉ cần <b>eventually consistent</b>.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn — ai lo việc chọn shard</div>
+      <div class="ba">
+        <div><b>MySQL / Postgres</b>Ứng dụng của bạn tự quyết dữ liệu nằm shard nào và đi tìm ở đâu.</div>
+        <div><b>Đa số NoSQL</b>Hệ quản trị database tự lo sharding.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Năm chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Replication và sharding là một.</div><div><span class="v">✓</span> Replication sao chép toàn bộ; sharding chia dữ liệu thành phần (→ 01, 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Ghi vào follower nào cũng được.</div><div><span class="v">✓</span> Leader-follower chỉ ghi vào leader (→ 02).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Sync replication luôn tốt hơn vì không stale.</div><div><span class="v">✓</span> Đổi lại latency cao, nhất là khi replica ở xa (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Đặt hai shard trên cùng một máy là đủ.</div><div><span class="v">✓</span> Phải trên máy khác nhau mới có thêm tài nguyên (→ 05).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Postgres tự shard được.</div><div><span class="v">✓</span> MySQL, Postgres không shard sẵn; phải làm ở tầng ứng dụng (→ 07).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Chọn cách scale database</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th><th>Đánh đổi</th></tr>
+      <tr><td class="k">Leader-follower async</td><td>Nhiều đọc, chịu được stale vài giây</td><td>Không được đọc dữ liệu cũ</td><td>Ghi nhanh; follower tạm stale</td></tr>
+      <tr><td class="k">Leader-follower sync</td><td>Không được stale</td><td>Replica ở xa, cần ghi nhanh</td><td>Nhất quán; latency ghi cao</td></tr>
+      <tr><td class="k">Multi-leader</td><td>Phục vụ các vùng địa lý gần như độc lập; cần scale ghi</td><td>Cần nhất quán chặt</td><td>Scale ghi; các leader lệch nhau</td></tr>
+      <tr><td class="k">Sharding range</td><td>Chia theo khoảng rõ ràng (họ A–L / M–Z)</td><td>Cần join nhiều giữa các shard</td><td>Dễ hiểu; join chéo khó</td></tr>
+      <tr><td class="k">Sharding hash</td><td>Muốn chia đều, số shard thay đổi</td><td>—</td><td>Dùng consistent hashing; phức tạp hơn</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Năm câu hỏi</h2>
+    <details><summary>Vì sao leader-follower chủ yếu scale được đọc?</summary><p>Đọc chia cho nhiều follower, nhưng mọi lệnh ghi vẫn phải vào một leader. (→ 02)</p></details>
+    <details><summary>Async và sync replication đánh đổi gì?</summary><p>Async: nhanh, follower tạm stale. Sync: không stale, nhưng client chờ leader chép xong nên latency cao. (→ 03)</p></details>
+    <details><summary>Khi nào multi-leader hợp lý?</summary><p>Khi mỗi vùng (vd mỗi nửa thế giới) có leader riêng và user chủ yếu dùng leader của vùng mình; đồng bộ định kỳ. (→ 04)</p></details>
+    <details><summary>Sharding nhanh hơn ở hai điểm nào?</summary><p>Chia traffic cho nhiều máy, và mỗi query chỉ quét phần dữ liệu nhỏ hơn. (→ 05)</p></details>
+    <details><summary>Shard theo họ A–L / M–Z, user "Nguyễn" vào shard nào? Join users với orders có vấn đề gì?</summary><p>Shard 2 (N thuộc M–Z). Nếu orders không cùng shard với user tương ứng thì join chéo shard chậm hoặc không chạy. (→ 06)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">replication</td><td>Tạo bản sao của database</td><td>01</td></tr>
+      <tr><td class="k">leader-follower (master-slave)</td><td>Một node nhận ghi, các node còn lại chỉ đọc</td><td>02</td></tr>
+      <tr><td class="k">asynchronous · synchronous</td><td>Chép sau · chép ngay trước khi báo xong</td><td>03</td></tr>
+      <tr><td class="k">stale data</td><td>Dữ liệu cũ chưa được cập nhật</td><td>03</td></tr>
+      <tr><td class="k">multi-leader (master-master)</td><td>Nhiều node cùng nhận ghi</td><td>04</td></tr>
+      <tr><td class="k">sharding · shard</td><td>Chia dữ liệu · một phần dữ liệu trên máy riêng</td><td>05</td></tr>
+      <tr><td class="k">petabyte</td><td>Đơn vị dữ liệu lớn hơn terabyte</td><td>05</td></tr>
+      <tr><td class="k">shard key</td><td>Giá trị quyết định hàng vào shard nào</td><td>06</td></tr>
+      <tr><td class="k">range-based · hash-based</td><td>Chia theo khoảng · chia theo hash</td><td>06</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: NeetCode — System Design for Beginners · “16 - Replication and Sharding” (<a href="https://drive.google.com/file/d/1eSbtpdX0WZOPLcYnxHwWWmWvvHcWXiH5/view">drive.google.com/file/d/1eSbtpdX0WZOPLcYnxHwWWmWvvHcWXiH5</a>) · khoảng 25 phút<br>Nội dung lấy từ transcript tự động của Google Drive (không có timestamp, mốc thời gian là ước lượng); không đọc khung hình.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="system-design/neetcode-beginner/nc-16.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
