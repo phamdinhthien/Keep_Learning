@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hiệu năng ảnh trên web — Modern DevTools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+
+  .fig.fe-fig{margin:18px 0 22px;width:min(1000px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%)}
+  .example-box .fig.fe-fig{width:auto;left:0;transform:none}
+  .fe-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .fe-win{min-width:640px;background:#202124;border:1px solid #3c4043;border-radius:10px;overflow:hidden;font:12px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e8eaed;box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:left}
+  .fe-win + .fe-win{margin-top:12px}
+  .fe-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:640px;align-items:start}
+  .fe-row2 .fe-win{min-width:0}
+  .fe-chrome{background:#35363a;padding:8px 12px;display:flex;gap:7px;align-items:center}
+  .fe-chrome i{width:11px;height:11px;border-radius:50%;background:#ff5f57;display:inline-block}
+  .fe-chrome i:nth-child(2){background:#febc2e} .fe-chrome i:nth-child(3){background:#28c840}
+  .fe-url{flex:1;margin-left:8px;background:#202124;border-radius:14px;padding:3px 12px;color:#bdc1c6;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fe-page{background:#fff;color:#202124;padding:14px 16px;position:relative;font-size:13px}
+  .fe-tabs{display:flex;flex-wrap:nowrap;background:#292a2d;border-bottom:1px solid #3c4043;font-size:12px;overflow:hidden}
+  .fe-tabs span{padding:7px 11px;color:#9aa0a6;white-space:nowrap}
+  .fe-tabs .on{color:#e8eaed;box-shadow:inset 0 -2px #8ab4f8}
+  .fe-tool{display:flex;gap:14px;align-items:center;padding:5px 12px;border-bottom:1px solid #3c4043;color:#9aa0a6;font-size:11.5px;white-space:nowrap;overflow:hidden}
+  .fe-tool b{color:#e8eaed;font-weight:600} .fe-tool .rec{color:#f28b82} .fe-tool .warn{color:#fdd663}
+  .fe-body{padding:10px 12px}
+  .fe-split{display:grid;grid-template-columns:1.5fr 1fr}
+  .fe-split > div{min-width:0;overflow:hidden}
+  .fe-split > div + div{border-left:1px solid #3c4043}
+  .fe-ph{padding:5px 12px;background:#292a2d;color:#9aa0a6;font-size:11.5px;border-bottom:1px solid #3c4043;font-weight:600}
+  .fe-tl{display:grid;grid-template-columns:96px 1fr;row-gap:3px;align-items:center}
+  .fe-tl .lab{color:#9aa0a6;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+  .fe-trk{position:relative;height:18px}
+  .fe-trk.tall{height:26px}
+  .fe-ruler{position:relative;height:16px;color:#9aa0a6;font-size:10.5px;border-bottom:1px solid #3c4043}
+  .fe-ruler span{position:absolute;top:0;transform:translateX(-50%)}
+  .fe-bar{position:absolute;top:0;height:100%;border-radius:2px;font-size:10.5px;line-height:18px;padding:0 4px;white-space:nowrap;overflow:hidden;color:#1b1b1b;box-sizing:border-box}
+  .fe-trk.tall .fe-bar{line-height:26px}
+  .fe-js{background:#f4c542} .fe-js2{background:#e9b33a} .fe-ren{background:#a98ae6} .fe-pnt{background:#7cbf6c} .fe-net{background:#7aa7e0} .fe-sys{background:#8d8f94} .fe-gpu{background:#5fb57a} .fe-idle{background:#3c4043}
+  .fe-frm{background:#6fbf73} .fe-frm.slow{background:#e57373} .fe-frm.mid{background:#f2c94c}
+  .fe-bar.sel{outline:2px solid #8ab4f8;outline-offset:1px;z-index:2}
+  .fe-bar.hot{outline:2px solid #ff6b6b;outline-offset:1px;z-index:2}
+  .fe-vline{position:absolute;top:-2px;bottom:-2px;border-left:1.5px dashed #9aa0a6;opacity:.7}
+  .fe-pin{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#fff;font:700 11px/1 system-ui,sans-serif;font-style:normal;vertical-align:middle;margin:0 3px;flex:none}
+  .fe-sum{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;font-size:12px}
+  .fe-sum .sw{width:10px;height:10px;border-radius:2px}
+  .fe-sum .v{color:#e8eaed;font-variant-numeric:tabular-nums;text-align:right}
+  .fe-sum .n{color:#bdc1c6}
+  .fe-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px}
+  .fe-kv .k{color:#9aa0a6} .fe-kv .v{color:#e8eaed}
+  .fe-kv .v.hot{color:#ff8a80;font-weight:700} .fe-kv .v.ok{color:#81c995;font-weight:700}
+  .fe-link{color:#8ab4f8;text-decoration:underline}
+  table.fe-nt{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+  table.fe-nt th{color:#9aa0a6;font-weight:600;text-align:left;padding:4px 8px;border-bottom:1px solid #3c4043;background:#292a2d}
+  table.fe-nt td{padding:4px 8px;border-bottom:1px solid #303134;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8eaed}
+  table.fe-nt tr.hot td{background:rgba(242,139,130,.14)} table.fe-nt tr.blk td{color:#f28b82;text-decoration:line-through}
+  table.fe-nt tr.sel td{background:rgba(138,180,248,.16)}
+  .fe-wf{position:relative;height:10px} .fe-wf i{position:absolute;top:0;height:10px;border-radius:2px}
+  .fe-wf .w{background:#81c995} .fe-wf .d{background:#8ab4f8}
+  .fe-code{font:12px/1.6 "JetBrains Mono","IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;background:#1e1e1e;color:#d4d4d4;padding:8px 0;overflow:hidden}
+  .fe-win *{font-variant-ligatures:none!important;font-feature-settings:"liga" 0,"calt" 0!important}
+  .fe-code .ln{display:grid;grid-template-columns:42px 1fr;white-space:pre}
+  .fe-code .ln > span:first-child{color:#6e7681;text-align:right;padding-right:12px;user-select:none}
+  .fe-code .ln.hl{background:rgba(138,180,248,.16)} .fe-code .ln.hl > span:first-child{color:#8ab4f8}
+  .fe-code .ln.bad{background:rgba(242,139,130,.16)} .fe-code .ln.add{background:rgba(129,201,149,.16)}
+  .fe-code .ln.del{background:rgba(242,139,130,.12);text-decoration:line-through;text-decoration-color:rgba(242,139,130,.6)}
+  .fe-code .ln.bp > span:first-child{background:#1a73e8;color:#fff;border-radius:0 9px 9px 0;margin-right:6px}
+  .fe-code .ln.mod > span:first-child{box-shadow:inset -3px 0 #e2a03f} .fe-code .ln.new > span:first-child{box-shadow:inset -3px 0 #81c995}
+  .fe-code .kw{color:#569cd6} .fe-code .st{color:#ce9178} .fe-code .cm{color:#6a9955} .fe-code .nu{color:#b5cea8} .fe-code .fn{color:#dcdcaa} .fe-code .pr{color:#9cdcfe} .fe-code .ty{color:#4ec9b0}
+  .fe-code .tg{color:#569cd6} .fe-code .at{color:#9cdcfe}
+  .fe-code .fe-cn{color:#fdd663;font-style:italic;font-family:system-ui,sans-serif;font-size:11.5px}
+  .fe-dom{font:12px/1.65 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;padding:6px 0;color:#e8eaed}
+  .fe-dom div{white-space:pre;padding:0 10px;position:relative}
+  .fe-dom div.sel{background:#3a4a5e} .fe-dom div.hot{background:rgba(242,139,130,.18)}
+  .fe-dom .t{color:#5db0d7} .fe-dom .a{color:#9bbbdc} .fe-dom .v{color:#f29766} .fe-dom .x{color:#e8eaed} .fe-dom .c{color:#9aa0a6}
+  .fe-dom .bp{display:inline-block;width:8px;height:8px;border-radius:50%;background:#8ab4f8;margin-right:4px;vertical-align:middle}
+  .fe-list div{padding:4px 12px;border-bottom:1px solid #303134;font-size:12px;display:flex;justify-content:space-between;gap:10px;white-space:nowrap}
+  .fe-list div.sel{background:#3a4a5e} .fe-list div.hot{background:rgba(242,139,130,.16)} .fe-list small{color:#9aa0a6}
+  .fe-list .arrow{color:#8ab4f8}
+  .fe-con{font:12px/1.6 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;padding:6px 0}
+  .fe-con div{padding:2px 12px;border-bottom:1px solid #303134;white-space:pre}
+  .fe-con .in::before{content:"› ";color:#8ab4f8} .fe-con .out::before{content:"‹ ";color:#9aa0a6}
+  .fe-con .out{color:#c5a5ff} .fe-con .err{color:#f28b82;background:rgba(242,139,130,.08)} .fe-con .log{color:#e8eaed}
+  .fe-menu{display:inline-block;background:#292a2d;border:1px solid #5f6368;border-radius:6px;padding:4px 0;font-size:12px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+  .fe-menu div{padding:3px 16px;color:#e8eaed;white-space:nowrap} .fe-menu div.on{background:#1a73e8} .fe-menu hr{border:0;border-top:1px solid #5f6368;margin:4px 0}
+  .fe-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#9aa0a6;padding:6px 12px;border-top:1px solid #3c4043}
+  .fe-legend span{display:inline-flex;align-items:center;gap:5px} .fe-legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .fe-anno{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13px;color:var(--ink-dim,#b8c0cc)}
+  .fe-anno div{display:flex;gap:6px;align-items:flex-start}
+  .fe-flash{position:absolute;border:2px solid #34a853;background:rgba(52,168,83,.25);pointer-events:none}
+  .fe-flash.red{border-color:#ea4335;background:rgba(234,67,53,.16)}
+  .fe-ov{position:absolute;border:2px solid #ff9800;pointer-events:none}
+  .fe-layers{height:200px;perspective:700px;display:flex;align-items:center;justify-content:center;background:#1b1c1f}
+  .fe-layers .stk{position:relative;width:260px;height:150px;transform:rotateX(55deg) rotateZ(-35deg);transform-style:preserve-3d}
+  .fe-layers .ly{position:absolute;inset:0;border:1.5px solid #8ab4f8;background:rgba(138,180,248,.10)}
+  .fe-layers .ly.hot{border-color:#ff6b6b;background:rgba(255,107,107,.18)}
+  .fe-layers .ly.ok{border-color:#81c995;background:rgba(129,201,149,.22)}
+  .fe-badge{display:inline-block;padding:0 6px;border-radius:3px;font-size:10.5px;font-weight:700;color:#202124;margin-right:4px}
+  .fe-filter{display:inline-block;background:#202124;border:1px solid #5f6368;border-radius:3px;padding:1px 8px;color:#e8eaed;min-width:120px}
+  .fe-chk{display:inline-flex;align-items:center;gap:4px} .fe-chk::before{content:"";width:10px;height:10px;border:1.5px solid #9aa0a6;border-radius:2px}
+  .fe-chk.on::before{background:#8ab4f8;border-color:#8ab4f8}
+  .fe-pg h4{font:700 16px/1.3 system-ui,sans-serif;margin:0 0 8px;color:#202124}
+  .fe-pg .ln{height:9px;border-radius:4px;background:#e3e6ea;margin:7px 0}
+  .fe-pg .bx{border-radius:6px;background:#eef1f5;display:flex;align-items:center;justify-content:center;color:#5f6368;font-size:12px}
+  .fe-anno{text-align:left}
+  @media(max-width:700px){.fe-anno{font-size:12.5px}.fe-row2{grid-template-columns:1fr;min-width:0}.fe-row2 .fe-win{min-width:560px}}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="md-01">
+  <meta name="lesson:title" content="Hiệu năng ảnh trên web">
+  <meta name="lesson:description" content="Ảnh tốn chi phí ở cả mạng lẫn Image Decode; srcset, currentSrc, getEntriesByType và lint ảnh responsive.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="Modern DevTools">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="10 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/modern-devtools">Modern DevTools</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Hiệu năng ảnh trên web — Modern DevTools-->
+<header>
+  <div class="eyebrow">Modern DevTools · Lesson 1</div>
+  <h1>Ảnh tốn chi phí hai lần: <span class="a">tải qua mạng</span> và <span class="b">decode để vẽ</span>; srcset giúp gửi đúng cỡ ảnh cho từng thiết bị</h1>
+  <div class="sub">Bài đầu tiên của khoá: đo chi phí mạng bằng Network panel, chi phí Image Decode bằng Performance panel (kể cả trên điện thoại thật), rồi srcset, mẹo DevTools với ảnh responsive và lint ảnh.</div>
+  <div class="fig fe-fig"><div class="fe-scroll"><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="">Console</span><span class="">Sources</span><span class="on">Network</span><span class="">Performance</span><span class="">Memory</span><span class="">Application</span><span class="">Lighthouse</span></div><div class="fe-tool"><span class="rec">●</span><span class="fe-filter">larger-than:50k</span><span>All</span><b>Img</b><span>JS</span><span>CSS</span></div><table class="fe-nt"><colgroup><col style="width:34%"><col style="width:10%"><col style="width:11%"><col style="width:11%"><col style="width:10%"><col style="width:24%"></colgroup><tr><th>Name</th><th>Status</th><th>Type</th><th>Size</th><th>Time</th><th>Waterfall</th></tr><tr class="sel"><td>forced-reflow.png</td><td>200</td><td>png</td><td>…</td><td>…</td><td><div class="fe-wf"><i class="w" style="left:5%;width:10%"></i><i class="d" style="left:15%;width:30%"></i></div></td></tr><tr class=""><td>network-panel.png</td><td>200</td><td>png</td><td>…</td><td>…</td><td><div class="fe-wf"><i class="w" style="left:8%;width:12%"></i><i class="d" style="left:20%;width:25%"></i></div></td></tr><tr class=""><td>layers.png</td><td>200</td><td>png</td><td>…</td><td>…</td><td><div class="fe-wf"><i class="w" style="left:10%;width:10%"></i><i class="d" style="left:20%;width:20%"></i></div></td></tr></table></div><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="">Console</span><span class="">Sources</span><span class="">Network</span><span class="on">Performance</span><span class="">Memory</span><span class="">Application</span><span class="">Lighthouse</span></div><div class="fe-tool"><span>⟳ Cmd + R: reload và ghi</span></div><div class="fe-split"><div><div class="fe-ph">MacBook Pro</div><div class="fe-body"><div class="fe-tl"><div></div><div class="fe-ruler"><span style="left:16.67%">10 ms</span><span style="left:33.33%">20 ms</span><span style="left:50.00%">30 ms</span><span style="left:66.67%">40 ms</span><span style="left:83.33%">50 ms</span></div><div class="lab">Main</div><div class="fe-trk"><div class="fe-bar fe-js" style="left:3.33%;width:13.33%" title="Task">Task</div><div class="fe-bar fe-ren" style="left:20.00%;width:10.00%" title="Layout">Layout</div><div class="fe-bar fe-pnt" style="left:33.33%;width:5.00%" title="Paint">Paint</div></div><div class="lab">Raster</div><div class="fe-trk tall"><div class="fe-bar fe-pnt" style="left:40.00%;width:3.67%" title=""></div><div class="fe-bar fe-pnt sel" style="left:45.00%;width:12.00%" title="Image Decode">Image Decode</div></div></div></div></div><div><div class="fe-ph">Summary</div><div class="fe-body"><div class="fe-kv"><span class="k">Event</span><span class="v "><b>Image Decode</b></span><span class="k">Image</span><span class="v ">forced-reflow.png</span><span class="k">Duration</span><span class="v ">7.19 ms</span></div></div></div></div></div><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="">Console</span><span class="">Sources</span><span class="">Network</span><span class="">Timeline</span></div><div class="fe-tool"><span style="color:#81c995">●</span><b>Remote device: Nexus 4</b><span class="fe-chk on">Screencast</span></div><div class="fe-body"><div class="fe-kv"><span class="k">Nexus 4 · flamingo 1x</span><span class="v hot">Image Decode ≈ 201 ms</span><span class="k">Nexus 4 · flamingo 4x (~3 MB)</span><span class="v hot">nhiều lần decode: 84 · 81 · 96 ms</span><span class="k">Desktop · cùng ảnh</span><span class="v ">≈ 22 ms</span></div></div></div></div><div class="fe-anno"><div><i class="fe-pin">1</i><span>Network panel: lọc Img hoặc gõ <code>larger-than:50k</code> để tìm ảnh lớn. Đó là chi phí mạng.</span></div><div><i class="fe-pin">2</i><span>Ảnh tải xong còn phải <b>decode</b>: trên máy mạnh 7,19 ms, trên Nexus 4 (remote debugging) tới 201 ms; ảnh 4x bị decode nhiều lần, có thể do render dần.</span></div></div><div class="fig-cap">Hình 1 — Chi phí mạng và chi phí decode của ảnh</div></div>
+  <div class="toc">
+    <span>01 <b>Về khoá học</b></span><span>02 <b>Chi phí mạng</b></span><span>03 <b>Image Decode</b></span><span>04 <b>Trên Nexus 4</b></span><span>05 <b>Vấn đề kích thước</b></span><span>06 <b>srcset</b></span><span>07 <b>Demo &amp; thử thách</b></span><span>08 <b>Lint ảnh</b></span><span>09 <b>Kết luận</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Về khoá học <span class="t">00:00–01:00</span></div>
+    <h2 class="c-avg">Mỗi tuần một bài, cải thiện theo phản hồi; course notes là tuỳ chọn; mục tiêu bài 1: hiểu vì sao ảnh nhỏ hơn lại tốt</h2>
+    <p class="desc">Khoá phát hành <b>mỗi tuần một bài</b>, nên có thể cải thiện dựa trên phản hồi liên tục. Mỗi video có <b>course notes</b> đi kèm, không bắt buộc đọc. Trang khoá học là site tự viết, thấy lỗi thì báo tác giả.</p>
+    <p class="desc"><b>Mục tiêu bài</b>: hiểu vì sao ảnh nhỏ hơn có lợi. Nội dung: chi phí của ảnh (mạng chỉ một hai phút, còn lại là render), <b>srcset</b> là gì và hoạt động thế nào, mẹo DevTools với ảnh responsive, lint ảnh responsive, kết luận.</p>
+  </section>
+
+  <section>
+    <div class="tag">02. Chi phí mạng <span class="t">01:00–02:40</span></div>
+    <h2 class="c-cmd">Network panel cho thời gian tải ảnh; lọc Img, hoặc gõ larger-than:100k / 50k để tìm nhanh tài nguyên lớn</h2>
+    <p class="desc">Mở <b>Network panel</b>, reload: nó ghi lại mọi tài nguyên trang tải. Bấm <b>Img</b> để chỉ xem ảnh, hoặc gõ bộ lọc <b>larger-than</b>, ví dụ <code>larger-than:100k</code> hay <code>50k</code>, để tìm tài nguyên lớn (Dev Tips #55). Bấm một ảnh xem Headers, request/response, cookies; hover lên waterfall để xem content download, thời gian chờ <b>time to first byte</b>… Có thể xem cả chi phí tiền bạc trên <b>whatdoesmysitecost.com</b>.</p>
+  </section>
+
+  <section>
+    <div class="tag">03. Image Decode <span class="t">02:40–04:40</span></div>
+    <h2 class="c-spec">Tải xong, trình duyệt còn phải decode ảnh để vẽ; Performance panel hiện Image Decode trên thread raster, kèm tên file: forced-reflow.png 7,19 ms</h2>
+    <p class="desc">Chi phí "render" ở đây là thời gian trình duyệt "vẽ" ảnh lên màn hình. Tải xong, trình duyệt còn tốn thời gian <b>decode</b> ảnh. Khuyến nghị hiệu năng truyền thống tập trung vào mạng; với công cụ tốt hơn (năm 2017), ta đo được cả phần <em>sau</em> khi tải.</p>
+    <p class="desc">Sang <b>Performance</b>, nhấn <code>Cmd + R</code> (Windows: <code>Ctrl + R</code>) để reload và ghi. Bản ghi có nhiều thread: <b>main thread</b> và <b>raster</b>, nơi các việc liên quan tới ảnh diễn ra (một lần rasterize paint mất 2,17 ms). Ghi lại khi ảnh <code>forced-reflow.png</code> nằm trong viewport: DevTools hiện cả <b>tên file</b> của <b>Image Decode</b>, mất <b>7.19 ms</b>.</p>
+    <p class="desc">7,19 ms không tệ, không gây hại đáng kể. Nhưng mục đích là làm quen công cụ và hiểu ảnh có cả tác dụng phụ về mạng lẫn render. Ghi chú bài: decode ảnh nhỏ trên máy mạnh có thể chỉ ~5 ms, nhưng máy yếu + ảnh lớn là chuyện khác.</p>
+  </section>
+
+  <section>
+    <div class="tag">04. Trên điện thoại thật: Nexus 4 <span class="t">05:00–08:20</span></div>
+    <h2 class="c-peak">Remote debug Nexus 4 với ảnh flamingo: bản 1x decode 201 ms; bản 4x (~3 MB) bị decode nhiều lần, mỗi lần 81–96 ms; desktop chỉ ~22 ms</h2>
+    <p class="desc">Một trang có ảnh flamingo bản <b>1x</b>, <b>2x</b>… độ phân giải khác nhau. Cắm <b>Nexus 4</b> vào laptop, dùng <b>Remote Debugging</b>: mở tab mới, Inspect, chọn thiết bị, nhập URL, Open, rồi Inspect. Bật <b>screencast</b> để thấy màn hình điện thoại. Network: ảnh tải dần, mất <b>1.79 giây</b>.</p>
+    <p class="desc">DevTools trên máy này cũ hơn nên Performance còn tên <b>Timeline panel</b>. Ghi lúc tải ảnh 1x: rất nhiều màu xanh lá, và Image Decode mất <b>201 ms</b>. Thử ảnh <b>4x</b> (khoảng <b>3 MB</b>): khối decode lớn hơn và <b>nhiều hơn</b>: 84, 81, 96 ms… Giả thuyết của tác giả: ảnh được render dần (progressive), mỗi lượt cần một lần decode riêng. Trên desktop lại là khoảng <b>22 ms</b>; các lần ghi dao động khá nhiều.</p>
+  </section>
+
+  <section>
+    <div class="tag">05. Vấn đề kích thước <span class="t">08:20–09:30</span></div>
+    <h2 class="c-grow">forced-reflow.png rộng 912 px nhưng chỉ hiển thị 421 px (iPhone 5: 270 px); như tải video 4K rồi xem ở 480p</h2>
+    <p class="desc">Hover ảnh trong Elements, tooltip hiện <b>kích thước gốc</b> (trong ngoặc) và kích thước hiển thị. <code>forced-reflow.png</code> rộng <b>912 px</b> nhưng chỉ hiển thị <b>421 px</b>; bật <b>device mode</b> với iPhone 5 còn <b>270 px</b>. Ghi chú bài: màn lớn hiển thị 680 px, viewport 320 px còn 270 px. Người dùng phải tải một ảnh lớn không cần thiết, "như tải video 4K từ YouTube rồi xem ở 480p".</p>
+    <p class="desc">Resize ảnh cố định xuống (vì CSS có <code>max-width: 680px</code>) là một bước cải thiện, nhưng chưa đủ. Cần đưa cho trình duyệt <b>nhiều phiên bản</b> và để nó chọn theo đặc điểm thiết bị: đó là <b>srcset</b>.</p>
+    <div class="fig fe-fig"><div class="fe-scroll"><div class="fe-row2"><div class="fe-win"><div class="fe-chrome"><i></i><i></i><i></i><div class="fe-url">moderndevtools.com</div></div><div class="fe-page fe-pg" style="min-height:170px"><h4>Modern DevTools</h4><div style="position:relative;width:62%;height:110px" class="bx">forced-reflow.png<div class="fe-ov" style="inset:0"></div><div style="position:absolute;left:0;top:-30px;background:#333;color:#fff;font:12px system-ui;padding:3px 8px;border-radius:3px;white-space:nowrap">img  <b>421 × …</b> px  (natural 912 × …)</div></div></div></div><div class="fe-win"><div class="fe-tabs"><span class="on">Elements</span><span class="">Console</span><span class="">Properties</span></div><div><div class="fe-ph">srcset: gợi ý, trình duyệt quyết định</div><div class="fe-code"><div class="ln "><span>1</span><span>&lt;<span class="tg">img</span> <span class="at">src</span>=<span class="st">"large.jpg"</span></span></div><div class="ln "><span>2</span><span>     srcset="large.jpg 1000w,</span></div><div class="ln "><span>3</span><span>             medium.jpg 800w,</span></div><div class="ln "><span>4</span><span>             small.jpg 320w"</span></div><div class="ln "><span>5</span><span>     <span class="at">alt</span>=<span class="st">"…"</span>&gt;</span></div></div></div></div></div><div style="height:12px"></div><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="on">Console</span><span class="">Network</span></div><div class="fe-con"><div class="in">performance.getEntriesByType('resource')</div><div class="out">(3) [PerformanceResourceTiming, …]</div><div class="in">  .filter(r =&gt; r.name.includes('placehold'))</div><div class="out">(2) [ medium …, large … ]</div><div class="in">$0.currentSrc</div><div class="out">"https://placehold…/800?text=medium"</div></div></div></div><div class="fe-anno"><div><i class="fe-pin">1</i><span>Hover ảnh trong Elements: kích thước hiển thị 421 px (iPhone 5 chỉ 270 px) nhưng ảnh gốc rộng 912 px.</span></div><div><i class="fe-pin">2</i><span><code>srcset</code> với đơn vị <code>w</code> cho trình duyệt biết độ rộng từng bản; trình duyệt tự chọn.</span></div><div><i class="fe-pin">3</i><span>Biết bản nào đang dùng: Properties pane › <code>currentSrc</code>, hoặc <code>performance.getEntriesByType('resource')</code>.</span></div></div><div class="fig-cap">Hình 2 — Kích thước hiển thị, srcset và cách biết ảnh đang dùng</div></div>
+  </section>
+
+  <section>
+    <div class="tag">06. srcset <span class="t">09:30–12:10</span></div>
+    <h2 class="c-cmd">srcset liệt kê nhiều file kèm độ rộng (đơn vị w); đó là gợi ý, trình duyệt quyết định file nào; sizes cho biết ảnh hiển thị rộng bao nhiêu</h2>
+    <p class="desc">Thuộc tính <code>srcset</code> mở rộng thẻ <code>img</code> để cung cấp nhiều file cho các đặc điểm thiết bị khác nhau. Liệt kê <code>large.jpg</code>, <code>medium.jpg</code>, <code>small.jpg</code> ngăn bằng dấu phẩy. Muốn hỗ trợ trình duyệt cũ thì <b>giữ lại src</b>.</p>
+    <p class="desc">Nếu chỉ có tên file, trình duyệt sẽ phải tải cả ba để biết kích thước. Nên khai báo độ rộng: large <code>1000w</code>, medium <code>800w</code>, small <code>320w</code> (ví dụ bịa). Spec yêu cầu đơn vị <b>w</b>, tức độ rộng ảnh. Viewport 800 px thì trình duyệt có thể chọn medium; iPhone 5 rộng 320 px có thể chọn small. Đây <b>không phải chỉ thị mà là gợi ý</b>, trình duyệt quyết định. Bài không đi sâu thuộc tính <b>sizes</b>: nó cho biết dù viewport 1000 px, ảnh chỉ hiển thị 500 px.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn</div>
+      <pre>&lt;img src="img.jpg"&gt;
+
+&lt;img srcset="small.jpg 400w, medium.jpg 800w"&gt;
+
+<span class="cm">&lt;!-- Device pixel ratio --&gt;</span>
+&lt;img srcset="small.jpg 1x, medium.jpg 2x"&gt;</pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">07. Demo &amp; thử thách <span class="t">12:10–16:40</span></div>
+    <h2 class="c-spec">Viewport từ nhỏ lên lớn thì ảnh đổi và có request mới; từ lớn về nhỏ thì giữ ảnh chất lượng cao trong cache; xem ảnh đang dùng qua currentSrc hoặc getEntriesByType</h2>
+    <p class="desc">Demo trên JS Bin dùng dịch vụ ảnh placeholder có chữ small/medium/large. Resize viewport, ảnh không đổi; chạy lại JS Bin ở viewport ~334 px (lớn hơn 320) thì trình duyệt không chọn small, vì ảnh lớn hơn cho chất lượng tốt hơn. Kéo <b>to dần</b>: Network (lọc Img) có request mới cho medium, rồi large. Thu <b>nhỏ lại</b>: ảnh không đổi nữa, trình duyệt dùng bản chất lượng cao nhất có trong cache. Ghi chú bài: không thấy ảnh đổi thì mở DevTools với <b>Disable cache</b> và đi từ viewport nhỏ lên lớn.</p>
+    <p class="desc">Thử thách 2: tìm ít nhất hai cách biết bản nào đang được dùng, khi các bản trông giống nhau. Cách 1: <b>Properties pane</b> trong Elements liệt kê thuộc tính của phần tử như một object; tìm <b>currentSrc</b>. Cách 2: <code>performance.getEntriesByType('resource')</code> trả về mọi tài nguyên trình duyệt đã tải; thêm <code>.filter()</code> theo <code>name.includes(…)</code>. Sau khi kéo to viewport, mảng có hai phần tử: medium lúc tải trang, large tải sau.</p>
+  </section>
+
+  <section>
+    <div class="tag">08. Lint ảnh responsive <span class="t">16:40–18:20</span></div>
+    <h2 class="c-grow">Bookmarklet RespImageLint phân tích mọi ảnh trên trang: forced-reflow 912 px nhưng ở viewport 320 chỉ hiển thị 268 px, lệch 71%</h2>
+    <p class="desc">Dùng bookmarklet <b>lint images</b> (<code>github.com/ausi/respimagelint</code>) trên trang khoá học: một lần bấm, nó phân tích mọi ảnh, so kích thước với các viewport. Một ảnh đạt, nhiều ảnh không hợp lý. Ví dụ <code>forced-reflow</code> rộng 912 px, ở viewport 320 chỉ hiển thị 268 px, <b>71% off</b>. Nó cũng kiểm tra định nghĩa srcset có đúng, có lỗi không. Cập nhật: <b>Lighthouse</b> nay cũng lint ảnh responsive.</p>
+  </section>
+
+  <section>
+    <div class="tag">09. Kết luận <span class="t">18:20–20:30</span></div>
+    <h2 class="c-avg">Ảnh có chi phí ở cả mạng và render, đo bằng Network và Performance panel; ảnh lớn trên Nexus 4 có thể tốn tới nửa giây; srcset hỗ trợ tốt trừ IE</h2>
+    <ul class="plain">
+      <li>Chi phí ảnh nằm ở <b>cả mạng lẫn render</b>; đo mạng bằng Network panel, đo Image Decode bằng Performance panel.</li>
+      <li>Ảnh độ phân giải lớn trên Nexus 4 (vẫn là máy Android tạm ổn) có thể mất tới <b>nửa giây</b> để vẽ xong.</li>
+      <li>srcset cung cấp metadata ảnh mà trình duyệt chưa có. Hỗ trợ: mọi trình duyệt hiện đại, Edge có, <b>IE</b> không.</li>
+      <li>Tạo nhiều phiên bản ảnh lúc build bằng plugin <b>gulp-responsive</b> (cấu hình JSON), bash script hay plugin webpack.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Ảnh tải xong là hết chi phí.</div><div><span class="v">✓</span> Còn Image Decode, rất đắt trên máy yếu (→ 03, 04).</div></div>
+    <div class="mis"><div><span class="x">✗</span> srcset là lệnh bắt trình duyệt dùng một file.</div><div><span class="v">✓</span> Chỉ là gợi ý; trình duyệt quyết định (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Thu nhỏ viewport sẽ tải ảnh nhỏ hơn.</div><div><span class="v">✓</span> Trình duyệt giữ ảnh chất lượng cao đã có (→ 07).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Có srcset thì bỏ src.</div><div><span class="v">✓</span> Giữ src cho trình duyệt cũ (→ 06).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Bốn câu hỏi</h2>
+    <details><summary>Lọc nhanh ảnh lớn hơn 50 KB thế nào?</summary><p>Gõ larger-than:50k trong ô filter của Network panel. (→ 02)</p></details>
+    <details><summary>Image Decode nằm trên thread nào?</summary><p>Raster. (→ 03)</p></details>
+    <details><summary>Đơn vị w trong srcset nghĩa là gì?</summary><p>Độ rộng thật của file ảnh, theo pixel. (→ 06)</p></details>
+    <details><summary>Hai cách biết ảnh srcset đang dùng?</summary><p>Properties pane › currentSrc, và performance.getEntriesByType('resource'). (→ 07)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">Image Decode</td><td>Giải mã ảnh thành pixel để vẽ</td><td>03</td></tr>
+      <tr><td class="k">Remote Debugging</td><td>Dùng DevTools trên máy tính để debug điện thoại</td><td>04</td></tr>
+      <tr><td class="k">srcset</td><td>Danh sách file ảnh và độ rộng</td><td>06</td></tr>
+      <tr><td class="k">sizes</td><td>Độ rộng ảnh sẽ hiển thị</td><td>06</td></tr>
+      <tr><td class="k">currentSrc</td><td>File ảnh đang được dùng</td><td>07</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: Modern DevTools (Umar Hansa) · “Lesson 1 — Image Performance on the Web” (<a href="https://moderndevtools.com/lessons/1">moderndevtools.com/lessons/1</a>) · khoảng 20 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; kết hợp ghi chú khoá học. Hình dựng lại trình duyệt và DevTools để minh hoạ.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/modern-devtools/md-01.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

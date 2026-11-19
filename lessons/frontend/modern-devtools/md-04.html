@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nhận diện chi phí paint — Modern DevTools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: CARBON */
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --avg:#60a5fa;    /* số trung bình — cái dashboard hiển thị */
+    --peak:#fb7185;   /* peak / burst / 502 */
+    --cmd:#5eead4;    /* lệnh đếm access log */
+    --spec:#f5a524;   /* bản mô tả workload 6 dòng */
+    --grow:#c084fc;   /* growth / dự báo */
+    --example:#fb923c; --example-bg:#1c1409;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 20px;}
+  header{padding:48px 20px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:680px;margin:0 auto 14px;}
+  h1 .a{color:var(--avg);} h1 .b{color:var(--peak);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:560px;margin:0 auto;}
+  .toc{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);}
+  .toc b{color:var(--ink);font-weight:600;}
+  .fig{margin:26px 0 22px;} .fig svg{width:100%;height:auto;display:block;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:8px;}
+  svg text{font-family:'IBM Plex Mono',monospace;font-size:12px;} svg text:not([fill]){fill:var(--ink);}
+  svg text.sm{font-size:10.5px;} svg text.sm:not([fill]){fill:var(--ink-dim);}
+  svg text.lb{font-size:10.5px;letter-spacing:.08em;}
+  svg .box{fill:var(--panel);stroke-width:1.5;} svg .box:not([stroke]){stroke:var(--line);}
+  svg .ln{stroke-width:1.5;fill:none;} svg .ln:not([stroke]){stroke:var(--ink-dim);}
+  svg .ln-d{stroke-dasharray:4 4;}
+  section{padding:40px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:10px;}
+  h2.c-avg{color:var(--avg);} h2.c-peak{color:var(--peak);} h2.c-cmd{color:var(--cmd);} h2.c-spec{color:var(--spec);} h2.c-grow{color:var(--grow);}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:12px;max-width:660px;}
+  p.desc b{color:var(--ink);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 110px;align-items:center;gap:12px;}
+  @media(max-width:520px){.bar-row{grid-template-columns:100px 1fr;}.bar-val{grid-column:2;text-align:left !important;}}
+  .bar-label{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .bar-bg{position:relative;height:10px;background:var(--panel);border-radius:6px;border:1px solid var(--line);}
+  .bar-fill{height:100%;border-radius:6px;}
+  .bar-mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink-dim);}
+  .bar-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);text-align:right;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  @media(max-width:520px){.card-grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin-bottom:10px;}
+  .card.avg h3{color:var(--avg);} .card.peak h3{color:var(--peak);} .card.ok h3{color:var(--cmd);} .card.grow h3{color:var(--grow);}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim);} .card li{margin-bottom:6px;}
+  .card .formula{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.03);border:1px dashed var(--line);padding:8px 10px;border-radius:6px;margin-bottom:12px;display:inline-block;}
+  table{width:100%;border-collapse:collapse;font-size:13.2px;margin-bottom:22px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top;}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel);}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--spec);white-space:nowrap;}
+  td .miss{color:var(--peak);} td .hit{color:var(--cmd);}
+  .tbl-scroll{overflow-x:auto;}
+  .note{border-left:3px solid var(--spec);background:var(--panel);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-dim);margin-bottom:22px;}
+  .note b{color:var(--ink);}
+  .example-box{border:1px dashed var(--example);background:var(--example-bg);border-radius:10px;padding:16px 18px;margin-top:4px;}
+  .example-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--example);margin-bottom:8px;}
+  .example-box p{font-size:13.5px;color:var(--ink);} .example-box p + pre,.example-box pre + p,.example-box pre + pre{margin-top:10px;}
+  .example-box .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:520px){.example-box .ba{grid-template-columns:1fr;}}
+  .example-box .ba > div{font-size:13px;}
+  .example-box .ba b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px;}
+  .example-box pre{background:#000;border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.3px;color:#dfe4ea;border:1px solid var(--line);line-height:1.55;}
+  pre .cm{color:#7c7c88;} pre .kw{color:#8ab4f8;} pre .val{color:#fbbf24;} pre .bad{color:#fb7185;}
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace;}
+
+  .fig.fe-fig{margin:18px 0 22px;width:min(1000px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%)}
+  .example-box .fig.fe-fig{width:auto;left:0;transform:none}
+  .fe-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .fe-win{min-width:640px;background:#202124;border:1px solid #3c4043;border-radius:10px;overflow:hidden;font:12px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e8eaed;box-shadow:0 10px 30px rgba(0,0,0,.35);text-align:left}
+  .fe-win + .fe-win{margin-top:12px}
+  .fe-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:640px;align-items:start}
+  .fe-row2 .fe-win{min-width:0}
+  .fe-chrome{background:#35363a;padding:8px 12px;display:flex;gap:7px;align-items:center}
+  .fe-chrome i{width:11px;height:11px;border-radius:50%;background:#ff5f57;display:inline-block}
+  .fe-chrome i:nth-child(2){background:#febc2e} .fe-chrome i:nth-child(3){background:#28c840}
+  .fe-url{flex:1;margin-left:8px;background:#202124;border-radius:14px;padding:3px 12px;color:#bdc1c6;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fe-page{background:#fff;color:#202124;padding:14px 16px;position:relative;font-size:13px}
+  .fe-tabs{display:flex;flex-wrap:nowrap;background:#292a2d;border-bottom:1px solid #3c4043;font-size:12px;overflow:hidden}
+  .fe-tabs span{padding:7px 11px;color:#9aa0a6;white-space:nowrap}
+  .fe-tabs .on{color:#e8eaed;box-shadow:inset 0 -2px #8ab4f8}
+  .fe-tool{display:flex;gap:14px;align-items:center;padding:5px 12px;border-bottom:1px solid #3c4043;color:#9aa0a6;font-size:11.5px;white-space:nowrap;overflow:hidden}
+  .fe-tool b{color:#e8eaed;font-weight:600} .fe-tool .rec{color:#f28b82} .fe-tool .warn{color:#fdd663}
+  .fe-body{padding:10px 12px}
+  .fe-split{display:grid;grid-template-columns:1.5fr 1fr}
+  .fe-split > div{min-width:0;overflow:hidden}
+  .fe-split > div + div{border-left:1px solid #3c4043}
+  .fe-ph{padding:5px 12px;background:#292a2d;color:#9aa0a6;font-size:11.5px;border-bottom:1px solid #3c4043;font-weight:600}
+  .fe-tl{display:grid;grid-template-columns:96px 1fr;row-gap:3px;align-items:center}
+  .fe-tl .lab{color:#9aa0a6;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+  .fe-trk{position:relative;height:18px}
+  .fe-trk.tall{height:26px}
+  .fe-ruler{position:relative;height:16px;color:#9aa0a6;font-size:10.5px;border-bottom:1px solid #3c4043}
+  .fe-ruler span{position:absolute;top:0;transform:translateX(-50%)}
+  .fe-bar{position:absolute;top:0;height:100%;border-radius:2px;font-size:10.5px;line-height:18px;padding:0 4px;white-space:nowrap;overflow:hidden;color:#1b1b1b;box-sizing:border-box}
+  .fe-trk.tall .fe-bar{line-height:26px}
+  .fe-js{background:#f4c542} .fe-js2{background:#e9b33a} .fe-ren{background:#a98ae6} .fe-pnt{background:#7cbf6c} .fe-net{background:#7aa7e0} .fe-sys{background:#8d8f94} .fe-gpu{background:#5fb57a} .fe-idle{background:#3c4043}
+  .fe-frm{background:#6fbf73} .fe-frm.slow{background:#e57373} .fe-frm.mid{background:#f2c94c}
+  .fe-bar.sel{outline:2px solid #8ab4f8;outline-offset:1px;z-index:2}
+  .fe-bar.hot{outline:2px solid #ff6b6b;outline-offset:1px;z-index:2}
+  .fe-vline{position:absolute;top:-2px;bottom:-2px;border-left:1.5px dashed #9aa0a6;opacity:.7}
+  .fe-pin{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#ff6b6b;color:#fff;font:700 11px/1 system-ui,sans-serif;font-style:normal;vertical-align:middle;margin:0 3px;flex:none}
+  .fe-sum{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;font-size:12px}
+  .fe-sum .sw{width:10px;height:10px;border-radius:2px}
+  .fe-sum .v{color:#e8eaed;font-variant-numeric:tabular-nums;text-align:right}
+  .fe-sum .n{color:#bdc1c6}
+  .fe-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px}
+  .fe-kv .k{color:#9aa0a6} .fe-kv .v{color:#e8eaed}
+  .fe-kv .v.hot{color:#ff8a80;font-weight:700} .fe-kv .v.ok{color:#81c995;font-weight:700}
+  .fe-link{color:#8ab4f8;text-decoration:underline}
+  table.fe-nt{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}
+  table.fe-nt th{color:#9aa0a6;font-weight:600;text-align:left;padding:4px 8px;border-bottom:1px solid #3c4043;background:#292a2d}
+  table.fe-nt td{padding:4px 8px;border-bottom:1px solid #303134;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8eaed}
+  table.fe-nt tr.hot td{background:rgba(242,139,130,.14)} table.fe-nt tr.blk td{color:#f28b82;text-decoration:line-through}
+  table.fe-nt tr.sel td{background:rgba(138,180,248,.16)}
+  .fe-wf{position:relative;height:10px} .fe-wf i{position:absolute;top:0;height:10px;border-radius:2px}
+  .fe-wf .w{background:#81c995} .fe-wf .d{background:#8ab4f8}
+  .fe-code{font:12px/1.6 "JetBrains Mono","IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;background:#1e1e1e;color:#d4d4d4;padding:8px 0;overflow:hidden}
+  .fe-win *{font-variant-ligatures:none!important;font-feature-settings:"liga" 0,"calt" 0!important}
+  .fe-code .ln{display:grid;grid-template-columns:42px 1fr;white-space:pre}
+  .fe-code .ln > span:first-child{color:#6e7681;text-align:right;padding-right:12px;user-select:none}
+  .fe-code .ln.hl{background:rgba(138,180,248,.16)} .fe-code .ln.hl > span:first-child{color:#8ab4f8}
+  .fe-code .ln.bad{background:rgba(242,139,130,.16)} .fe-code .ln.add{background:rgba(129,201,149,.16)}
+  .fe-code .ln.del{background:rgba(242,139,130,.12);text-decoration:line-through;text-decoration-color:rgba(242,139,130,.6)}
+  .fe-code .ln.bp > span:first-child{background:#1a73e8;color:#fff;border-radius:0 9px 9px 0;margin-right:6px}
+  .fe-code .ln.mod > span:first-child{box-shadow:inset -3px 0 #e2a03f} .fe-code .ln.new > span:first-child{box-shadow:inset -3px 0 #81c995}
+  .fe-code .kw{color:#569cd6} .fe-code .st{color:#ce9178} .fe-code .cm{color:#6a9955} .fe-code .nu{color:#b5cea8} .fe-code .fn{color:#dcdcaa} .fe-code .pr{color:#9cdcfe} .fe-code .ty{color:#4ec9b0}
+  .fe-code .tg{color:#569cd6} .fe-code .at{color:#9cdcfe}
+  .fe-code .fe-cn{color:#fdd663;font-style:italic;font-family:system-ui,sans-serif;font-size:11.5px}
+  .fe-dom{font:12px/1.65 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;padding:6px 0;color:#e8eaed}
+  .fe-dom div{white-space:pre;padding:0 10px;position:relative}
+  .fe-dom div.sel{background:#3a4a5e} .fe-dom div.hot{background:rgba(242,139,130,.18)}
+  .fe-dom .t{color:#5db0d7} .fe-dom .a{color:#9bbbdc} .fe-dom .v{color:#f29766} .fe-dom .x{color:#e8eaed} .fe-dom .c{color:#9aa0a6}
+  .fe-dom .bp{display:inline-block;width:8px;height:8px;border-radius:50%;background:#8ab4f8;margin-right:4px;vertical-align:middle}
+  .fe-list div{padding:4px 12px;border-bottom:1px solid #303134;font-size:12px;display:flex;justify-content:space-between;gap:10px;white-space:nowrap}
+  .fe-list div.sel{background:#3a4a5e} .fe-list div.hot{background:rgba(242,139,130,.16)} .fe-list small{color:#9aa0a6}
+  .fe-list .arrow{color:#8ab4f8}
+  .fe-con{font:12px/1.6 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;padding:6px 0}
+  .fe-con div{padding:2px 12px;border-bottom:1px solid #303134;white-space:pre}
+  .fe-con .in::before{content:"› ";color:#8ab4f8} .fe-con .out::before{content:"‹ ";color:#9aa0a6}
+  .fe-con .out{color:#c5a5ff} .fe-con .err{color:#f28b82;background:rgba(242,139,130,.08)} .fe-con .log{color:#e8eaed}
+  .fe-menu{display:inline-block;background:#292a2d;border:1px solid #5f6368;border-radius:6px;padding:4px 0;font-size:12px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+  .fe-menu div{padding:3px 16px;color:#e8eaed;white-space:nowrap} .fe-menu div.on{background:#1a73e8} .fe-menu hr{border:0;border-top:1px solid #5f6368;margin:4px 0}
+  .fe-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#9aa0a6;padding:6px 12px;border-top:1px solid #3c4043}
+  .fe-legend span{display:inline-flex;align-items:center;gap:5px} .fe-legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .fe-anno{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13px;color:var(--ink-dim,#b8c0cc)}
+  .fe-anno div{display:flex;gap:6px;align-items:flex-start}
+  .fe-flash{position:absolute;border:2px solid #34a853;background:rgba(52,168,83,.25);pointer-events:none}
+  .fe-flash.red{border-color:#ea4335;background:rgba(234,67,53,.16)}
+  .fe-ov{position:absolute;border:2px solid #ff9800;pointer-events:none}
+  .fe-layers{height:200px;perspective:700px;display:flex;align-items:center;justify-content:center;background:#1b1c1f}
+  .fe-layers .stk{position:relative;width:260px;height:150px;transform:rotateX(55deg) rotateZ(-35deg);transform-style:preserve-3d}
+  .fe-layers .ly{position:absolute;inset:0;border:1.5px solid #8ab4f8;background:rgba(138,180,248,.10)}
+  .fe-layers .ly.hot{border-color:#ff6b6b;background:rgba(255,107,107,.18)}
+  .fe-layers .ly.ok{border-color:#81c995;background:rgba(129,201,149,.22)}
+  .fe-badge{display:inline-block;padding:0 6px;border-radius:3px;font-size:10.5px;font-weight:700;color:#202124;margin-right:4px}
+  .fe-filter{display:inline-block;background:#202124;border:1px solid #5f6368;border-radius:3px;padding:1px 8px;color:#e8eaed;min-width:120px}
+  .fe-chk{display:inline-flex;align-items:center;gap:4px} .fe-chk::before{content:"";width:10px;height:10px;border:1.5px solid #9aa0a6;border-radius:2px}
+  .fe-chk.on::before{background:#8ab4f8;border-color:#8ab4f8}
+  .fe-pg h4{font:700 16px/1.3 system-ui,sans-serif;margin:0 0 8px;color:#202124}
+  .fe-pg .ln{height:9px;border-radius:4px;background:#e3e6ea;margin:7px 0}
+  .fe-pg .bx{border-radius:6px;background:#eef1f5;display:flex;align-items:center;justify-content:center;color:#5f6368;font-size:12px}
+  .fe-anno{text-align:left}
+  @media(max-width:700px){.fe-anno{font-size:12.5px}.fe-row2{grid-template-columns:1fr;min-width:0}.fe-row2 .fe-win{min-width:560px}}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:10px;}
+  details summary{font-weight:700;cursor:pointer;font-size:14px;}
+  details p{color:var(--ink);font-size:13.5px;margin-top:10px;}
+  .mis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  @media(max-width:520px){.mis{grid-template-columns:1fr;}}
+  .mis > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;}
+  .mis .x{color:var(--peak);font-weight:700;} .mis .v{color:var(--cmd);font-weight:700;}
+  .tag .t{font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);text-transform:none;letter-spacing:0;font-weight:500;}
+  footer a{color:var(--avg);word-break:break-all;}
+  ul.plain{padding-left:20px;color:var(--ink-dim);font-size:14px;margin-bottom:14px;} ul.plain li{margin-bottom:6px;} ul.plain b{color:var(--ink);}
+  ol.steps{padding-left:22px;color:var(--ink-dim);font-size:14px;margin-bottom:8px;} ol.steps li{margin-bottom:6px;}
+</style>
+<!-- bbg:css -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  /* Hình vẽ theo phong cách tech-architecture-diagram: card trắng như một tấm ảnh trên nền tối */
+  .fig.bbg{width:min(1060px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%);}
+  .example-box .fig.bbg{width:auto;left:0;transform:none;}
+  .bbg-card{background:#fff;border-radius:18px;box-shadow:0 14px 36px rgba(0,0,0,.35);padding:16px clamp(10px,2vw,22px) 12px;color:#1e293b;}
+  .bbg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin:0 0 8px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#64748b;}
+  .bbg-legend span{display:inline-flex;align-items:center;gap:7px}
+  .bbg-legend .sw{width:14px;height:14px;border-radius:4px;border:2px solid}
+  .bbg-legend .lnk{width:26px;height:0;border-top:2.2px solid #334155}
+  .bbg-legend .lnk.d{border-top-style:dashed}
+  .bbg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fig.bbg svg.bbg-svg{width:100%;min-width:760px;height:auto;display:block}
+  .bbg svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;letter-spacing:0}
+  .bbg svg text{white-space:pre}
+  .bbg svg text:not([fill]){fill:#1e293b}
+  .bbg svg text.bb-l{font-size:16px;font-weight:700}
+  .bbg svg text.bb-s{font-size:11.5px;font-weight:500} .bbg svg text.bb-s:not([fill]){fill:#64748b}
+  .bbg svg text.bb-m{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:500}
+  .bbg svg text.bb-a:not([fill]){fill:#334155} .bbg svg text.bb-a{font-size:12px;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .bbg svg text.bb-l.bb-m{font-size:15px;font-weight:700}
+  .bbg svg text.bb-n{font-size:15px;font-weight:800}
+  .bbg svg .bb-node rect{stroke-width:2.5}
+  .bbg svg .bb-ar{fill:none;stroke:#334155;stroke-width:2.2;stroke-linejoin:round}
+  .bbg svg .bb-ar.d{stroke-dasharray:7 5}
+  .bbg svg .bb-badge circle{fill:#1e293b;stroke:#fff;stroke-width:2.5}
+  .bbg svg .bb-badge text{fill:#fff;font-size:13px;font-weight:700}
+  .bbg svg .bb-grp{fill:#f8fafc;stroke:#94a3b8;stroke-width:2;stroke-dasharray:9 6}
+  .bbg svg .bb-gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+</style>
+<!-- /bbg:css -->
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="md-04">
+  <meta name="lesson:title" content="Nhận diện chi phí paint">
+  <meta name="lesson:description" content="Hover logo mà repaint cả document; đọc Summary của event Paint, translateZ(0), will-change và vì sao opacity không cần paint.">
+  <meta name="lesson:order" content="4">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="Modern DevTools">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="9 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/modern-devtools">Modern DevTools</a></span></nav>
+<!-- /sdn:bar -->
+
+<!-- bbg:defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="bb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="bb-ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b82f6"/></marker>
+  <marker id="bb-ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+  <marker id="bb-ah-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ca8a04"/></marker>
+  <marker id="bb-ah-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  <marker id="bb-ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  <marker id="bb-ah-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#db2777"/></marker>
+  <marker id="bb-ah-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+  <marker id="bb-ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <marker id="bb-ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+  <pattern id="bb-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="9" stroke="#ef4444" stroke-width="3"/></pattern>
+  <symbol id="bi-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="bi-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="bi-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="bi-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+  <symbol id="bi-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="bi-lb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M5 19v-3h14v3"/><circle cx="5" cy="20" r="1.5"/><circle cx="12" cy="20" r="1.5"/><circle cx="19" cy="20" r="1.5"/></symbol>
+  <symbol id="bi-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="bi-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="bi-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="bi-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="bi-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="bi-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="bi-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="bi-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V3"/><path d="M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+  <symbol id="bi-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="bi-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="bi-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="bi-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+  <symbol id="bi-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="bi-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  <symbol id="bi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="bi-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="bi-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="bi-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bi-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></symbol>
+  <symbol id="bi-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="bi-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9 5 15v6M12 9l7 6v6"/></symbol>
+  <symbol id="bi-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="bi-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="bi-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+  <symbol id="bi-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="bi-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="bi-thread" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></symbol>
+  <symbol id="bi-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="bi-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></symbol>
+  <symbol id="bi-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></symbol>
+  <symbol id="bi-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-4.8-5-5.3"/></symbol>
+  <symbol id="bi-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="bi-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/></symbol>
+  <symbol id="bi-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+</defs></svg>
+<!-- /bbg:defs -->
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-dim)"/></marker>
+  <marker id="a-peak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--peak)"/></marker>
+  <marker id="a-cmd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--cmd)"/></marker>
+  <marker id="a-grow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grow)"/></marker>
+</defs></svg>
+<!--TITLE:Nhận diện chi phí paint — Modern DevTools-->
+<header>
+  <div class="eyebrow">Modern DevTools · Lesson 4</div>
+  <h1>Hover vào logo nhỏ mà trình duyệt <span class="a">repaint cả document</span>; tách logo ra layer riêng thì vùng paint chỉ còn <span class="b">đúng chiếc SVG</span></h1>
+  <div class="sub">Profile hiệu ứng hover trên logo ponyfoo.com, đọc Summary của event Paint (dimensions, layer root), thử translateZ(0), rồi so animation background-color với opacity.</div>
+  <div class="fig fe-fig"><div class="fe-scroll"><div class="fe-row2"><div class="fe-win"><div class="fe-chrome"><i></i><i></i><i></i><div class="fe-url">ponyfoo.com · trước</div></div><div class="fe-page fe-pg" style="min-height:110px"><div style="display:flex;align-items:center;gap:14px;margin-bottom:10px"><div style="display:flex;gap:3px"><span style="width:9px;height:26px;background:#e25a5a;display:inline-block"></span><span style="width:9px;height:26px;background:#f0a23b;display:inline-block"></span><span style="width:9px;height:26px;background:#57b36b;display:inline-block"></span><span style="width:9px;height:26px;background:#4f8fe0;display:inline-block"></span><span style="width:9px;height:26px;background:#9c6ade;display:inline-block"></span></div><b style="font-size:13px">Pony Foo</b></div><div class="ln" style="width:85%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:78%"></div><div class="fe-flash red" style="inset:2px"></div></div></div><div class="fe-win"><div class="fe-chrome"><i></i><i></i><i></i><div class="fe-url">ponyfoo.com · svg { transform: translateZ(0) }</div></div><div class="fe-page fe-pg" style="min-height:110px"><div style="display:flex;align-items:center;gap:14px;margin-bottom:10px"><div style="display:flex;gap:3px"><span style="width:9px;height:26px;background:#e25a5a;display:inline-block"></span><span style="width:9px;height:26px;background:#f0a23b;display:inline-block"></span><span style="width:9px;height:26px;background:#57b36b;display:inline-block"></span><span style="width:9px;height:26px;background:#4f8fe0;display:inline-block"></span><span style="width:9px;height:26px;background:#9c6ade;display:inline-block"></span></div><b style="font-size:13px">Pony Foo</b></div><div class="ln" style="width:85%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:78%"></div><div class="fe-flash" style="left:14px;top:12px;width:60px;height:34px"></div></div></div></div><div style="height:12px"></div><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="">Console</span><span class="">Sources</span><span class="">Network</span><span class="on">Performance</span><span class="">Memory</span><span class="">Application</span><span class="">Lighthouse</span></div><div class="fe-tool"><span class="rec">●</span><span class="warn">⚠ CPU: 10× slowdown</span><span class="fe-chk on">Screenshots</span></div><div class="fe-split"><div><div class="fe-ph">Main · CPU 10× · hover logo</div><div class="fe-body"><div class="fe-tl"><div></div><div class="fe-ruler"><span style="left:33.33%">100 ms</span><span style="left:66.67%">200 ms</span></div><div class="lab">Frames</div><div class="fe-trk"><div class="fe-bar fe-frm mid" style="left:0.00%;width:14.00%" title=""></div><div class="fe-bar fe-frm mid" style="left:14.33%;width:14.00%" title=""></div><div class="fe-bar fe-frm mid" style="left:28.67%;width:14.00%" title="23 fps">23 fps</div><div class="fe-bar fe-frm mid" style="left:43.00%;width:14.00%" title=""></div><div class="fe-bar fe-frm mid" style="left:57.33%;width:14.00%" title=""></div><div class="fe-bar fe-frm mid" style="left:71.67%;width:14.00%" title=""></div><div class="fe-bar fe-frm mid" style="left:86.00%;width:14.00%" title=""></div></div><div class="lab">Main</div><div class="fe-trk tall"><div class="fe-bar fe-ren" style="left:0.67%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:6.33%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:8.67%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:15.00%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:20.67%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:23.00%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:29.33%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:35.00%;width:2.00%" title=""></div><div class="fe-bar fe-pnt sel" style="left:37.33%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:43.67%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:49.33%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:51.67%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:58.00%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:63.67%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:66.00%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:72.33%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:78.00%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:80.33%;width:4.00%" title="Paint">Paint</div><div class="fe-bar fe-ren" style="left:86.67%;width:5.33%" title="Recalc">Recalc</div><div class="fe-bar fe-ren" style="left:92.33%;width:2.00%" title=""></div><div class="fe-bar fe-pnt" style="left:94.67%;width:4.00%" title="Paint">Paint</div></div></div></div></div><div><div class="fe-ph">Summary · Paint (trước → sau)</div><div class="fe-body"><div class="fe-kv"><span class="k">Layer Root</span><span class="v "><span style="color:#ff8a80">#document</span> → <span style="color:#81c995">svg</span></span><span class="k">Dimensions</span><span class="v "><span style="color:#ff8a80">… × 2441</span> → <span style="color:#81c995">cỡ logo</span></span><span class="k">Paint profiler</span><span class="v "><span class="fe-link">mở tab Paint Profiler</span></span></div></div></div></div></div></div><div class="fe-anno"><div><i class="fe-pin">1</i><span>Trước: hover vào logo, event Paint có layer root là <code>#document</code>, cao 2441 px như <code>body</code>: cả trang bị vẽ lại (vùng đỏ).</span></div><div><i class="fe-pin">2</i><span>Sau khi thêm <code>transform: translateZ(0)</code> cho SVG: layer root chỉ còn <code>svg</code>, vùng paint nhỏ (vùng xanh).</span></div></div><div class="fig-cap">Hình 1 — Event Paint khi hover logo, trước và sau translateZ(0)</div></div>
+  <div class="toc">
+    <span>01 <b>Paint là gì</b></span><span>02 <b>Ghi profile</b></span><span>03 <b>Đọc event Paint</b></span><span>04 <b>Paint profiler</b></span><span>05 <b>translateZ hack</b></span><span>06 <b>Ưu nhược</b></span><span>07 <b>Layer tools</b></span><span>08 <b>Opacity</b></span><span>09 <b>Kết luận</b></span><span>· <b>Ôn tập</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="tag">01. Paint là gì <span class="t">00:00–00:50</span></div>
+    <h2 class="c-avg">Để pixel hiện lên màn hình, trình duyệt phải paint; mỗi lần DOM đổi hay thuộc tính đổi là phải repaint, và paint tốn kém nhưng không tránh được</h2>
+    <p class="desc">Khi reload, cuộn, đổi DOM hay animate, pixel hiện lên bằng cách nào? Trình duyệt <b>paint</b> các pixel đó. Một phần tử mới xuất hiện thì phải paint nó; thay thuộc tính của phần tử có sẵn thì phải <b>repaint</b>. Paint là thao tác tốn kém nhưng <b>không tránh được</b>, nên điều đáng giá là biết cách profile nó.</p>
+    <p class="desc">Ví dụ: logo của <b>ponyfoo.com</b>. Hover vào thì logo đổi. Trong code, đó là một <b>SVG</b> gồm nhiều <code>rect</code> được animate thuộc tính <code>fill</code>. Với trình duyệt, đó là repaint một loạt node. Mục tiêu bài: nhận diện chi phí paint lớn, rồi thử ít nhất một kỹ thuật giảm nó. Tác giả nói rõ không chê cách làm của trang, chỉ dùng làm demo.</p>
+  </section>
+
+  <section>
+    <div class="tag">02. Ghi profile <span class="t">00:50–03:00</span></div>
+    <h2 class="c-cmd">Throttle CPU 10x, ghi, hover logo, dừng: các khối lặp đều đặn là frame, mỗi khối có Recalculate Style và Paint; DevTools báo 23 FPS</h2>
+    <ol class="steps">
+      <li>Mở Performance panel, throttle CPU <b>10x</b>.</li>
+      <li>Start recording, hover lên logo, stop recording.</li>
+      <li>Zoom vào main thread và chọn một event Paint (màu xanh lá).</li>
+    </ol>
+    <p class="desc">Kết quả có nhiều <b>khối lặp lại</b>; tác giả thích kiểu này vì nó nhất quán, dễ debug. Mỗi khối là một <b>frame</b>. Click vào một frame, DevTools báo FPS tương đương: <b>23 FPS</b>. Trong mỗi khối có hai thứ: <b>Recalculate Style</b> (tốn khá nhiều thời gian, nhưng bài này không xét) và <b>Paint</b>.</p>
+  </section>
+
+  <section>
+    <div class="tag">03. Đọc event Paint <span class="t">03:00–05:00</span></div>
+    <h2 class="c-peak">Summary của Paint có total time, self time, location, dimensions, layer root; chỉ logo đổi mà layer root là document, cao 2441 px</h2>
+    <p class="desc">Click event Paint, Summary pane hiện: total time, self time, <b>location</b> (hiểu như toạ độ), <b>dimensions</b>, <b>layer root</b>. Đáng chú ý là dimensions và layer root: vì sao kích thước lớn vậy, và vì sao layer root là <b>document</b> khi chỉ logo cần paint? <b>Hover lên event Paint</b> (hoặc lên layer root), viewport tô xanh vùng bị ảnh hưởng: cả trang.</p>
+    <p class="desc">Con số kích thước lấy từ đâu? Vào Elements, hover lên <code>body</code>: góc dưới trái hiện kích thước, chiều cao <b>2441</b>, khớp Computed pane và khớp với dimensions của event Paint. Nghĩa là lần paint này phải vẽ lại <b>toàn bộ document</b>.</p>
+  </section>
+
+  <section>
+    <div class="tag">04. Paint profiler <span class="t">04:00–04:30</span></div>
+    <h2 class="c-spec">Tab Paint profiler cho xem ở mức rất thấp từng lệnh vẽ, có thể zoom và mở rộng vùng chọn để thấy từng phần tử được vẽ lần lượt</h2>
+    <p class="desc">Bên cạnh Summary có <b>paint profiler</b>; mất chút thời gian để tải. Nó cho thấy ở mức rất thấp trang được vẽ thế nào. Cuộn chuột để zoom, kéo để di chuyển; mở rộng vùng chọn thì thấy <b>từng phần tử được vẽ lần lượt</b>.</p>
+  </section>
+
+  <section>
+    <div class="tag">05. translateZ hack <span class="t">05:00–06:40</span></div>
+    <h2 class="c-grow">Thêm transform: translateZ(0) cho SVG để ép nó lên layer riêng; ghi lại thấy layer root chỉ còn SVG và dimensions nhỏ hơn nhiều</h2>
+    <p class="desc">Không giải thích được vì sao cả trang bị paint, nhưng thử một mẹo: <code>transform: translateZ(0)</code>, còn gọi là <b>layer creation hack</b> hay <b>translate Z hack</b>, ép phần tử lên <b>layer</b> riêng. Có thể hình dung layer là thứ được vẽ độc lập với trang, thường GPU xử lý rất tốt.</p>
+    <p class="desc">Thêm một dòng CSS đó cho SVG, xoá bản ghi cũ, ghi lại (giữ bản ghi ngắn gọn). Nhìn thoáng thì không khác: vẫn Recalculate Style, Update Layer Tree, Paint. Nhưng Summary cho thấy layer root giờ <b>chỉ là SVG</b>, dimensions nhỏ hơn nhiều, paint ít việc hơn hẳn.</p>
+    <div class="example-box">
+      <div class="example-label">▸ Ví dụ của nguồn</div>
+      <pre>svg { transform: <span class="kw">translateZ(0)</span>; }   <span class="cm">/* chuẩn hơn: will-change */</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">06. Ưu nhược <span class="t">06:40–08:20</span></div>
+    <h2 class="c-cmd">Ít phải paint hơn, nhưng công việc chỉ chuyển sang GPU chứ không biến mất; phải profile trước và sau, đừng tối ưu sớm, cân nhắc will-change</h2>
+    <p class="desc">Ưu: <b>ít phải paint</b> hơn nhiều, tốt cho hiệu năng. Nhược: ta không tránh được việc, chỉ <b>chuyển nó sang GPU</b>, và GPU vẫn bận. Ở trường hợp này có vẻ đáng, nhưng với site của bạn phải cân nhắc. Biết khi nào nên promote layer là kỹ năng đến từ kinh nghiệm, như mọi mẹo khác.</p>
+    <ul class="plain">
+      <li><b>Profile trước và sau</b>: tạo layer có chi phí.</li>
+      <li><b>Đừng tối ưu sớm</b>: ở đây có thể coi là tối ưu sớm, vì logo vốn không có vấn đề gì.</li>
+      <li>Cách chuẩn hơn: <b>will-change</b>, nói với trình duyệt "tôi sắp đổi opacity, transform, bạn tự quyết". Nó chỉ là <b>gợi ý</b>, không phải chỉ thị.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="tag">07. Layer borders &amp; Layers panel <span class="t">08:20–09:40</span></div>
+    <h2 class="c-spec">Rendering › Show layer borders vẽ viền cam quanh mỗi layer; Layers panel cho xoay 3D và giữ Shift để kéo, thấy logo nằm riêng một layer</h2>
+    <p class="desc">Ba chấm › More tools › <b>Rendering</b> › <b>Show layer borders</b>: DevTools vẽ <b>viền cam</b> quanh mọi layer, ở đây có quanh logo. Hoặc mở <b>Layers panel</b> (More tools › Layers): giữ <b>Shift</b> và kéo để xoay, thấy logo đúng là một layer riêng. Ghi chú khoá học thêm: Layers panel còn hiện <b>ước lượng bộ nhớ</b> của layer.</p>
+    <div class="fig fe-fig"><div class="fe-scroll"><div class="fe-row2"><div class="fe-win"><div class="fe-tabs"><span class="">Elements</span><span class="">Performance</span><span class="on">Layers</span><span class="">Rendering</span></div><div class="fe-layers"><div class="stk"><div class="ly" style="transform:translateZ(0)"></div><div class="ly ok" style="width:70px;height:40px;transform:translateZ(46px) translate(12px,10px)"></div></div></div><div class="fe-body"><div class="fe-kv"><span class="k">Layer</span><span class="v ">svg</span><span class="k">Compositing reason</span><span class="v ">Has a 3D transform</span><span class="k">Memory estimate</span><span class="v ">nhỏ (chỉ kích thước logo)</span></div></div></div><div class="fe-win"><div class="fe-tabs"><span class="">Console</span><span class="on">Rendering</span></div><div class="fe-body"><div class="fe-kv"><span class="k">Paint flashing</span><span class="v "><span class="fe-chk on"></span></span><span class="k">Layer borders</span><span class="v "><span class="fe-chk on"></span></span><span class="k">FPS meter</span><span class="v "><span class="fe-chk"></span></span></div></div></div></div><div style="height:12px"></div><div class="fe-row2"><div class="fe-win"><div class="fe-tabs"><span class="on">Performance</span></div><div><div class="fe-ph">single-div.html · animate background-color</div><div class="fe-body"><div class="fe-tl"><div></div><div class="fe-ruler"><span style="left:33.33%">100 ms</span><span style="left:66.67%">200 ms</span></div><div class="lab">Main</div><div class="fe-trk tall"><div class="fe-bar fe-ren" style="left:0.67%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:4.67%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:10.00%;width:2.00%" title=""></div><div class="fe-bar fe-ren" style="left:17.33%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:21.33%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:26.67%;width:2.00%" title=""></div><div class="fe-bar fe-ren" style="left:34.00%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:38.00%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:43.33%;width:2.00%" title=""></div><div class="fe-bar fe-ren" style="left:50.67%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:54.67%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:60.00%;width:2.00%" title=""></div><div class="fe-bar fe-ren" style="left:67.33%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:71.33%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:76.67%;width:2.00%" title=""></div><div class="fe-bar fe-ren" style="left:84.00%;width:3.33%" title=""></div><div class="fe-bar fe-pnt" style="left:88.00%;width:4.67%" title="Paint">Paint</div><div class="fe-bar fe-sys" style="left:93.33%;width:2.00%" title=""></div></div><div class="lab">GPU</div><div class="fe-trk"><div class="fe-bar fe-gpu" style="left:12.00%;width:2.00%" title=""></div><div class="fe-bar fe-gpu" style="left:28.67%;width:2.00%" title=""></div><div class="fe-bar fe-gpu" style="left:45.33%;width:2.00%" title=""></div><div class="fe-bar fe-gpu" style="left:62.00%;width:2.00%" title=""></div><div class="fe-bar fe-gpu" style="left:78.67%;width:2.00%" title=""></div><div class="fe-bar fe-gpu" style="left:95.33%;width:2.00%" title=""></div></div></div></div></div></div><div class="fe-win"><div class="fe-tabs"><span class="on">Performance</span></div><div><div class="fe-ph">single-div-opacity.html · animate opacity</div><div class="fe-body"><div class="fe-tl"><div></div><div class="fe-ruler"><span style="left:33.33%">100 ms</span><span style="left:66.67%">200 ms</span></div><div class="lab">Main</div><div class="fe-trk tall"></div><div class="lab">GPU</div><div class="fe-trk"><div class="fe-bar fe-gpu" style="left:0.67%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:6.20%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:11.73%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:17.27%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:22.80%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:28.33%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:33.87%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:39.40%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:44.93%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:50.47%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:56.00%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:61.53%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:67.07%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:72.60%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:78.13%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:83.67%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:89.20%;width:1.67%" title=""></div><div class="fe-bar fe-gpu" style="left:94.73%;width:1.67%" title=""></div></div></div></div></div></div></div></div><div class="fe-anno"><div><i class="fe-pin">1</i><span>Layers panel (giữ Shift để xoay) và Rendering › Layer borders xác nhận logo đã thành layer riêng.</span></div><div><i class="fe-pin">2</i><span>Animate <code>background-color</code>: mỗi frame vẫn có Paint. Animate <code>opacity</code>: main thread trống, GPU lo hết.</span></div></div><div class="fig-cap">Hình 2 — Layers, Rendering, và hai cách animate</div></div>
+  </section>
+
+  <section>
+    <div class="tag">08. Opacity được xử lý khác <span class="t">09:40–13:00</span></div>
+    <h2 class="c-grow">Animate background-color vẫn phải paint mỗi frame; animate opacity thì main thread gần như không làm gì vì GPU xử lý lúc composite</h2>
+    <p class="desc">Trích HTML5 Rocks: <b>"In Blink and WebKit browsers, a new layer is created for any element which has a CSS transition or animation on opacity"</b>, và thay đổi opacity có thể được GPU xử lý trong lúc composite bằng cách vẽ texture với alpha thấp hơn.</p>
+    <p class="desc">Thử nghiệm với một ô vuông, vẫn CPU 10x:</p>
+    <ul class="plain">
+      <li><b>single div</b>: animate <code>background-color</code>. Vẫn có Paint và Composite Layers ở mỗi khối lặp.</li>
+      <li><b>single div opacity</b>: opacity từ 1 xuống 0.2. Bản ghi <b>không có main thread</b>, chỉ có GPU, raster và interactions. Trông như bug nhưng không phải: phần tử ở layer riêng và mọi việc chuyển cho GPU.</li>
+      <li>Bản phức tạp hơn, giống logo ponyfoo (chồng nhiều div và đổi opacity để tạo màu mới): main thread vẫn có chút Recalculate Style, nhưng paint gần như không đáng kể.</li>
+    </ul>
+    <p class="desc">Kiểm tra trực quan: Rendering › <b>Paint flashing</b> tô xanh lá mỗi lần paint. Bản background-color nhấp nháy xanh; bản opacity <b>không có xanh</b>, nhưng bật layer borders thì có viền cam: ô vuông ở layer riêng.</p>
+  </section>
+
+  <section>
+    <div class="tag">09. Kết luận <span class="t">13:00–14:50</span></div>
+    <h2 class="c-avg">Không thấy chi phí đắt thì chưa cần tối ưu; dùng Summary và paint profiler; hover event Paint để thấy vùng bị ảnh hưởng; biết khi nào nên promote layer</h2>
+    <ul class="plain">
+      <li>Nếu không xác định được chi phí đắt, cân nhắc lại việc tối ưu: có thể là tối ưu sớm.</li>
+      <li>Click event Paint để có Summary chi tiết, kèm paint profiler.</li>
+      <li>Tập thói quen hover lên event Paint: nếu nó tô cả viewport thì có vấn đề.</li>
+      <li>Biết <b>khi nào promote layer</b> là bài học giá trị nhất: không phải lúc nào cũng nên, vì layer cũng có giá.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Hiểu sai thường gặp</div>
+    <h2>Bốn chỗ dễ nhầm</h2>
+    <div class="mis"><div><span class="x">✗</span> Chỉ phần tử đổi mới bị paint lại.</div><div><span class="v">✓</span> Layer root có thể là cả document (→ 03).</div></div>
+    <div class="mis"><div><span class="x">✗</span> translateZ(0) xoá bỏ công việc.</div><div><span class="v">✓</span> Nó chuyển việc sang GPU và tạo layer tốn bộ nhớ (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> will-change là lệnh bắt buộc tạo layer.</div><div><span class="v">✓</span> Chỉ là gợi ý cho trình duyệt (→ 06).</div></div>
+    <div class="mis"><div><span class="x">✗</span> Bản ghi không có main thread là DevTools lỗi.</div><div><span class="v">✓</span> Animation opacity chạy hết trên GPU (→ 08).</div></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Khi nào dùng</div>
+    <h2>Các lựa chọn</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Lựa chọn</th><th>Dùng khi</th><th>Tránh khi</th></tr>
+      <tr><td class="k">translateZ(0) / will-change</td><td>Đã đo thấy paint lớn do phần tử nhỏ kéo cả trang</td><td>Chưa đo, hoặc áp cho quá nhiều phần tử</td></tr>
+      <tr><td class="k">Animate opacity</td><td>Hiệu ứng mờ dần, đổi màu bằng chồng lớp</td><td>Cần đổi màu thật mà chồng lớp quá phức tạp</td></tr>
+      <tr><td class="k">Paint flashing</td><td>Muốn nhìn nhanh chỗ nào đang paint</td><td>Cần số đo chính xác (dùng Performance)</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Tự kiểm tra</div>
+    <h2>Bốn câu hỏi</h2>
+    <details><summary>Hai trường nào của event Paint cho thấy vấn đề ở logo?</summary><p>Dimensions và layer root (document, cao 2441). (→ 03)</p></details>
+    <details><summary>Sau translateZ(0), layer root đổi thành gì?</summary><p>Chỉ còn SVG; dimensions nhỏ hơn nhiều. (→ 05)</p></details>
+    <details><summary>Làm sao thấy phần tử nào là layer?</summary><p>Rendering › Show layer borders (viền cam) hoặc Layers panel. (→ 07)</p></details>
+    <details><summary>Vì sao animate opacity không cần paint?</summary><p>Phần tử được tạo layer riêng; GPU vẽ lại texture với alpha khác lúc composite. (→ 08)</p></details>
+  </section>
+
+  <section>
+    <div class="tag">Ôn tập · Thuật ngữ</div>
+    <h2>Thuật ngữ</h2>
+    <div class="tbl-scroll"><table>
+      <tr><th>Thuật ngữ</th><th>Nghĩa ngắn</th><th>Section</th></tr>
+      <tr><td class="k">paint / repaint</td><td>Vẽ pixel của phần tử lên layer</td><td>01</td></tr>
+      <tr><td class="k">layer root</td><td>Layer chứa vùng được paint</td><td>03</td></tr>
+      <tr><td class="k">paint profiler</td><td>Xem từng lệnh vẽ</td><td>04</td></tr>
+      <tr><td class="k">layer promotion</td><td>Tách phần tử ra layer riêng</td><td>05</td></tr>
+      <tr><td class="k">will-change</td><td>Gợi ý thuộc tính sắp đổi</td><td>06</td></tr>
+      <tr><td class="k">paint flashing</td><td>Tô xanh vùng vừa paint</td><td>08</td></tr>
+    </table></div>
+  </section>
+
+</div>
+
+<footer>Nguồn: Modern DevTools (Umar Hansa) · “Lesson 4 — Identifying paint costs” (<a href="https://moderndevtools.com/lessons/4">moderndevtools.com/lessons/4</a>) · khoảng 15 phút<br>Transcript chép bằng Whisper (small.en), mốc thời gian theo transcript; kết hợp ghi chú khoá học. Hình dựng lại trình duyệt và DevTools để minh hoạ.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/modern-devtools/md-04.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
