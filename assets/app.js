@@ -46,7 +46,7 @@
   };
   var seen = store.read();
   // Đăng nhập Google + đồng bộ tiến độ (assets/sync.js); không có config Firebase thì sync.js không làm gì.
-  var SYNC_VERSION = "9"; // tăng số này khi sửa sync.js / ask.js để trình duyệt không dùng bản cũ trong cache
+  var SYNC_VERSION = "10"; // tăng số này khi sửa sync.js / ask.js để trình duyệt không dùng bản cũ trong cache
   function loadSync(root) {
     var s = document.createElement("script");
     s.type = "module";

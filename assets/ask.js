@@ -6,6 +6,7 @@
 const MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"];
 const DAILY_LIMIT = 40;          // số câu hỏi mỗi người mỗi ngày (giới hạn mềm, đếm trong trình duyệt)
 const MAX_CONTEXT = 40000;       // số ký tự nội dung bài gửi kèm
+const TIMEOUT_MS = 45000;        // chờ một model tối đa bao lâu rồi chuyển model khác
 // App Check: chỉ request đến từ site này (có token reCAPTCHA) mới gọi được Gemini.
 // Site key là thông tin công khai. "enterprise" = key tạo trong Google Cloud (reCAPTCHA Enterprise / Fraud Defense);
 // "v3" = key reCAPTCHA v3 bản thường (có secret key, dán trong Firebase console › App Check).
@@ -197,7 +198,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     };
     // Tắt "thinking" để chữ đầu tiên hiện ra sớm; model nào không nhận tham số này thì bỏ đi.
     if (!noThinkCfg) opts.generationConfig = { thinkingConfig: { thinkingBudget: 0 } };
-    return AI.getGenerativeModel(ai, opts).startChat({ history: history.slice() });
+    return AI.getGenerativeModel(ai, opts, { timeout: TIMEOUT_MS }).startChat({ history: history.slice() });
   }
 
   function bubble(cls, text) {
@@ -218,6 +219,8 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     bubble("me", q);
     const out = bubble("ai"); out.innerHTML = '<span class="dots">Đang nghĩ</span>';
     let text = "";
+    const tries = [];
+    let t0 = Date.now();
     for (;;) {
       try {
         if (!chat) chat = await makeChat();
@@ -234,20 +237,22 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
       } catch (e) {
         console.warn("[ask]", e);
         const msg = String((e && e.message) || e);
+        tries.push("[" + MODELS[modelIdx] + (noThinkCfg ? "" : ", no-think") + ", " + ((Date.now() - t0) / 1000).toFixed(1) + "s] " + msg.slice(0, 300));
+        t0 = Date.now();
         // Model không nhận tham số tắt thinking: gửi lại không kèm tham số đó.
         if (!text && !noThinkCfg && /thinking/i.test(msg)) { noThinkCfg = true; chat = null; continue; }
         // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
-        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
+        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
-        const err = bubble("err", /\b50[0234]\b|high demand|overloaded|unavailable/i.test(msg) ? "Gemini đang quá tải (lỗi tạm thời phía Google). Thử lại sau ít phút."
+        const err = bubble("err", /\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) ? "Gemini đang quá tải (lỗi tạm thời phía Google). Thử lại sau ít phút."
           : /\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
           : /app.?check|attestation|recaptcha/i.test(msg) ? "Không xác minh được trình duyệt (App Check). Tải lại trang rồi thử lại; nếu vẫn lỗi, báo chủ site."
           : /api.?not.?enabled|\b40[13]\b|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
           : "Không hỏi được.");
         const det = h("details"); det.style.marginTop = "6px";
         det.appendChild(h("summary", "", "Chi tiết lỗi"));
-        const code = h("code", "", "[" + MODELS[modelIdx] + "] " + msg.slice(0, 600));
+        const code = h("code", "", tries.join("\n"));
         det.appendChild(code);
         if (checkToken && /app.?check/i.test(msg)) checkToken().then((r) => { code.textContent += "\n" + r + "\nhost: " + location.host; });
         err.appendChild(det);
