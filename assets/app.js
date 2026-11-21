@@ -46,10 +46,11 @@
   };
   var seen = store.read();
   // Đăng nhập Google + đồng bộ tiến độ (assets/sync.js); không có config Firebase thì sync.js không làm gì.
+  var SYNC_VERSION = "6"; // tăng số này khi sửa sync.js / ask.js để trình duyệt không dùng bản cũ trong cache
   function loadSync(root) {
     var s = document.createElement("script");
     s.type = "module";
-    s.src = root + "assets/sync.js";
+    s.src = root + "assets/sync.js?v=" + SYNC_VERSION;
     document.head.appendChild(s);
   }
   function seenCount(list) { return list.filter(function (l) { return seen[l.path]; }).length; }

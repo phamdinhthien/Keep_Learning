@@ -33,6 +33,7 @@ const CSS = `
 .kl-ask .msg pre{margin:0 0 8px;padding:10px;background:#0d0d0f;border:1px solid #2a2a30;border-radius:8px;overflow-x:auto}
 .kl-ask .msg pre code{border:0;padding:0;background:none}
 .kl-ask .msg h4{margin:4px 0 6px;font-size:14px}
+.kl-ask .msg.err details code{display:block;margin-top:4px;white-space:pre-wrap;color:#fecdd3;background:#1a0d10}
 .kl-ask .dots::after{content:"…";animation:kl-blink 1s steps(2) infinite}
 @keyframes kl-blink{50%{opacity:.2}}
 .kl-ask .intro{color:#9a9aa5;font-size:13px}
@@ -160,12 +161,15 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   }
   intro();
 
-  let chat = null, modelIdx = 0, busy = false, appCheckReady = false;
+  let chat = null, modelIdx = 0, busy = false, appCheckReady = false, checkToken = null;
   const history = [];
   async function makeChat() {
     if (RECAPTCHA_SITE_KEY && !appCheckReady) {
-      const { initializeAppCheck, ReCaptchaV3Provider } = await import(SDK + "firebase-app-check.js");
-      initializeAppCheck(app, { provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      const AC = await import(SDK + "firebase-app-check.js");
+      const appCheck = AC.initializeAppCheck(app, { provider: new AC.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      // Dùng khi báo lỗi: thử lấy token để biết reCAPTCHA có chạy không.
+      checkToken = () => AC.getToken(appCheck, false).then((t) => "App Check: lấy được token (" + String(t.token).length + " ký tự)" + (t.error ? ", lỗi: " + t.error.message : ""),
+        (e) => "App Check: không lấy được token: " + ((e && (e.code || e.message)) || e));
       appCheckReady = true;
     }
     const { getAI, getGenerativeModel, GoogleAIBackend } = await import(SDK + "firebase-ai.js");
@@ -224,7 +228,9 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
           : "Không hỏi được.");
         const det = h("details"); det.style.marginTop = "6px";
         det.appendChild(h("summary", "", "Chi tiết lỗi"));
-        det.appendChild(h("code", "", "[" + MODELS[modelIdx] + "] " + msg.slice(0, 600)));
+        const code = h("code", "", "[" + MODELS[modelIdx] + "] " + msg.slice(0, 600));
+        det.appendChild(code);
+        if (checkToken && /app.?check/i.test(msg)) checkToken().then((r) => { code.textContent += "\n" + r + "\nhost: " + location.host; });
         err.appendChild(det);
         chat = null; modelIdx = 0;
         break;

@@ -225,7 +225,7 @@ async function main() {
 
   // Trang bài học: thêm nút "Hỏi AI" (assets/ask.js).
   if (document.querySelector(".sdn-nav, .lesson-nav")) {
-    import("./ask.js").then((m) => m.init({ app, auth, A, SDK, signIn, G_ICON })).catch((e) => console.warn("[ask]", e));
+    import("./ask.js" + new URL(import.meta.url).search).then((m) => m.init({ app, auth, A, SDK, signIn, G_ICON })).catch((e) => console.warn("[ask]", e));
   }
 }
 
