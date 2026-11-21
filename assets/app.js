@@ -45,6 +45,13 @@
     last: function () { try { return localStorage.getItem("kl:last"); } catch (e) { return null; } }
   };
   var seen = store.read();
+  // Đăng nhập Google + đồng bộ tiến độ (assets/sync.js); không có config Firebase thì sync.js không làm gì.
+  function loadSync(root) {
+    var s = document.createElement("script");
+    s.type = "module";
+    s.src = root + "assets/sync.js";
+    document.head.appendChild(s);
+  }
   function seenCount(list) { return list.filter(function (l) { return seen[l.path]; }).length; }
   function bar(done, total) {
     var b = el("span", "bar"), i = el("i");
@@ -70,6 +77,7 @@
       nav.appendChild(a);
     });
     if (me) store.mark(me.path);
+    loadSync(base);
     // Thanh tiến độ đọc và nút lên đầu trang
     var prog = el("div", "sdn-progress");
     var top = el("button", "sdn-top");
@@ -258,6 +266,8 @@
     else renderHome("");
     document.title = (m ? m.name : k ? k.name : "Category") + " · System Design Notes";
   }
+  window.KL = { rerender: route };
+  loadSync("");
   window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
   window.addEventListener("pageshow", function (e) { if (e.persisted) route(); });
   route();

@@ -11,6 +11,8 @@ Trang web tĩnh lưu lại các bài học từ 200Lab, xếp theo **Category �
 index.html                              trang chủ: Category → Khóa → Bài học (có tìm kiếm)
 assets/style.css, assets/app.js         giao diện (bộ màu CARBON) và điều hướng dùng chung
 assets/shell.css                        thanh điều hướng chèn vào bài học dạng trang HTML tự chứa
+assets/sync.js                          đăng nhập Google, đồng bộ tiến độ học qua Firebase
+firebase/firestore.rules                quyền truy cập dữ liệu tiến độ trên Firestore
 lessons/<category>/<khóa>/<mã-bài>.html      mỗi bài học một file
 lessons/lessons.js                      danh sách bài (sinh tự động)
 tools/import_lesson.py                  thêm bài học vào site
@@ -50,3 +52,20 @@ Script nhận hai loại file:
 
 Sau đó commit và push lên `main`; GitHub Pages tự cập nhật.
 Sửa tay file bài xong thì chạy `python3 tools/import_lesson.py --rebuild` để cập nhật danh sách.
+
+## Đăng nhập Google (đồng bộ tiến độ học)
+
+Bài đã xem và bài xem gần nhất mặc định chỉ lưu trong trình duyệt. Khi bật Firebase, nút **Đăng nhập** hiện
+trên thanh trên cùng; đăng nhập Google xong, tiến độ được gộp và lưu theo tài khoản, mở máy nào cũng thấy.
+Chưa cấu hình thì site chạy như cũ, không hiện nút.
+
+1. Vào https://console.firebase.google.com, tạo project (gói Spark miễn phí là đủ).
+2. **Build › Authentication › Get started**, tab **Sign-in method**, bật **Google**.
+3. **Authentication › Settings › Authorized domains**, thêm `phamdinhthien.github.io`.
+4. **Build › Firestore Database › Create database** (production mode), tab **Rules**, dán nội dung
+   `firebase/firestore.rules` rồi **Publish**.
+5. **Project settings › Your apps › Web (`</>`)**, đăng ký app, chép object `firebaseConfig`
+   vào `FIREBASE_CONFIG` ở đầu `assets/sync.js`, rồi push.
+
+Config web của Firebase là thông tin công khai, commit vào repo được; dữ liệu được bảo vệ bằng Firestore rules
+(mỗi tài khoản chỉ đọc/ghi được `users/{uid}` của chính mình). Dữ liệu lưu: đường dẫn bài đã xem kèm thời điểm xem.
