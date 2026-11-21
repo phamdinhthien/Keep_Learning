@@ -14,7 +14,7 @@ const FIREBASE_CONFIG = {
 };
 
 const SDK = "https://www.gstatic.com/firebasejs/13.4.0/";
-const SEEN = "kl:seen", LAST = "kl:last";
+const SEEN = "kl:seen", LAST = "kl:last", LATER = "kl:authLater";
 
 function readLocal() {
   try { return JSON.parse(localStorage.getItem(SEEN) || "{}") || {}; } catch (e) { return {}; }
@@ -55,7 +55,22 @@ const CSS = `
 .kl-menu p{margin:0;color:#9a9aa5;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .kl-menu p b{display:block;color:#ededf0;font-size:13px}
 .kl-menu button{justify-content:center}
-@media (max-width:560px){.kl-auth .who,.kl-auth .st{display:none}}
+.kl-prompt{position:fixed;left:20px;bottom:20px;z-index:80;width:min(360px,calc(100vw - 32px));padding:18px 18px 16px;border:1px solid #2a2a30;border-radius:14px;background:#17171a;color:#ededf0;box-shadow:0 24px 60px -16px rgb(0 0 0 / .7),0 0 0 1px rgb(94 234 212 / .08);font:14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif;animation:kl-in .25s ease-out both}
+.kl-prompt b{display:block;font-size:15px;font-weight:700;margin:0 28px 6px 0}
+.kl-prompt p{margin:0 0 14px;color:#9a9aa5;font-size:13px}
+.kl-prompt .acts{display:flex;gap:8px;flex-wrap:wrap}
+.kl-prompt button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:1px solid #2a2a30;border-radius:8px;background:transparent;color:#ededf0;font:500 13px/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
+.kl-prompt button:hover{border-color:#5eead4}
+.kl-prompt button:focus-visible{outline:2px solid #5eead4;outline-offset:2px}
+.kl-prompt button[disabled]{opacity:.6;cursor:wait}
+.kl-prompt .go{background:#fff;color:#1f1f1f;border-color:#fff;font-weight:600}
+.kl-prompt .go:hover{background:#eef2f1;border-color:#5eead4}
+.kl-prompt .later{color:#9a9aa5}
+.kl-prompt .x{position:absolute;top:8px;right:8px;width:30px;height:30px;padding:0;border:0;font-size:20px;color:#9a9aa5}
+.kl-prompt .g{width:16px;height:16px;flex:none}
+@keyframes kl-in{from{opacity:0;transform:translateY(10px)}}
+@media (prefers-reduced-motion:reduce){.kl-prompt{animation:none}}
+@media (max-width:560px){.kl-auth .who,.kl-auth .st{display:none}.kl-prompt{left:16px;bottom:16px}.kl-prompt .go{flex:1}}
 `;
 const G_ICON = '<svg class="g" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
@@ -87,24 +102,61 @@ async function main() {
     return F;
   }
 
-  function signedOut() {
-    box.textContent = "";
+  async function signIn(btns) {
+    btns.forEach((x) => { x.disabled = true; });
+    const provider = new A.GoogleAuthProvider();
+    try { await A.signInWithPopup(auth, provider); }
+    catch (e) {
+      if (e && e.code === "auth/popup-blocked") return A.signInWithRedirect(auth, provider);
+      btns.forEach((x) => { x.disabled = false; });
+      if (!(e && /popup-closed|cancelled-popup/.test(e.code || ""))) alert("Đăng nhập không thành công: " + ((e && e.code) || e));
+    }
+  }
+  function gButton(label) {
     const b = h("button");
     b.type = "button";
     b.innerHTML = G_ICON;
-    b.appendChild(document.createTextNode("Đăng nhập"));
+    b.appendChild(document.createTextNode(label));
+    return b;
+  }
+
+  function signedOut() {
+    box.textContent = "";
+    const b = gButton("Đăng nhập");
     b.title = "Đăng nhập Google để đồng bộ tiến độ học giữa các thiết bị";
-    b.addEventListener("click", async () => {
-      b.disabled = true;
-      const provider = new A.GoogleAuthProvider();
-      try { await A.signInWithPopup(auth, provider); }
-      catch (e) {
-        if (e && e.code === "auth/popup-blocked") return A.signInWithRedirect(auth, provider);
-        b.disabled = false;
-        if (!(e && /popup-closed|cancelled-popup/.test(e.code || ""))) alert("Đăng nhập không thành công: " + ((e && e.code) || e));
-      }
-    });
+    b.addEventListener("click", () => signIn([b]));
     box.appendChild(b);
+  }
+
+  // Gợi ý đăng nhập khi mở trang mà chưa đăng nhập. Bấm "Để sau" thì 7 ngày sau mới hỏi lại.
+  let prompt = null;
+  function closePrompt() { if (prompt) { prompt.remove(); prompt = null; } }
+  function showPrompt() {
+    try { if (Date.now() - Number(localStorage.getItem(LATER) || 0) < 7 * 864e5) return; } catch (e) {}
+    const card = h("div", "kl-prompt");
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-labelledby", "kl-prompt-t");
+    const x = h("button", "x", "×");
+    x.type = "button";
+    x.setAttribute("aria-label", "Đóng");
+    const t = h("b", "", "Lưu tiến độ học của bạn");
+    t.id = "kl-prompt-t";
+    const done = Object.keys(readLocal()).length;
+    const p = h("p", "", (done ? "Bạn đã xem " + done + " bài trên trình duyệt này. " : "") +
+      "Đăng nhập Google để lưu tiến độ theo tài khoản và học tiếp trên máy khác.");
+    const go = gButton("Đăng nhập với Google");
+    go.className = "go";
+    const later = h("button", "later", "Để sau");
+    later.type = "button";
+    const dismiss = () => { try { localStorage.setItem(LATER, String(Date.now())); } catch (e) {} closePrompt(); };
+    x.addEventListener("click", dismiss);
+    later.addEventListener("click", dismiss);
+    go.addEventListener("click", () => signIn([go]));
+    const acts = h("div", "acts");
+    acts.appendChild(go); acts.appendChild(later);
+    card.appendChild(x); card.appendChild(t); card.appendChild(p); card.appendChild(acts);
+    document.body.appendChild(card);
+    prompt = card;
   }
 
   function signedIn(user) {
@@ -164,9 +216,11 @@ async function main() {
     }
   }
 
+  let first = true;
   A.onAuthStateChanged(auth, (user) => {
-    if (user) sync(user, signedIn(user));
-    else signedOut();
+    if (user) { closePrompt(); sync(user, signedIn(user)); }
+    else { signedOut(); if (first) showPrompt(); }
+    first = false;
   });
 }
 
