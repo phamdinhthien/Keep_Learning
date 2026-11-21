@@ -223,8 +223,8 @@ async function main() {
     first = false;
   });
 
-  // Trang bài học: thêm nút "Hỏi AI" (assets/ask.js).
-  if (document.querySelector(".sdn-nav, .lesson-nav")) {
+  // Nút "Hỏi AI" (assets/ask.js) trên mọi trang: trang bài học hỏi về bài đó, trang khác hỏi về cả thư viện.
+  {
     import("./ask.js" + new URL(import.meta.url).search).then((m) => m.init({ app, auth, A, SDK, signIn, G_ICON })).catch((e) => console.warn("[ask]", e));
   }
 }

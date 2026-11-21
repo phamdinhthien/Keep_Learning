@@ -36,6 +36,8 @@ const CSS = `
 .kl-ask .msg code{font:12.5px/1.5 "IBM Plex Mono",ui-monospace,Menlo,monospace;background:#0d0d0f;border:1px solid #2a2a30;border-radius:4px;padding:0 4px}
 .kl-ask .msg pre{margin:0 0 8px;padding:10px;background:#0d0d0f;border:1px solid #2a2a30;border-radius:8px;overflow-x:auto}
 .kl-ask .msg pre code{border:0;padding:0;background:none}
+.kl-ask .msg a{color:#5eead4;text-decoration:underline;text-underline-offset:2px}
+.kl-ask-fab.lib{bottom:18px}
 .kl-ask .msg h4{margin:4px 0 6px;font-size:14px}
 .kl-ask .msg.err details code{display:block;margin-top:4px;white-space:pre-wrap;color:#fecdd3;background:#1a0d10}
 .kl-ask .dots::after{content:"…";animation:kl-blink 1s steps(2) infinite}
@@ -54,12 +56,14 @@ const CSS = `
 .kl-ask .gate .g{width:16px;height:16px}
 .kl-ask .foot{padding:0 12px 8px;background:#17171a;color:#6b6b75;font-size:11px}
 @media (max-width:560px){
-  .kl-ask-fab{right:16px;bottom:72px}
+  .kl-ask-fab{right:16px;bottom:72px}.kl-ask-fab.lib{bottom:16px}
   .kl-ask{inset:0;width:auto;height:auto;border-radius:0;border:0}
 }
 @media (prefers-reduced-motion:reduce){.kl-ask,.kl-ask-fab{animation:none;transition:none}}
 `;
 const SPARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
+const ROOT = new URL("../", import.meta.url);   // gốc site, dùng cho link bài và tải bài
+const SUGGEST_LIB = ["Mình mới bắt đầu, nên học bài nào trước?", "Bài nào nói về cache và cách chọn chiến lược cache?", "Tóm tắt các khoá đang có trong thư viện", "Có bài nào về hiệu năng frontend không?"];
 const SUGGEST = ["Tóm tắt bài này trong 5 ý", "Giải thích lại ý khó nhất cho người mới", "Cho mình 3 câu hỏi ôn tập kèm đáp án", "Áp dụng kiến thức này vào dự án thực tế thế nào?"];
 
 function h(tag, cls, text) {
@@ -73,7 +77,11 @@ function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;
 function md(src) {
   const blocks = [];
   let s = esc(src).replace(/```[\w-]*\n?([\s\S]*?)(```|$)/g, (_, code) => { blocks.push(code); return "\u0000" + (blocks.length - 1) + "\u0000"; });
-  const inline = (t) => t.replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>");
+  const inline = (t) => t.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, label, href) => {
+      href = href.replace(/&amp;/g, "&");
+      if (!/^(lessons\/|https?:\/\/)/.test(href)) return label;
+      return '<a href="' + esc(new URL(href, ROOT).href) + '">' + label + "</a>";
+    }).replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<i>$2</i>");
   const out = [];
   let list = null;
   const close = () => { if (list) { out.push("</" + list + ">"); list = null; } };
@@ -93,11 +101,32 @@ function md(src) {
   return out.join("").replace(/\u0000(\d+)\u0000/g, (_, i) => "<pre><code>" + blocks[+i] + "</code></pre>");
 }
 
-function lessonText() {
-  const c = document.body.cloneNode(true);
+function lessonText(doc, max) {
+  const c = (doc || document).body.cloneNode(true);
   c.querySelectorAll("script,style,svg,nav.sdn-bar,.sdn-nav,.lesson-nav,.sdn-progress,.sdn-top,.kl-auth,.kl-prompt,.kl-ask,.kl-ask-fab").forEach((n) => n.remove());
   c.querySelectorAll("p,div,li,h1,h2,h3,h4,tr,section,header,footer,pre,br").forEach((n) => n.append("\n"));
-  return c.textContent.replace(/[ \t ]+/g, " ").replace(/\n\s*\n+/g, "\n").trim().slice(0, MAX_CONTEXT);
+  return c.textContent.replace(/[ \t ]+/g, " ").replace(/\n\s*\n+/g, "\n").trim().slice(0, max || MAX_CONTEXT);
+}
+const fold = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
+// Danh sách bài trong thư viện (từ lessons.js) cho chế độ hỏi toàn site.
+function catalog() {
+  return (window.LESSONS || []).map((l) => "- [" + l.title + "](lessons/" + l.path + ") · " + l.khoa + " › " + l.lop + (l.description ? ": " + l.description : "")).join("\n");
+}
+// Chọn vài bài liên quan nhất tới câu hỏi bằng khớp từ khoá, rồi tải nội dung để gửi kèm.
+async function related(q, n) {
+  const words = fold(q).split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+  if (!words.length) return [];
+  const scored = (window.LESSONS || []).map((l) => {
+    const hay = fold([l.title, l.description, l.lop, l.khoa, l.id].join(" "));
+    return { l, score: words.reduce((s, w) => s + (hay.indexOf(w) >= 0 ? (fold(l.title).indexOf(w) >= 0 ? 2 : 1) : 0), 0) };
+  }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, n);
+  const out = await Promise.all(scored.map(async ({ l }) => {
+    try {
+      const html = await (await fetch(new URL("lessons/" + l.path, ROOT))).text();
+      return { l, text: lessonText(new DOMParser().parseFromString(html, "text/html"), 12000) };
+    } catch (e) { return null; }
+  }));
+  return out.filter(Boolean);
 }
 function used() {
   try { const d = JSON.parse(localStorage.getItem("kl:askCount") || "{}"); return d.day === new Date().toDateString() ? d.n : 0; } catch (e) { return 0; }
@@ -107,10 +136,12 @@ function bump() {
 }
 
 export function init({ app, auth, A, SDK, signIn, G_ICON }) {
+  // Trang bài học: hỏi về bài đang đọc. Trang khác (trang chủ, danh mục): hỏi về cả thư viện.
+  const LIB = !document.querySelector(".sdn-nav, .lesson-nav");
   const style = h("style"); style.textContent = CSS; document.head.appendChild(style);
-  const title = (document.querySelector("h1") || {}).textContent || document.title;
+  const title = LIB ? "Cả thư viện bài học" : ((document.querySelector("h1") || {}).textContent || document.title);
 
-  const fab = h("button", "kl-ask-fab");
+  const fab = h("button", "kl-ask-fab" + (LIB ? " lib" : ""));
   fab.type = "button";
   fab.innerHTML = SPARK;
   fab.appendChild(document.createTextNode("Hỏi AI"));
@@ -129,7 +160,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   head.appendChild(x);
   const body = h("div", "log");
   const form = h("form");
-  const ta = h("textarea"); ta.rows = 1; ta.placeholder = "Hỏi về bài này…"; ta.setAttribute("aria-label", "Câu hỏi");
+  const ta = h("textarea"); ta.rows = 1; ta.placeholder = LIB ? "Hỏi về các bài trong thư viện…" : "Hỏi về bài này…"; ta.setAttribute("aria-label", "Câu hỏi");
   const send = h("button", "", "Gửi"); send.type = "submit";
   form.appendChild(ta); form.appendChild(send);
   const foot = h("div", "foot", "Gemini trả lời dựa trên nội dung bài; có thể sai, nên đối chiếu lại với bài.");
@@ -148,7 +179,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     gate.textContent = "";
     if (user) return;
     gate.appendChild(h("b", "", "Đăng nhập để hỏi AI"));
-    gate.appendChild(h("span", "", "Hỏi đáp với Gemini về nội dung bài đang đọc. Miễn phí, chỉ cần đăng nhập Google."));
+    gate.appendChild(h("span", "", LIB ? "Hỏi Gemini về mọi bài trong thư viện: nên học gì, bài nào nói về chủ đề nào. Miễn phí, chỉ cần đăng nhập Google." : "Hỏi đáp với Gemini về nội dung bài đang đọc. Miễn phí, chỉ cần đăng nhập Google."));
     const b = h("button"); b.type = "button"; b.innerHTML = G_ICON; b.appendChild(document.createTextNode("Đăng nhập với Google"));
     b.addEventListener("click", () => signIn([b]));
     gate.appendChild(b);
@@ -157,9 +188,9 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   A.onAuthStateChanged(auth, (user) => { me = user; renderGate(user); });
 
   function intro() {
-    const d = h("div", "intro", "Mình đã đọc bài này. Bạn muốn hỏi gì? Ví dụ:");
+    const d = h("div", "intro", LIB ? "Mình biết mọi bài trong thư viện. Bạn muốn tìm gì? Ví dụ:" : "Mình đã đọc bài này. Bạn muốn hỏi gì? Ví dụ:");
     const chips = h("div", "chips");
-    SUGGEST.forEach((q) => { const b = h("button", "", q); b.type = "button"; b.addEventListener("click", () => ask(q)); chips.appendChild(b); });
+    (LIB ? SUGGEST_LIB : SUGGEST).forEach((q) => { const b = h("button", "", q); b.type = "button"; b.addEventListener("click", () => ask(q)); chips.appendChild(b); });
     d.appendChild(chips);
     body.appendChild(d);
   }
@@ -191,10 +222,16 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     const { AI, ai } = await warm();
     const opts = {
       model: MODELS[modelIdx],
-      systemInstruction: "Bạn là trợ giảng cho trang học \"Keep Learning\". Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng, dùng markdown đơn giản " +
-        "(đoạn văn, gạch đầu dòng, **in đậm**, `code`). Dựa chủ yếu vào nội dung bài học bên dưới; nếu câu hỏi vượt ra ngoài bài, " +
-        "vẫn trả lời bằng kiến thức chung nhưng nói rõ phần đó không có trong bài. Không bịa số liệu.\n\n" +
-        "=== BÀI HỌC: " + title.trim() + " ===\n" + lessonText()
+      systemInstruction: LIB
+        ? "Bạn là trợ giảng cho thư viện bài học \"Keep Learning\". Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng, dùng markdown đơn giản " +
+          "(đoạn văn, gạch đầu dòng, **in đậm**, `code`). Khi nhắc tới bài trong thư viện, luôn chèn link markdown đúng như trong danh sách, " +
+          "dạng [Tên bài](lessons/...). Chỉ gợi ý bài có trong danh sách. Mỗi câu hỏi có thể kèm nội dung vài bài liên quan; dựa vào đó để trả lời. " +
+          "Nếu thư viện không có bài về chủ đề được hỏi thì nói rõ, rồi trả lời bằng kiến thức chung. Không bịa số liệu.\n\n" +
+          "=== DANH SÁCH BÀI HỌC ===\n" + catalog()
+        : "Bạn là trợ giảng cho trang học \"Keep Learning\". Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng, dùng markdown đơn giản " +
+          "(đoạn văn, gạch đầu dòng, **in đậm**, `code`). Dựa chủ yếu vào nội dung bài học bên dưới; nếu câu hỏi vượt ra ngoài bài, " +
+          "vẫn trả lời bằng kiến thức chung nhưng nói rõ phần đó không có trong bài. Không bịa số liệu.\n\n" +
+          "=== BÀI HỌC: " + title.trim() + " ===\n" + lessonText()
     };
     // Không gửi tham số cấu hình thêm (thinkingConfig…): model Gemini 3 từ chối một số giá trị bằng lỗi 400.
     return AI.getGenerativeModel(ai, opts, { timeout: TIMEOUT_MS }).startChat({ history: history.slice() });
@@ -219,17 +256,26 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     const out = bubble("ai"); out.innerHTML = '<span class="dots">Đang nghĩ</span>';
     let text = "";
     const tries = [];
+    // Chế độ thư viện: gửi kèm nội dung các bài liên quan (chỉ cho câu này, không lưu vào lịch sử).
+    let prompt = q;
+    if (LIB) {
+      out.innerHTML = '<span class="dots">Đang tìm bài liên quan</span>';
+      const rel = await related(q + " " + history.filter((m) => m.role === "user").slice(-1).map((m) => m.parts[0].text).join(" "), 3);
+      if (rel.length) prompt = rel.map((r) => "=== NỘI DUNG BÀI: [" + r.l.title + "](lessons/" + r.l.path + ") ===\n" + r.text).join("\n\n") + "\n\n=== CÂU HỎI ===\n" + q;
+      out.innerHTML = '<span class="dots">Đang nghĩ</span>';
+    }
     let t0 = Date.now();
     for (;;) {
       try {
         if (!chat) chat = await makeChat();
-        const res = await chat.sendMessageStream(q);
+        const res = await chat.sendMessageStream(prompt);
         for await (const chunk of res.stream) {
           text += chunk.text();
           out.innerHTML = md(text);
           body.scrollTop = body.scrollHeight;
         }
         history.push({ role: "user", parts: [{ text: q }] }, { role: "model", parts: [{ text }] });
+        if (LIB) chat = null; // tạo lại chat từ lịch sử gọn (không kèm nội dung bài đã gửi)
         try { sessionStorage.setItem("kl:askModel", MODELS[modelIdx]); } catch (e) {}
         bump();
         break;
