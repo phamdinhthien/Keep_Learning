@@ -12,6 +12,7 @@ index.html                              trang chủ: Category → Khóa → Bài
 assets/style.css, assets/app.js         giao diện (bộ màu CARBON) và điều hướng dùng chung
 assets/shell.css                        thanh điều hướng chèn vào bài học dạng trang HTML tự chứa
 assets/sync.js                          đăng nhập Google, đồng bộ tiến độ học qua Firebase
+assets/ask.js                           nút "Hỏi AI" trên trang bài học (Gemini qua Firebase AI Logic)
 firebase/firestore.rules                quyền truy cập dữ liệu tiến độ trên Firestore
 lessons/<category>/<khóa>/<mã-bài>.html      mỗi bài học một file
 lessons/lessons.js                      danh sách bài (sinh tự động)
@@ -69,3 +70,14 @@ Chưa cấu hình thì site chạy như cũ, không hiện nút.
 
 Config web của Firebase là thông tin công khai, commit vào repo được; dữ liệu được bảo vệ bằng Firestore rules
 (mỗi tài khoản chỉ đọc/ghi được `users/{uid}` của chính mình). Dữ liệu lưu: đường dẫn bài đã xem kèm thời điểm xem.
+
+## Hỏi AI (Gemini)
+
+Trang bài học có nút **Hỏi AI**: người đã đăng nhập hỏi đáp với Gemini, AI nhận nội dung bài đang đọc làm ngữ cảnh.
+Dùng Firebase AI Logic với Gemini Developer API (gói miễn phí, không cần server).
+
+- Bật: Firebase console › **AI Logic** › **Get started** › chọn **Gemini Developer API**.
+- Model thử lần lượt theo `MODELS` ở đầu `assets/ask.js`; model nào bị ngừng thì tự chuyển model sau.
+- `DAILY_LIMIT`: số câu mỗi người mỗi ngày (đếm trong trình duyệt, chỉ là giới hạn mềm).
+- Nên bật thêm **App Check** (reCAPTCHA) cho AI Logic để người ngoài không dùng config công khai gọi Gemini
+  bằng hạn mức của project.

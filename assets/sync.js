@@ -222,6 +222,11 @@ async function main() {
     else { signedOut(); if (first) showPrompt(); }
     first = false;
   });
+
+  // Trang bài học: thêm nút "Hỏi AI" (assets/ask.js).
+  if (document.querySelector(".sdn-nav, .lesson-nav")) {
+    import("./ask.js").then((m) => m.init({ app, auth, A, SDK, signIn, G_ICON })).catch((e) => console.warn("[ask]", e));
+  }
 }
 
 main().catch((e) => console.warn("[sync]", e));
