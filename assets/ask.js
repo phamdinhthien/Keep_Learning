@@ -7,7 +7,7 @@ const DAILY_LIMIT = 40;          // số câu hỏi mỗi người mỗi ngày (
 const MAX_CONTEXT = 40000;       // số ký tự nội dung bài gửi kèm
 // App Check: chỉ request đến từ site này (có token reCAPTCHA v3) mới gọi được Gemini.
 // Site key là thông tin công khai; secret key chỉ dán trong Firebase console › App Check.
-const RECAPTCHA_SITE_KEY = null;
+const RECAPTCHA_SITE_KEY = "6Lc6JCsuAAAAAN4iBFKNnlNJbeVrgxTl4pvm69dC";
 
 const CSS = `
 .kl-ask-fab{position:fixed;right:18px;bottom:74px;z-index:56;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:1px solid rgb(94 234 212 / .45);border-radius:22px;background:#17171a;color:#ededf0;font:600 13px/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;box-shadow:0 12px 30px -12px rgb(94 234 212 / .45);transition:border-color .2s,transform .2s}
