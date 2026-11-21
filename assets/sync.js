@@ -10,7 +10,7 @@ const FIREBASE_CONFIG = {
   projectId: "keeplearnin-892ec",
   storageBucket: "keeplearnin-892ec.firebasestorage.app",
   messagingSenderId: "910972746194",
-  appId: "1:910972746194:web:992f2da42e419b5ea9b00b"
+  appId: "1:910972746194:web:ad9999cd0b635b63a9b00b"
 };
 
 const SDK = "https://www.gstatic.com/firebasejs/13.4.0/";
