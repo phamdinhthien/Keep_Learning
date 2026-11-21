@@ -197,6 +197,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   intro();
 
   let chat = null, busy = false, checkToken = null, warming = null;
+  let useStream = true; // stream lỗi (không đọc được) thì chuyển sang nhận cả câu trả lời một lần
   let modelIdx = 0;
   try { modelIdx = Math.max(0, MODELS.indexOf(sessionStorage.getItem("kl:askModel"))); } catch (e) {}
   const history = [];
@@ -268,9 +269,16 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
     for (;;) {
       try {
         if (!chat) chat = await makeChat();
-        const res = await chat.sendMessageStream(prompt);
-        for await (const chunk of res.stream) {
-          text += chunk.text();
+        if (useStream) {
+          const res = await chat.sendMessageStream(prompt);
+          for await (const chunk of res.stream) {
+            text += chunk.text();
+            out.innerHTML = md(text);
+            body.scrollTop = body.scrollHeight;
+          }
+        } else {
+          const res = await chat.sendMessage(prompt);
+          text = res.response.text();
           out.innerHTML = md(text);
           body.scrollTop = body.scrollHeight;
         }
@@ -284,6 +292,8 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         const msg = String((e && e.message) || e);
         tries.push("[" + MODELS[modelIdx] + ", " + ((Date.now() - t0) / 1000).toFixed(1) + "s] " + msg.slice(0, 300));
         t0 = Date.now();
+        // Không đọc được stream: hỏi lại cùng model, nhận cả câu trả lời một lần (và giữ cách này cho cả phiên).
+        if (useStream && /parse/i.test(msg)) { useStream = false; text = ""; out.innerHTML = '<span class="dots">Đang nghĩ</span>'; chat = null; continue; }
         // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
         if (!text && /\b40[04]\b|invalid.?argument|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
