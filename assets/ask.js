@@ -165,7 +165,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   }
   intro();
 
-  let chat = null, busy = false, checkToken = null, noThinkCfg = false, warming = null;
+  let chat = null, busy = false, checkToken = null, warming = null;
   let modelIdx = 0;
   try { modelIdx = Math.max(0, MODELS.indexOf(sessionStorage.getItem("kl:askModel"))); } catch (e) {}
   const history = [];
@@ -196,8 +196,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         "vẫn trả lời bằng kiến thức chung nhưng nói rõ phần đó không có trong bài. Không bịa số liệu.\n\n" +
         "=== BÀI HỌC: " + title.trim() + " ===\n" + lessonText()
     };
-    // Tắt "thinking" để chữ đầu tiên hiện ra sớm; model nào không nhận tham số này thì bỏ đi.
-    if (!noThinkCfg) opts.generationConfig = { thinkingConfig: { thinkingBudget: 0 } };
+    // Không gửi tham số cấu hình thêm (thinkingConfig…): model Gemini 3 từ chối một số giá trị bằng lỗi 400.
     return AI.getGenerativeModel(ai, opts, { timeout: TIMEOUT_MS }).startChat({ history: history.slice() });
   }
 
@@ -237,12 +236,10 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
       } catch (e) {
         console.warn("[ask]", e);
         const msg = String((e && e.message) || e);
-        tries.push("[" + MODELS[modelIdx] + (noThinkCfg ? "" : ", no-think") + ", " + ((Date.now() - t0) / 1000).toFixed(1) + "s] " + msg.slice(0, 300));
+        tries.push("[" + MODELS[modelIdx] + ", " + ((Date.now() - t0) / 1000).toFixed(1) + "s] " + msg.slice(0, 300));
         t0 = Date.now();
-        // Model không nhận tham số tắt thinking (thường báo 400 invalid argument): gửi lại không kèm tham số đó.
-        if (!text && !noThinkCfg && /thinking|\b400\b|invalid.?argument/i.test(msg)) { noThinkCfg = true; chat = null; continue; }
         // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
-        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
+        if (!text && /\b40[04]\b|invalid.?argument|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
         const err = bubble("err", /\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) ? "Gemini đang quá tải (lỗi tạm thời phía Google). Thử lại sau ít phút."
