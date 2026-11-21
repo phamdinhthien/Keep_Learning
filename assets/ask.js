@@ -5,9 +5,11 @@
 const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
 const DAILY_LIMIT = 40;          // số câu hỏi mỗi người mỗi ngày (giới hạn mềm, đếm trong trình duyệt)
 const MAX_CONTEXT = 40000;       // số ký tự nội dung bài gửi kèm
-// App Check: chỉ request đến từ site này (có token reCAPTCHA v3) mới gọi được Gemini.
-// Site key là thông tin công khai; secret key chỉ dán trong Firebase console › App Check.
+// App Check: chỉ request đến từ site này (có token reCAPTCHA) mới gọi được Gemini.
+// Site key là thông tin công khai. "enterprise" = key tạo trong Google Cloud (reCAPTCHA Enterprise / Fraud Defense);
+// "v3" = key reCAPTCHA v3 bản thường (có secret key, dán trong Firebase console › App Check).
 const RECAPTCHA_SITE_KEY = "6Lc6JCsuAAAAAN4iBFKNnlNJbeVrgxTl4pvm69dC";
+const RECAPTCHA_TYPE = "enterprise";
 
 const CSS = `
 .kl-ask-fab{position:fixed;right:18px;bottom:74px;z-index:56;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:1px solid rgb(94 234 212 / .45);border-radius:22px;background:#17171a;color:#ededf0;font:600 13px/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;box-shadow:0 12px 30px -12px rgb(94 234 212 / .45);transition:border-color .2s,transform .2s}
@@ -166,7 +168,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   async function makeChat() {
     if (RECAPTCHA_SITE_KEY && !appCheckReady) {
       const AC = await import(SDK + "firebase-app-check.js");
-      const appCheck = AC.initializeAppCheck(app, { provider: new AC.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      const appCheck = AC.initializeAppCheck(app, { provider: (RECAPTCHA_TYPE === "v3" ? new AC.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY) : new AC.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY)), isTokenAutoRefreshEnabled: true });
       // Dùng khi báo lỗi: thử lấy token để biết reCAPTCHA có chạy không.
       checkToken = () => AC.getToken(appCheck, false).then((t) => "App Check: lấy được token (" + String(t.token).length + " ký tự)" + (t.error ? ", lỗi: " + t.error.message : ""),
         (e) => "App Check: không lấy được token: " + ((e && (e.code || e.message)) || e));
