@@ -4,16 +4,16 @@
 // Cách bật: xem mục "Đăng nhập Google" trong README.md.
 // Config Firebase của web app là thông tin công khai (không phải secret); quyền truy cập dữ liệu
 // do Firestore rules ở firebase/firestore.rules quyết định.
-const FIREBASE_CONFIG = null;
-// Ví dụ:
-// const FIREBASE_CONFIG = {
-//   apiKey: "AIza...",
-//   authDomain: "ten-project.firebaseapp.com",
-//   projectId: "ten-project",
-//   appId: "1:123:web:abc"
-// };
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDjsRgtVQnbKmUHkkn9MqqQe5KGG0HXALM",
+  authDomain: "keeplearnin-892ec.firebaseapp.com",
+  projectId: "keeplearnin-892ec",
+  storageBucket: "keeplearnin-892ec.firebasestorage.app",
+  messagingSenderId: "910972746194",
+  appId: "1:910972746194:web:992f2da42e419b5ea9b00b"
+};
 
-const SDK = "https://www.gstatic.com/firebasejs/10.14.1/";
+const SDK = "https://www.gstatic.com/firebasejs/13.4.0/";
 const SEEN = "kl:seen", LAST = "kl:last";
 
 function readLocal() {
