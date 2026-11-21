@@ -206,13 +206,18 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         console.warn("[ask]", e);
         const msg = String((e && e.message) || e);
         // Model không tồn tại hoặc đã ngừng: thử model kế tiếp.
-        if (!text && /not.?found|404|not supported|deprecated|retired/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
+        // Model không tồn tại, đã ngừng, hoặc không có hạn mức miễn phí (429, limit 0): thử model kế tiếp.
+        if (!text && /not.?found|404|not supported|deprecated|retired|429|quota|exhausted|rate/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
-        bubble("err", /429|quota|exhausted|rate/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
+        const err = bubble("err", /429|quota|exhausted|rate/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
           : /api.?not.?enabled|403|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
-          : "Không hỏi được: " + msg.slice(0, 200));
-        chat = null;
+          : "Không hỏi được.");
+        const det = h("details"); det.style.marginTop = "6px";
+        det.appendChild(h("summary", "", "Chi tiết lỗi"));
+        det.appendChild(h("code", "", "[" + MODELS[modelIdx] + "] " + msg.slice(0, 600)));
+        err.appendChild(det);
+        chat = null; modelIdx = 0;
         break;
       }
     }
