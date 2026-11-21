@@ -239,8 +239,8 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         const msg = String((e && e.message) || e);
         tries.push("[" + MODELS[modelIdx] + (noThinkCfg ? "" : ", no-think") + ", " + ((Date.now() - t0) / 1000).toFixed(1) + "s] " + msg.slice(0, 300));
         t0 = Date.now();
-        // Model không nhận tham số tắt thinking: gửi lại không kèm tham số đó.
-        if (!text && !noThinkCfg && /thinking/i.test(msg)) { noThinkCfg = true; chat = null; continue; }
+        // Model không nhận tham số tắt thinking (thường báo 400 invalid argument): gửi lại không kèm tham số đó.
+        if (!text && !noThinkCfg && /thinking|\b400\b|invalid.?argument/i.test(msg)) { noThinkCfg = true; chat = null; continue; }
         // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
         if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable|time.?out|timed out|abort/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
