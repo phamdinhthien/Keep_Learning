@@ -215,12 +215,12 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         const msg = String((e && e.message) || e);
         // Model không tồn tại hoặc đã ngừng: thử model kế tiếp.
         // Model không tồn tại, đã ngừng, hoặc không có hạn mức miễn phí (429, limit 0): thử model kế tiếp.
-        if (!text && /not.?found|404|not supported|deprecated|retired|429|quota|exhausted|rate/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
+        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
-        const err = bubble("err", /429|quota|exhausted|rate/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
-          : /app.?check|attestation|recaptcha/i.test(msg) ? "Không xác minh được trình duyệt (App Check). Tải lại trang rồi thử lại."
-          : /api.?not.?enabled|403|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
+        const err = bubble("err", /\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
+          : /app.?check|attestation|recaptcha/i.test(msg) ? "Không xác minh được trình duyệt (App Check). Tải lại trang rồi thử lại; nếu vẫn lỗi, báo chủ site."
+          : /api.?not.?enabled|\b40[13]\b|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
           : "Không hỏi được.");
         const det = h("details"); det.style.marginTop = "6px";
         det.appendChild(h("summary", "", "Chi tiết lỗi"));
