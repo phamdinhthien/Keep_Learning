@@ -5,6 +5,9 @@
 const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
 const DAILY_LIMIT = 40;          // số câu hỏi mỗi người mỗi ngày (giới hạn mềm, đếm trong trình duyệt)
 const MAX_CONTEXT = 40000;       // số ký tự nội dung bài gửi kèm
+// App Check: chỉ request đến từ site này (có token reCAPTCHA v3) mới gọi được Gemini.
+// Site key là thông tin công khai; secret key chỉ dán trong Firebase console › App Check.
+const RECAPTCHA_SITE_KEY = null;
 
 const CSS = `
 .kl-ask-fab{position:fixed;right:18px;bottom:74px;z-index:56;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:1px solid rgb(94 234 212 / .45);border-radius:22px;background:#17171a;color:#ededf0;font:600 13px/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;box-shadow:0 12px 30px -12px rgb(94 234 212 / .45);transition:border-color .2s,transform .2s}
@@ -157,9 +160,14 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   }
   intro();
 
-  let chat = null, modelIdx = 0, busy = false;
+  let chat = null, modelIdx = 0, busy = false, appCheckReady = false;
   const history = [];
   async function makeChat() {
+    if (RECAPTCHA_SITE_KEY && !appCheckReady) {
+      const { initializeAppCheck, ReCaptchaV3Provider } = await import(SDK + "firebase-app-check.js");
+      initializeAppCheck(app, { provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true });
+      appCheckReady = true;
+    }
     const { getAI, getGenerativeModel, GoogleAIBackend } = await import(SDK + "firebase-ai.js");
     const ai = getAI(app, { backend: new GoogleAIBackend() });
     const model = getGenerativeModel(ai, {
@@ -211,6 +219,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
         const err = bubble("err", /429|quota|exhausted|rate/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
+          : /app.?check|attestation|recaptcha/i.test(msg) ? "Không xác minh được trình duyệt (App Check). Tải lại trang rồi thử lại."
           : /api.?not.?enabled|403|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
           : "Không hỏi được.");
         const det = h("details"); det.style.marginTop = "6px";
