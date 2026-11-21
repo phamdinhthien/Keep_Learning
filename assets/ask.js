@@ -1,8 +1,9 @@
 // "Hỏi AI" trên trang bài học: Gemini qua Firebase AI Logic (Gemini Developer API, gói miễn phí).
 // sync.js nạp file này khi có config Firebase và đang ở trang bài học. Chỉ người đã đăng nhập mới hỏi được.
 
-// Model thử lần lượt: model đầu không có (bị đổi tên / ngừng) thì dùng model sau.
-const MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
+// Model thử lần lượt: model đầu lỗi (ngừng, quá tải, hết lượt) thì dùng model sau.
+// Flash-lite đứng đầu vì trả lời nhanh nhất; model chạy được sẽ được nhớ cho các câu sau trong phiên.
+const MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"];
 const DAILY_LIMIT = 40;          // số câu hỏi mỗi người mỗi ngày (giới hạn mềm, đếm trong trình duyệt)
 const MAX_CONTEXT = 40000;       // số ký tự nội dung bài gửi kèm
 // App Check: chỉ request đến từ site này (có token reCAPTCHA) mới gọi được Gemini.
@@ -135,7 +136,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   panel.appendChild(head); panel.appendChild(gate); panel.appendChild(body); panel.appendChild(form); panel.appendChild(foot);
   document.body.appendChild(panel);
 
-  const open = () => { panel.hidden = false; fab.hidden = true; (me ? ta : gate.querySelector("button") || x).focus(); };
+  const open = () => { panel.hidden = false; fab.hidden = true; if (me) warm(); (me ? ta : gate.querySelector("button") || x).focus(); };
   const close = () => { panel.hidden = true; fab.hidden = false; fab.focus(); };
   fab.addEventListener("click", open);
   x.addEventListener("click", close);
@@ -163,27 +164,40 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
   }
   intro();
 
-  let chat = null, modelIdx = 0, busy = false, appCheckReady = false, checkToken = null;
+  let chat = null, busy = false, checkToken = null, noThinkCfg = false, warming = null;
+  let modelIdx = 0;
+  try { modelIdx = Math.max(0, MODELS.indexOf(sessionStorage.getItem("kl:askModel"))); } catch (e) {}
   const history = [];
+  // Nạp thư viện, bật App Check và lấy sẵn token ngay khi mở khung chat, để câu hỏi đầu không phải chờ.
+  function warm() {
+    if (warming) return warming;
+    warming = (async () => {
+      if (RECAPTCHA_SITE_KEY) {
+        const AC = await import(SDK + "firebase-app-check.js");
+        const appCheck = AC.initializeAppCheck(app, { provider: (RECAPTCHA_TYPE === "v3" ? new AC.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY) : new AC.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY)), isTokenAutoRefreshEnabled: true });
+        // Dùng khi báo lỗi: thử lấy token để biết reCAPTCHA có chạy không.
+        checkToken = () => AC.getToken(appCheck, false).then((t) => "App Check: lấy được token (" + String(t.token).length + " ký tự)" + (t.error ? ", lỗi: " + t.error.message : ""),
+          (e) => "App Check: không lấy được token: " + ((e && (e.code || e.message)) || e));
+        AC.getToken(appCheck, false).catch(() => {});
+      }
+      const AI = await import(SDK + "firebase-ai.js");
+      return { AI, ai: AI.getAI(app, { backend: new AI.GoogleAIBackend() }) };
+    })();
+    warming.catch(() => { warming = null; });
+    return warming;
+  }
   async function makeChat() {
-    if (RECAPTCHA_SITE_KEY && !appCheckReady) {
-      const AC = await import(SDK + "firebase-app-check.js");
-      const appCheck = AC.initializeAppCheck(app, { provider: (RECAPTCHA_TYPE === "v3" ? new AC.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY) : new AC.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY)), isTokenAutoRefreshEnabled: true });
-      // Dùng khi báo lỗi: thử lấy token để biết reCAPTCHA có chạy không.
-      checkToken = () => AC.getToken(appCheck, false).then((t) => "App Check: lấy được token (" + String(t.token).length + " ký tự)" + (t.error ? ", lỗi: " + t.error.message : ""),
-        (e) => "App Check: không lấy được token: " + ((e && (e.code || e.message)) || e));
-      appCheckReady = true;
-    }
-    const { getAI, getGenerativeModel, GoogleAIBackend } = await import(SDK + "firebase-ai.js");
-    const ai = getAI(app, { backend: new GoogleAIBackend() });
-    const model = getGenerativeModel(ai, {
+    const { AI, ai } = await warm();
+    const opts = {
       model: MODELS[modelIdx],
       systemInstruction: "Bạn là trợ giảng cho trang học \"Keep Learning\". Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng, dùng markdown đơn giản " +
         "(đoạn văn, gạch đầu dòng, **in đậm**, `code`). Dựa chủ yếu vào nội dung bài học bên dưới; nếu câu hỏi vượt ra ngoài bài, " +
         "vẫn trả lời bằng kiến thức chung nhưng nói rõ phần đó không có trong bài. Không bịa số liệu.\n\n" +
         "=== BÀI HỌC: " + title.trim() + " ===\n" + lessonText()
-    });
-    return model.startChat({ history: history.slice() });
+    };
+    // Tắt "thinking" để chữ đầu tiên hiện ra sớm; model nào không nhận tham số này thì bỏ đi.
+    if (!noThinkCfg) opts.generationConfig = { thinkingConfig: { thinkingBudget: 0 } };
+    return AI.getGenerativeModel(ai, opts).startChat({ history: history.slice() });
   }
 
   function bubble(cls, text) {
@@ -214,12 +228,14 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
           body.scrollTop = body.scrollHeight;
         }
         history.push({ role: "user", parts: [{ text: q }] }, { role: "model", parts: [{ text }] });
+        try { sessionStorage.setItem("kl:askModel", MODELS[modelIdx]); } catch (e) {}
         bump();
         break;
       } catch (e) {
         console.warn("[ask]", e);
         const msg = String((e && e.message) || e);
-        // Model không tồn tại hoặc đã ngừng: thử model kế tiếp.
+        // Model không nhận tham số tắt thinking: gửi lại không kèm tham số đó.
+        if (!text && !noThinkCfg && /thinking/i.test(msg)) { noThinkCfg = true; chat = null; continue; }
         // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
         if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
@@ -235,7 +251,7 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         det.appendChild(code);
         if (checkToken && /app.?check/i.test(msg)) checkToken().then((r) => { code.textContent += "\n" + r + "\nhost: " + location.host; });
         err.appendChild(det);
-        chat = null; modelIdx = 0;
+        chat = null; modelIdx = (modelIdx + 1) % MODELS.length;
         break;
       }
     }
