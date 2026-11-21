@@ -220,11 +220,12 @@ export function init({ app, auth, A, SDK, signIn, G_ICON }) {
         console.warn("[ask]", e);
         const msg = String((e && e.message) || e);
         // Model không tồn tại hoặc đã ngừng: thử model kế tiếp.
-        // Model không tồn tại, đã ngừng, hoặc không có hạn mức miễn phí (429, limit 0): thử model kế tiếp.
-        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
+        // Model không tồn tại, đã ngừng, hết hạn mức (429) hoặc đang quá tải (500/503): thử model kế tiếp.
+        if (!text && /\b404\b|not.?found|not supported|deprecated|retired|\b429\b|quota|resource.?exhausted|rate.?limit|\b50[0234]\b|high demand|overloaded|unavailable/i.test(msg) && modelIdx < MODELS.length - 1) { modelIdx++; chat = null; continue; }
         out.remove();
         if (text) { const o = bubble("ai"); o.innerHTML = md(text); }
-        const err = bubble("err", /\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
+        const err = bubble("err", /\b50[0234]\b|high demand|overloaded|unavailable/i.test(msg) ? "Gemini đang quá tải (lỗi tạm thời phía Google). Thử lại sau ít phút."
+          : /\b429\b|quota|resource.?exhausted|rate.?limit/i.test(msg) ? "AI đang quá tải hoặc đã hết lượt miễn phí. Thử lại sau ít phút."
           : /app.?check|attestation|recaptcha/i.test(msg) ? "Không xác minh được trình duyệt (App Check). Tải lại trang rồi thử lại; nếu vẫn lỗi, báo chủ site."
           : /api.?not.?enabled|\b40[13]\b|permission|billing/i.test(msg) ? "AI chưa được bật cho site này (Firebase AI Logic). Báo chủ site nhé."
           : "Không hỏi được.");
