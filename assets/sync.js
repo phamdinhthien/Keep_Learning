@@ -22,8 +22,9 @@ function readLocal() {
 function writeLocal(seen) {
   try {
     localStorage.setItem(SEEN, JSON.stringify(seen));
+    // "Bài gần nhất" trên máy này do app.js ghi khi mở bài; chỉ lấy từ tài khoản khi máy chưa có.
     const last = latest(seen);
-    if (last) localStorage.setItem(LAST, last);
+    if (last && !localStorage.getItem(LAST)) localStorage.setItem(LAST, last);
   } catch (e) {}
 }
 // Bài gần nhất = bài có thời điểm xem mới nhất.
@@ -216,9 +217,12 @@ async function main() {
     }
   }
 
-  let first = true;
+  let first = true, current = null, status = null;
+  // app.js báo vừa đọc xong một bài: đồng bộ ngay lên tài khoản.
+  window.addEventListener("kl:progress", () => { if (current) sync(current, status); });
   A.onAuthStateChanged(auth, (user) => {
-    if (user) { closePrompt(); sync(user, signedIn(user)); }
+    current = user;
+    if (user) { closePrompt(); status = signedIn(user); sync(user, status); }
     else { signedOut(); if (first) showPrompt(); }
     first = false;
   });

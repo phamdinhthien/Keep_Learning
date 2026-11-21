@@ -41,12 +41,15 @@
   // Bài đã xem: lưu trong trình duyệt của người đọc, mất cũng không sao.
   var store = {
     read: function () { try { return JSON.parse(localStorage.getItem("kl:seen") || "{}"); } catch (e) { return {}; } },
-    mark: function (path) { try { var s = store.read(); s[path] = Date.now(); localStorage.setItem("kl:seen", JSON.stringify(s)); localStorage.setItem("kl:last", path); } catch (e) {} },
+    // Đã đọc xong (cuộn tới cuối bài): tính vào tiến độ, báo sync.js đồng bộ lên tài khoản.
+    mark: function (path) { try { var s = store.read(); s[path] = Date.now(); localStorage.setItem("kl:seen", JSON.stringify(s)); } catch (e) {} window.dispatchEvent(new Event("kl:progress")); },
+    // Mới mở bài: chỉ ghi nhớ để trang chủ hiện "Đọc tiếp", chưa tính là đã đọc.
+    open: function (path) { try { localStorage.setItem("kl:last", path); } catch (e) {} },
     last: function () { try { return localStorage.getItem("kl:last"); } catch (e) { return null; } }
   };
   var seen = store.read();
   // Đăng nhập Google + đồng bộ tiến độ (assets/sync.js); không có config Firebase thì sync.js không làm gì.
-  var SYNC_VERSION = "13"; // tăng số này khi sửa sync.js / ask.js để trình duyệt không dùng bản cũ trong cache
+  var SYNC_VERSION = "14"; // tăng số này khi sửa sync.js / ask.js để trình duyệt không dùng bản cũ trong cache
   function loadSync(root) {
     var s = document.createElement("script");
     s.type = "module";
@@ -77,7 +80,14 @@
       a.appendChild(document.createTextNode(l.title));
       nav.appendChild(a);
     });
-    if (me) store.mark(me.path);
+    if (me) store.open(me.path);
+    // Chỉ tính là đã đọc khi cuộn tới cuối bài (cách đáy trang dưới 160px).
+    var done = !me || !!seen[me.path];
+    function checkDone() {
+      if (done || document.readyState !== "complete") return; // đợi trang tải xong để chiều cao trang đã đúng
+
+      if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 160) { done = true; store.mark(me.path); }
+    }
     loadSync(base);
     // Thanh tiến độ đọc và nút lên đầu trang
     var prog = el("div", "sdn-progress");
@@ -97,9 +107,11 @@
       var max = document.documentElement.scrollHeight - window.innerHeight;
       prog.style.transform = "scaleX(" + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ")";
       top.classList.toggle("on", window.scrollY > 600);
+      checkDone();
     }
     window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
     onScroll();
+    window.addEventListener("load", checkDone);
     return;
   }
 
@@ -198,8 +210,11 @@
       if (last) {
         var same = lessons.filter(function (l) { return l.khoaSlug === last.khoaSlug && l.lopSlug === last.lopSlug; });
         var next = same[same.indexOf(last) + 1];
-        var target = next && !seen[next.path] ? next : last;
-        var r = card("lessons/" + target.path, "", target.title, "", target === last ? "Đọc lại bài gần nhất" : "Học tiếp", "lesson resume", { icon: "play" });
+        // Bài gần nhất chưa đọc xong → đọc tiếp bài đó; đã xong → gợi ý bài kế tiếp chưa đọc.
+        var unfinished = !seen[last.path];
+        var target = unfinished ? last : (next && !seen[next.path] ? next : last);
+        var label = unfinished ? "Đọc tiếp bài đang dở" : target === last ? "Đọc lại bài gần nhất" : "Học tiếp";
+        var r = card("lessons/" + target.path, "", target.title, "", label, "lesson resume", { icon: "play" });
         var box = el("ul", "list resume-wrap"); box.appendChild(r);
         results.appendChild(box);
         var m = r.querySelector(".m"); if (m) r.firstChild.insertBefore(m, r.querySelector(".t"));
