@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layer và compositing — WebPerf Tips</title>
+<meta name="description" content="Layer là gì và vì sao tồn tại, khi nào được tạo, luồng Paint → Compositor → Raster → Composite → GPU, khác z-index ra sao, ví dụ animation/cuộn/will-change và công cụ xem layer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-27">
+  <meta name="lesson:title" content="Layer và compositing">
+  <meta name="lesson:description" content="Layer là gì và vì sao tồn tại, khi nào được tạo, luồng Paint → Compositor → Raster → Composite → GPU, khác z-index ra sao, ví dụ animation/cuộn/will-change và công cụ xem layer.">
+  <meta name="lesson:order" content="27">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="7 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 27 · Browser internals</div>
+  <h1><em>Layer</em> và <em>compositing</em></h1>
+  <p class="sub">Trình duyệt vẽ sẵn từng lớp vào bộ nhớ GPU rồi ghép lại thành frame. Đó là bí mật của cuộn và animation mượt.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/layers-and-compositing/" target="_blank" rel="noopener">Bài gốc: “Layers and Compositing” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · KHÁI NIỆM</div>
+  <h2>Layer: nhóm phần tử dùng chung một mặt phẳng toạ độ</h2>
+  <p>Lập trình viên web hiếm khi chạm tới các khái niệm đồ hoạ cấp thấp, nhưng <b>layer</b> và <b>compositing</b> là nền móng của cách trình duyệt biến trang thành pixel. Một layer là nhóm phần tử hiển thị cùng một mặt phẳng toạ độ, được vẽ lên một lưới 2D và <b>giữ lại trong bộ nhớ GPU</b>. Mọi trình duyệt hiện đại đều dùng layer, dù chi tiết khác nhau và liên tục thay đổi.</p>
+  <p>Cần nắm rendering pipeline (bài 02) và mô hình tiến trình (bài 03).</p>
+  <a class="orig" href="https://webperf.tips/tip/layers-and-compositing/#layers" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> bản ghi cuộn trang trong Layers view</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">01 · VÌ SAO CÓ LAYER</div>
+  <h2>Ghép lớp vẽ sẵn nhanh hơn vẽ lại</h2>
+  <p>Layer là một <b>tối ưu</b>. Trình duyệt vẽ (rasterize) nhiều layer rồi giữ kết quả trên GPU. Khi cần frame mới, ví dụ lúc cuộn hay animation, nó chỉ cần dịch chuyển, biến đổi và ghép các layer đã vẽ sẵn, nhanh hơn nhiều so với vẽ lại toàn bộ khung nhìn.</p>
+  <p>Hơn nữa, layer có thể được cập nhật bởi một luồng riêng là <b>compositor thread</b>, không phải tranh giành với JavaScript nặng trên main thread.</p>
+  <p>Cái giá là <b>bộ nhớ GPU</b>, nhưng thường lợi ích cho trải nghiệm người dùng lớn hơn nhiều.</p>
+</section>
+
+<section>
+  <div class="tag">02 · KHI NÀO TẠO LAYER</div>
+  <h2>Các trường hợp thường gặp</h2>
+  <p>Điều kiện tạo layer tuỳ trình duyệt. Thường gặp:</p>
+  <div class="fig"><div class="boxes">
+    <span class="pill">Vùng cuộn được</span><span class="pill ren">Vùng chạy CSS animation</span><span class="pill">&lt;video&gt;</span><span class="pill">&lt;canvas&gt;</span><span class="pill pnt">will-change: transform</span>
+  </div></div>
+  <p>Chromium có danh sách lý do “promote” một nhóm phần tử lên layer riêng ngay trong mã nguồn; bài gốc có link tới đó.</p>
+</section>
+
+<section>
+  <div class="tag">03 · LÚC CHẠY</div>
+  <h2>Từ main thread tới màn hình</h2>
+  <ol>
+    <li>Theo nhịp, <b>main thread</b> chạy Style và Layout để thể hiện DOM và CSSOM.</li>
+    <li>Render Tree được cập nhật thông tin vị trí và style.</li>
+    <li>Pha <b>Paint</b> chạy. Dù tên là vậy, nó <i>không vẽ</i> gì lên màn hình, mà xác định vùng nào cần vẽ và vẽ thế nào, rồi gửi các chỉ dẫn đó sang <b>compositor thread</b>.</li>
+    <li>Compositor thread nhóm các vùng thành layer, tạo <b>Layer Tree</b>.</li>
+    <li>Compositor phối hợp với GPU process và các <b>raster thread</b> để vẽ từng layer thành texture/bitmap trong bộ nhớ GPU (gọi là <b>rasterization</b>).</li>
+    <li>Pha <b>Composite</b> ghép layer cùng con trỏ tới các bitmap vừa vẽ thành một chỉ dẫn tạo frame.</li>
+    <li>Chỉ dẫn được gửi tới GPU process và vẽ ra màn hình.</li>
+  </ol>
+  <div class="fig">
+    <div class="lane"><span class="ll">Main</span><div class="track"><div class="blk ren" style="width:16%">Style</div><div class="blk ren" style="width:16%;background:#a78bfa">Layout</div><div class="blk pnt" style="width:14%">Paint</div></div></div>
+    <div class="lane"><span class="ll">Compositor</span><div class="track"><div style="width:46%"></div><div class="blk net" style="width:16%">Layer Tree</div><div style="width:16%"></div><div class="blk net" style="width:14%">Composite</div></div></div>
+    <div class="lane"><span class="ll">Raster</span><div class="track"><div style="width:62%"></div><div class="blk js" style="width:16%">Raster</div></div></div>
+    <div class="lane"><span class="ll">GPU</span><div class="track"><div style="width:92%"></div><div class="blk ok" style="width:7%">↗</div></div></div>
+    <div class="fig-cap">Main → Compositor → Raster → Composite → GPU (đơn giản hoá)</div>
+  </div>
+  <p>Quá trình thật phức tạp hơn nhiều; tài liệu kiến trúc rendering của Chromium (luôn được cập nhật) là nguồn đáng đọc tiếp.</p>
+  <a class="orig" href="https://webperf.tips/tip/layers-and-compositing/#how-do-layers-operate-during-runtime" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ các luồng và cấu trúc dữ liệu qua từng bước</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">04 · KHÁC Z-INDEX</div>
+  <h2>z-index không tạo layer</h2>
+  <p><code>z-index</code> báo cho trình duyệt <b>stacking context</b>, tức thứ tự mà pha Paint dùng để vẽ các phần tử, và thường vẫn trong <b>một</b> layer. Nhiều phần tử với z-index khác nhau vẫn có thể được vẽ chồng lên nhau trên cùng một layer. Layer là khái niệm đồ hoạ cấp thấp, gần với GPU và raster hơn là với CSS, không dùng để sắp thứ tự hiển thị.</p>
+</section>
+
+<section>
+  <div class="tag">05 · VÍ DỤ</div>
+  <h2>Layer giúp được gì trong thực tế</h2>
+  <div class="card-grid">
+    <div class="card ren"><h3>Animation</h3><p>Viết đúng cách, CSS animation có thể chạy hoàn toàn trên compositor thread, giữ 60 FPS dù main thread đang bận (bài 28).</p></div>
+    <div class="card acc"><h3>Cuộn</h3><p>Cuộn được xử lý bằng cách dịch chuyển layer trong bộ nhớ. Compositor nhận sự kiện cuộn trước, dịch layer, rồi mới để main thread chạy handler <code>scroll</code> của JS, nên cuộn vẫn mượt khi JS đang chạy.</p></div>
+    <div class="card"><h3>Vùng vẽ đắt, vẽ thường xuyên</h3><p>Hiếm, nhưng có nhóm phần tử rất tốn để vẽ lại (ví dụ SVG phức tạp ở bài 33). Có thể chủ động tách chúng ra layer riêng: <code>will-change: transform;</code></p></div>
+  </div>
+</section>
+
+<section>
+  <div class="tag">06 · XEM LAYER</div>
+  <h2>Công cụ trong DevTools</h2>
+  <ul>
+    <li><b>Chrome Layers panel:</b> DevTools → menu ⋮ → More tools → <b>Layers</b>. Thấy từng layer, kích thước, lý do được tạo và bộ nhớ dùng.</li>
+    <li><b>Microsoft Edge 3D View:</b> trình xem 3D mạnh, xem được DOM, z-index và layer dạng không gian.</li>
+  </ul>
+  <a class="orig" href="https://webperf.tips/tip/layers-and-compositing/#exploring-layers-at-runtime" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh đường dẫn menu tới Layers panel</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">07 · CÓ NÊN TỐI ƯU LAYER?</div>
+  <h2>Chỉ khi nó thành vấn đề</h2>
+  <p>Phần lớn trường hợp, nếu HTML có ngữ nghĩa, DOM kích thước hợp lý và CSS được thiết kế tốt, trình duyệt sẽ tự làm đúng; layer hiếm khi là điểm nghẽn. Nhưng nếu khi profile bạn thấy pha rendering, layering hay compositing bị chậm, giờ bạn đã hiểu chuyện gì đang diễn ra phía sau.</p>
+  <div class="recap"><ul>
+    <li>Layer = nhóm phần tử vẽ sẵn trong GPU; đổi bộ nhớ lấy tốc độ.</li>
+    <li>Paint chỉ ghi chỉ dẫn; raster mới vẽ; composite ghép lại.</li>
+    <li>Compositor thread xử lý cuộn và một số animation mà không cần main thread.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Layers and Compositing” của Joe Liccini trên <a href="https://webperf.tips/tip/layers-and-compositing/">webperf.tips</a> (08/2024). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-27.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

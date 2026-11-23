@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS đã cache vẫn chậm: vì sao? — WebPerf Tips</title>
+<meta name="description" content="Hai loại nghẽn: mạng và tính toán trên máy người dùng; chi phí của script lấy từ cache: IPC, đọc đĩa, parse/compile, bytecode cache, thực thi và compile trễ; hướng giảm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-24">
+  <meta name="lesson:title" content="JS đã cache vẫn chậm: vì sao?">
+  <meta name="lesson:description" content="Hai loại nghẽn: mạng và tính toán trên máy người dùng; chi phí của script lấy từ cache: IPC, đọc đĩa, parse/compile, bytecode cache, thực thi và compile trễ; hướng giảm.">
+  <meta name="lesson:order" content="24">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="8 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 24 · Tối ưu JS</div>
+  <h1>JavaScript đã <em>cache</em> vẫn chậm: vì sao?</h1>
+  <p class="sub">Cache chỉ xoá chi phí mạng. Đọc ổ đĩa, IPC, parse, compile, chạy và compile trễ vẫn đổ lên CPU người dùng ở mọi lần mở trang.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/cached-js-misconceptions/" target="_blank" rel="noopener">Bài gốc: “Why Your Cached JavaScript Is Still Slow and Incurs Performance Overhead” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · HIỂU LẦM</div>
+  <h2>“JS đã nằm trong cache rồi, trang phải nhanh chứ”</h2>
+  <p>Lập trình viên thường chăm chút việc <b>gửi</b> tài nguyên tới máy người dùng, mà quên mất phần <b>tính toán</b> diễn ra sau khi tài nguyên tới nơi. Các SPA nặng JavaScript ngày nay dội rất nhiều việc lên CPU người dùng. Vài niềm tin sai phổ biến:</p>
+  <ul>
+    <li>“JS được cache trên trình duyệt nên trang sẽ nhanh.”</li>
+    <li>“Bundle to cũng không sao, đằng nào cũng nằm trong cache.”</li>
+    <li>“Vừa chuyển sang React xong, cache JS rồi thì hiệu năng phải tốt lên nhiều.”</li>
+  </ul>
+  <p>Cả ba đều sai. Cache tài nguyên vẫn rất nên làm, nhưng nó không làm cho code chạy nhanh hơn trên máy người dùng.</p>
+</section>
+
+<section>
+  <div class="tag">01 · HAI LOẠI NGHẼN</div>
+  <h2>Mạng và tính toán trên thiết bị</h2>
+  <div class="card-grid">
+    <div class="card acc"><h3>Mạng</h3><p>Thời gian đi–về để lấy tài nguyên hay dữ liệu từ server.</p></div>
+    <div class="card bad"><h3>Tính toán trên thiết bị</h3><p>Khối lượng xử lý trên máy người dùng. Hay bị bỏ qua, nhưng ngày nay lại là phần quan trọng nhất.</p></div>
+  </div>
+  <p>Khi JS được cache, chi phí mạng bằng 0, nhưng chi phí tính toán vẫn còn nguyên. Lấy một SPA React làm ví dụ:</p>
+<pre><code>&lt;body&gt;
+  &lt;div id="root"&gt;&lt;/div&gt;
+  &lt;script src="/vendor.8f2c.js"&gt;&lt;/script&gt;
+  &lt;script src="/app.41ab.js"&gt;&lt;/script&gt;   &lt;!-- render &lt;App /&gt; vào #root --&gt;
+&lt;/body&gt;</code></pre>
+  <p>Đặt <code>Cache-Control</code> dài hạn cho hai bundle, hay cài sẵn bằng Service Worker, là tối ưu đúng đắn. Lần ghé sau, file được đọc từ disk cache. Vậy chuyện gì xảy ra lúc đó?</p>
+  <div class="fig"><div class="flow">
+    <span class="pill">Renderer xin file</span><span class="ar">→IPC→</span><span class="pill net">Network process đọc đĩa</span><span class="ar">→IPC→</span><span class="pill js">Parse</span><span class="ar">→</span><span class="pill js">Compile</span><span class="ar">→</span><span class="pill bad">Execute + compile trễ</span>
+  </div><div class="fig-cap">Hành trình của một script lấy từ cache</div></div>
+  <a class="orig" href="https://webperf.tips/tip/cached-js-misconceptions/#system-overview" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ tổng quan quá trình tải script từ cache</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · IPC</div>
+  <h2>Chuyển file giữa các tiến trình</h2>
+  <p>Cache nằm trên đĩa, mà tiến trình chạy trang của bạn không có quyền đọc đĩa (bài 03). Network process đọc hộ cho mọi tab rồi gửi lại qua IPC. Tin nhắn IPC không tức thời, file càng to truyền càng lâu, và <b>gzip/brotli không giúp gì ở đây</b>.</p>
+  <p>Dấu hiệu: trong tab Network, một script lớn dù lấy từ cache vẫn có thời gian <i>Content Download</i> đáng kể. Đó chính là chi phí IPC.</p>
+  <a class="orig" href="https://webperf.tips/tip/cached-js-misconceptions/#ipc-cost" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ IPC và ảnh waterfall của cache hit</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">03 · ĐỌC ĐĨA</div>
+  <h2>Đĩa không phải lúc nào cũng nhanh</h2>
+  <p>Nhiều người dùng vẫn chạy ổ cứng cơ, hoặc ổ đang bận (quét virus, gần đầy). Đọc nhiều file cache cùng lúc còn làm nghẽn luồng và event loop của Network process, sinh thêm thời gian xếp hàng. File lớn đọc lâu hơn, và nén văn bản cũng không giảm được chi phí này.</p>
+</section>
+
+<section>
+  <div class="tag">04 · PARSE &amp; COMPILE</div>
+  <h2>Văn bản phải thành lệnh máy chạy được</h2>
+  <p>File đã về tới tiến trình của trang, nhưng JS vẫn chỉ là văn bản. Engine phải:</p>
+  <ol>
+    <li>Parse văn bản thành cây cú pháp trừu tượng (AST).</li>
+    <li>Duyệt AST và sinh <b>bytecode</b>.</li>
+    <li>Nạp bytecode lên luồng và bắt đầu chạy.</li>
+  </ol>
+  <p>Tất cả tốn CPU, và file càng lớn càng lâu. Trình duyệt có tối ưu như parse/compile trễ, hay đẩy một phần sang luồng phụ (streaming), nhưng chi phí vẫn đáng kể. Trong trace bạn sẽ thấy các khối parse/compile ở luồng phụ và khối <code>Compile Script</code> trên main thread.</p>
+  <h3>Bytecode cache có cứu được không?</h3>
+  <p>Trình duyệt có cache bytecode theo heuristic, là tối ưu mạnh nhưng không xoá hết chi phí. Bytecode thường <b>lớn hơn nhiều</b> so với mã nguồn, nên đọc nó từ đĩa lên luồng cũng tốn thời gian; nguồn lớn thì bytecode càng lớn. Profiler có hiện kích thước cache compile. Các cách cache cũng khác nhau: trong Chromium, script cache trong sự kiện <code>install</code> của Service Worker được sinh bộ lệnh đầy đủ hơn, giảm việc sinh code lúc chạy, nhưng file to hơn nên lúc nạp lại tốn hơn.</p>
+  <a class="orig" href="https://webperf.tips/tip/cached-js-misconceptions/#parse-and-compilation-cost" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ JS → bytecode và ảnh Parse/Compile trong profiler</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">05 · THỰC THI</div>
+  <h2>Rồi mới tới chạy code, và vẫn còn compile</h2>
+  <p>Chi phí chạy không phụ thuộc kích thước file mà phụ thuộc <b>khối lượng và hiệu quả</b> của đường code: logic nghiệp vụ, thao tác DOM qua React… Nhìn chung, dựng DOM bằng JS chậm hơn nhiều so với HTML tĩnh, và JS chạy rất kém trên máy cấu hình thấp. Dùng mark/measure (bài 12) để đo các đường code trên đường găng.</p>
+  <h3>Compile trễ</h3>
+  <p>Để khởi động nhanh, engine chỉ compile phần ít nhất cần để chạy. Khi script chạy tới những nhánh trước đó bị bỏ qua, engine phải compile chúng ngay lúc đó, kể cả khi script lấy từ cache. Trong profiler, các khối compile nhỏ này xen kẽ với JS đang chạy, cộng thêm vào đường găng.</p>
+  <a class="orig" href="https://webperf.tips/tip/cached-js-misconceptions/#deferred-compilation" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh compile trễ trong profiler</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">06 · KẾT LUẬN</div>
+  <h2>Cache giải quyết mạng, không giải quyết CPU</h2>
+  <div class="recap"><ul>
+    <li>Liên tục đo và profile để thấy chi phí CPU của JS.</li>
+    <li>Ưu tiên HTML và CSS tĩnh thay cho dựng giao diện bằng JS lúc chạy, khi có thể.</li>
+    <li>Cắt mạnh kích thước bundle để giảm IPC, đọc đĩa, parse, compile.</li>
+    <li>Tối ưu hiệu quả của các đường code bắt buộc phải chạy, để trình duyệt kịp vẽ frame.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Why Your Cached JavaScript Is Still Slow and Incurs Performance Overhead” của Joe Liccini trên <a href="https://webperf.tips/tip/cached-js-misconceptions/">webperf.tips</a> (07/2022). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-24.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

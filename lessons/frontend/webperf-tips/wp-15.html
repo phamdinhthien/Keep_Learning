@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer size và resource size — WebPerf Tips</title>
+<meta name="description" content="Transfer size (byte qua mạng, giảm nhờ nén và cache) khác resource size (byte thật, quyết định chi phí parse/compile/decode trên CPU); giảm resource size thì transfer size cũng giảm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-15">
+  <meta name="lesson:title" content="Transfer size và resource size">
+  <meta name="lesson:description" content="Transfer size (byte qua mạng, giảm nhờ nén và cache) khác resource size (byte thật, quyết định chi phí parse/compile/decode trên CPU); giảm resource size thì transfer size cũng giảm.">
+  <meta name="lesson:order" content="15">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="6 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 15 · Network</div>
+  <h1><em>Transfer size</em> và <em>resource size</em></h1>
+  <p class="sub">Nén và cache làm giảm byte qua mạng, nhưng CPU người dùng vẫn phải xử lý toàn bộ kích thước thật của file.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/resource-size-vs-transfer-size/" target="_blank" rel="noopener">Bài gốc: “Transfer Size vs. Resource Size” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · HAI CON SỐ</div>
+  <h2>Cùng một file, hai kích thước</h2>
+  <div class="card-grid">
+    <div class="card acc"><h3>Transfer Size</h3><p>Tổng byte phải đi qua mạng (“bytes over the wire”), gồm payload và header request/response. Càng lớn thì truyền càng lâu.</p></div>
+    <div class="card js"><h3>Resource Size</h3><p>Tổng byte của chính tài nguyên, không liên quan tới mạng, bất kể có nén hay cache hay không. Càng lớn thì CPU xử lý càng lâu.</p></div>
+  </div>
+  <div class="fig"><div class="flow">
+    <span class="pill js">app.js · 120 kB</span><span class="ar">─nén brotli→</span><span class="pill net">qua mạng · 32 kB</span><span class="ar">─giải nén→</span><span class="pill js">120 kB trên máy người dùng</span>
+  </div><div class="fig-cap">Resource size 120 kB, transfer size 32 kB (số minh hoạ)</div></div>
+</section>
+
+<section>
+  <div class="tag">01 · GIẢM TRANSFER SIZE</div>
+  <h2>Nén và cache</h2>
+  <h3>Nén</h3>
+  <p>Server hoặc bước build nén tài nguyên bằng <code>gzip</code> / <code>brotli</code> trước khi gửi. Byte đi qua mạng ít hơn nhiều, nhưng trình duyệt phải <b>giải nén</b> trước khi xử lý tiếp.</p>
+  <h3>Cache</h3>
+  <p>Tài nguyên nằm sẵn trong browser cache thì không cần truyền byte nào: transfer size bằng <b>0</b>. Đó là lý do cache là tối ưu phổ biến đến vậy.</p>
+  <a class="orig" href="https://webperf.tips/tip/resource-size-vs-transfer-size/#optimizing-transfer-size" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ nén, giải nén và cache</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · CHI PHÍ CỦA RESOURCE SIZE</div>
+  <h2>“Đã cache rồi thì không sao”: sai</h2>
+  <p>Nhiều người tin rằng tài nguyên được gửi tối ưu hay đã cache thì không thể làm chậm trang. Thực tế, ngay khi tài nguyên tới trình duyệt (từ mạng hay từ cache), chi phí CPU mới bắt đầu, và chi phí đó tỉ lệ với <b>resource size</b>. Máy người dùng thường yếu hơn máy lập trình viên, nên hậu quả càng nặng.</p>
+  <div class="card-grid">
+    <div class="card js"><h3>JavaScript</h3><p>File JS 120 kB sau giải nén phải được <b>parse, compile, execute</b> trên máy người dùng, dù nó tải nhanh hay lấy từ cache (bài 24).</p></div>
+    <div class="card"><h3>Ảnh</h3><p>Ảnh phải được <b>decode</b> trước khi hiện lên màn hình, dù tải nhanh hay lấy từ cache.</p></div>
+  </div>
+  <a class="orig" href="https://webperf.tips/tip/resource-size-vs-transfer-size/#resource-size-overhead" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ chi phí CPU cho JS và ảnh</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">03 · GIẢM RESOURCE SIZE</div>
+  <h2>Cắt bớt chính tài nguyên</h2>
+  <ul>
+    <li>Minify JS và CSS (bài 17).</li>
+    <li>Chọn định dạng ảnh tối ưu.</li>
+    <li>Code splitting JavaScript.</li>
+    <li>Lazy load tài nguyên chưa cần ngay.</li>
+  </ul>
+  <p>Parse và compile file JS 15 kB nhanh hơn hẳn file 120 kB.</p>
+  <div class="note warn"><b>Khi thêm thư viện mới</b>Một thư viện quảng cáo “chỉ N kB” thì hỏi lại: N kB <i>đã nén</i> hay N kB <i>thật</i>? CPU người dùng trả giá theo con số thật.</div>
+</section>
+
+<section>
+  <div class="tag">04 · LỢI KÉP</div>
+  <h2>Giảm resource size thì transfer size giảm theo</h2>
+  <p>Transfer size thường là bản nén của resource, nên resource nhỏ thì bản nén còn nhỏ hơn. Ví dụ minh hoạ: cắt file JS từ 120 kB xuống 15 kB vừa giảm mạnh chi phí CPU, vừa khiến bản nén chỉ còn khoảng 5–6 kB thay vì khoảng 32 kB.</p>
+</section>
+
+<section>
+  <div class="tag">05 · ĐO</div>
+  <h2>Ở đâu xem được hai con số</h2>
+  <ul>
+    <li>Tab Network: cột Size và popup khi hover (bài 13).</li>
+    <li>Track Network trong Performance panel (bài 14).</li>
+    <li>Ngoài thực tế: Resource Timing API cho mỗi tài nguyên có <code>transferSize</code>, <code>encodedBodySize</code>, <code>decodedBodySize</code>.</li>
+  </ul>
+<pre><code><span class="k">for</span> (<span class="k">const</span> r <span class="k">of</span> performance.<span class="f">getEntriesByType</span>(<span class="s">'resource'</span>)) {
+  console.<span class="f">log</span>(r.name, <span class="s">'qua mạng:'</span>, r.transferSize, <span class="s">'thật:'</span>, r.decodedBodySize);
+}</code></pre>
+  <div class="recap"><ul>
+    <li>Transfer size → thời gian mạng; giảm bằng nén và cache.</li>
+    <li>Resource size → thời gian CPU; cache không cứu được.</li>
+    <li>Giảm resource size là tối ưu cả hai phía.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Transfer Size vs. Resource Size” của Joe Liccini trên <a href="https://webperf.tips/tip/resource-size-vs-transfer-size/">webperf.tips</a> (09/2021). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-15.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

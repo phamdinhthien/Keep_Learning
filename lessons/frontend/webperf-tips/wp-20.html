@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mẫu request nối đuôi: anti-pattern cần tránh — WebPerf Tips</title>
+<meta name="description" content="Sequential/serial request pattern: ví dụ token → API, CORS preflight, bundle → data; mô hình “ống hút mỏng”, khác biệt máy dev và người dùng thật, chuỗi 4 vòng đi–về và các hướng giảm thiểu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-20">
+  <meta name="lesson:title" content="Mẫu request nối đuôi: anti-pattern cần tránh">
+  <meta name="lesson:description" content="Sequential/serial request pattern: ví dụ token → API, CORS preflight, bundle → data; mô hình “ống hút mỏng”, khác biệt máy dev và người dùng thật, chuỗi 4 vòng đi–về và các hướng giảm thiểu.">
+  <meta name="lesson:order" content="20">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="5 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 20 · Network</div>
+  <h1>Request <em>nối đuôi nhau</em>: anti-pattern cần tránh</h1>
+  <p class="sub">Mỗi request phải đợi request trước mới gửi được: mỗi mắt xích cộng thêm trọn một vòng đi–về vào thời gian người dùng chờ.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/serial-network-requests/" target="_blank" rel="noopener">Bài gốc: “The Sequential Network Request Pattern (and why you should avoid it!)” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · MẪU HÌNH</div>
+  <h2>Request sau phụ thuộc kết quả request trước</h2>
+<pre><code><span class="k">const</span> user = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">'/api/me'</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>());
+<span class="c">// chỉ gửi được khi đã có user.id</span>
+<span class="k">const</span> orders = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`/api/orders?user=${user.id}`</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>());
+<span class="f">renderOrders</span>(orders);</code></pre>
+  <div class="fig">
+    <div class="lane"><span class="ll">Network</span><div class="track" style="border:none"><div class="blk net" style="width:34%">/api/me</div><div class="blk net" style="width:34%;background:#93c5fd">/api/orders</div></div></div>
+    <div class="lane"><span class="ll">Main</span><div class="track"><div class="blk gap" style="width:68%"></div><div class="blk js" style="width:20%">render</div></div></div>
+    <div class="fig-cap">Request thứ hai chỉ bắt đầu khi request thứ nhất xong hẳn; UI chờ cả hai</div>
+  </div>
+  <p>Các tên gọi <i>sequential</i>, <i>serial</i>, <i>pipelined</i> request pattern được dùng thay nhau. Vấn đề này không chỉ có ở client, nhưng bài này nhìn từ phía ứng dụng web.</p>
+</section>
+
+<section>
+  <div class="tag">01 · BIẾN THỂ KHÓ THẤY</div>
+  <h2>Ba dạng hay gặp trong production</h2>
+  <h3>① Lấy token rồi mới gọi API</h3>
+<pre><code><span class="k">const</span> token = <span class="k">await</span> <span class="f">getAccessToken</span>();          <span class="c">// vòng 1</span>
+<span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">'https://api.shop.vn/cart'</span>, {   <span class="c">// vòng 2</span>
+  headers: { Authorization: <span class="s">`Bearer ${token}`</span> },
+});
+<span class="f">renderCart</span>(<span class="k">await</span> res.<span class="f">json</span>());</code></pre>
+  <h3>② CORS preflight</h3>
+  <p>Trang ở <code>https://shop.vn</code> gọi <code>https://api.shop.vn</code> kèm header tuỳ biến như <code>X-Session-Key</code>: trình duyệt phải gửi một request <code>OPTIONS</code> trước, xong mới gửi request thật. Một vòng đi–về bị chèn thêm mà code không hề viết (bài 21).</p>
+  <h3>③ Tải bundle rồi mới tải dữ liệu</h3>
+<pre><code>&lt;!-- index.html --&gt;
+&lt;script src="https://cdn.shop.vn/app.js"&gt;&lt;/script&gt;
+
+<span class="c">// app.js: chỉ khi file này tải, parse, compile, chạy xong mới gọi API</span>
+<span class="f">fetch</span>(<span class="s">'https://api.shop.vn/products'</span>).<span class="f">then</span>(<span class="f">renderProducts</span>);</code></pre>
+  <a class="orig" href="https://webperf.tips/tip/serial-network-requests/#real-examples" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ thực thi của ba ví dụ</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · VẤN ĐỀ</div>
+  <h2>Mạng là một ống hút mỏng và chập chờn</h2>
+  <p>Mọi thiết kế API hay luồng gọi buộc client và server “qua lại” tuần tự đều tạo ra điểm nghẽn do mạng. Với kịch bản quan trọng của người dùng, mỗi phụ thuộc mạng cần được soi rất kỹ.</p>
+  <p>Mô hình tư duy nên dùng: kết nối giữa người dùng và datacenter là một <b>ống hút mỏng, không đáng tin</b>. Mục tiêu là hút qua nó càng ít lượt nối tiếp càng tốt.</p>
+  <h3>Máy bạn khác máy người dùng</h3>
+  <p>Trên máy dev với mạng công ty, các request nhanh nên chuỗi nối đuôi trông vô hại. Người dùng trên 4G yếu có thể chịu độ trễ gấp nhiều lần. Hãy throttle khi test (bài 13), và gửi Resource Timing (bài 18) về telemetry để thấy số liệu thật.</p>
+  <h3>Mỗi mắt xích cộng thêm một vòng đi–về</h3>
+  <p>Một chuỗi điển hình trên đường găng:</p>
+  <ol>
+    <li>Tải <code>index.html</code>.</li>
+    <li>Tải <code>app.js</code>.</li>
+    <li>Gọi API khác origin: trình duyệt gửi preflight <code>OPTIONS</code>.</li>
+    <li>Preflight xong mới gọi API thật lấy JSON, rồi mới hiện UI.</li>
+  </ol>
+  <p>Bốn vòng đi–về nối tiếp; mỗi vòng cộng trọn thời gian của nó vào lúc người dùng thấy giao diện.</p>
+  <div class="fig">
+    <div class="lane"><span class="ll">Network</span><div class="track" style="border:none"><div class="blk net" style="width:20%">html</div><div class="blk js" style="width:22%">app.js</div><div class="blk gray" style="width:18%">OPTIONS</div><div class="blk net" style="width:22%;background:#93c5fd">GET JSON</div></div></div>
+    <div class="lane"><span class="ll">Màn hình</span><div class="track"><div class="blk idle" style="width:82%">trắng / loading…</div><div class="blk pnt" style="width:12%">UI</div></div></div>
+  </div>
+  <a class="orig" href="https://webperf.tips/tip/serial-network-requests/#the-problem" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ “ống hút”, mạng nhanh vs chậm trên thread diagram</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">03 · GIẢM THIỂU</div>
+  <h2>Không phải lúc nào cũng xoá được, nhưng rút ngắn được</h2>
+  <ul>
+    <li><b>Cache</b> các phụ thuộc mạng cho lần truy cập sau (ví dụ token, cấu hình).</li>
+    <li><b>Gom việc về phía datacenter</b>: để server gọi các server khác (gần nhau, mạng tốt) thay vì client gọi lần lượt.</li>
+    <li><b>Proxy ở điểm gần người dùng</b> (point of presence, edge) để kết nối ổn định hơn.</li>
+    <li><b>Chạy song song</b> những request không thật sự phụ thuộc nhau.</li>
+    <li><b>Né CORS preflight</b> cho request khác origin (bài 21).</li>
+  </ul>
+<pre><code><span class="c">// thay vì await lần lượt, gửi cùng lúc những gì độc lập</span>
+<span class="k">const</span> [products, banners] = <span class="k">await</span> Promise.<span class="f">all</span>([
+  <span class="f">fetch</span>(<span class="s">'/api/products'</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>()),
+  <span class="f">fetch</span>(<span class="s">'/api/banners'</span>).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>()),
+]);</code></pre>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “The Sequential Network Request Pattern (and why you should avoid it!)” của Joe Liccini trên <a href="https://webperf.tips/tip/serial-network-requests/">webperf.tips</a> (04/2022). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-20.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

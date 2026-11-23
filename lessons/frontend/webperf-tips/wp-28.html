@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Animation mượt nhờ compositor thread — WebPerf Tips</title>
+<meta name="description" content="Vì sao animation giật (Dropped/Partially Presented Frame), bảng cơ chế nào được compositor tăng tốc, thuộc tính ảnh hưởng layout vs transform/opacity, so sánh requestAnimationFrame, CSS animation và SVG.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-28">
+  <meta name="lesson:title" content="Animation mượt nhờ compositor thread">
+  <meta name="lesson:description" content="Vì sao animation giật (Dropped/Partially Presented Frame), bảng cơ chế nào được compositor tăng tốc, thuộc tính ảnh hưởng layout vs transform/opacity, so sánh requestAnimationFrame, CSS animation và SVG.">
+  <meta name="lesson:order" content="28">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="7 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 28 · Browser internals</div>
+  <h1>Animation mượt nhờ <em>compositor thread</em></h1>
+  <p class="sub">Animation giật thường vì nó phụ thuộc main thread. Khai báo đúng cách để compositor tự chạy 60 FPS bất kể JavaScript bận cỡ nào.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/animate-on-compositor-thread/" target="_blank" rel="noopener">Bài gốc: “Eliminating Choppy Animations by Leveraging the Browser Compositor Thread” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · MỤC TIÊU</div>
+  <h2>60 frame mỗi giây, đều đặn</h2>
+  <p>Ứng dụng dùng animation khắp nơi: màn hình chờ khi khởi động, spinner khi một module đang tải… Để mắt người thấy mượt, animation phải tạo frame <b>đều đặn ở 60 FPS</b>. Không giữ được nhịp đó thì animation trông giật và chậm. Bài gốc có ví dụ so sánh trực quan hai spinner, một mượt, một giật.</p>
+  <a class="orig" href="https://webperf.tips/tip/animate-on-compositor-thread/" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> video so sánh animation mượt và giật</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">01 · NGUYÊN NHÂN</div>
+  <h2>Animation đang dựa vào main thread</h2>
+  <p>Nếu animation giật, rất có thể cơ chế chạy nó phụ thuộc main thread, nơi đang phải gánh parse, compile, chạy JS. Trong profiler, bạn sẽ thấy:</p>
+  <ul>
+    <li>Cảnh báo <b>Partially Presented Frame</b> hoặc <b>Dropped Frame</b>: trình duyệt muốn tạo frame nhưng không kịp.</li>
+    <li>Track Frames có một khoảng dài không có frame nào, thường trùng với các task JS lớn.</li>
+  </ul>
+  <p>Mọi cập nhật giao diện phụ thuộc main thread đều chỉ tạo frame được khi main thread rảnh để chạy render steps. Animation phụ thuộc main thread thì frame rate của nó bị trói vào nhịp đó. May là trình duyệt có cách tăng tốc: đẩy animation sang <b>compositor thread</b>.</p>
+  <a class="orig" href="https://webperf.tips/tip/animate-on-compositor-thread/#root-causing-choppy-animations" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh profiler với cảnh báo Partially Presented Frames</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · KIỂM TRA</div>
+  <h2>Cơ chế nào được compositor tăng tốc?</h2>
+  <p>Animation đang giật thì câu trả lời thường là “không”. Bảng tham khảo (trình duyệt thay đổi liên tục; nghi ngờ thì ghi trace):</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>Cơ chế</th><th>Compositor tăng tốc?</th></tr>
+    <tr><td>CSS animation/transition, thuộc tính <b>không</b> ảnh hưởng layout</td><td style="color:var(--ok)">Có</td></tr>
+    <tr><td>CSS animation/transition, thuộc tính ảnh hưởng layout</td><td style="color:var(--bad)">Không</td></tr>
+    <tr><td>Web Animations API, thuộc tính không ảnh hưởng layout</td><td style="color:var(--ok)">Có</td></tr>
+    <tr><td>Web Animations API, thuộc tính ảnh hưởng layout</td><td style="color:var(--bad)">Không</td></tr>
+    <tr><td>Animation SVG</td><td style="color:var(--bad)">Không</td></tr>
+    <tr><td><code>requestAnimationFrame</code></td><td style="color:var(--bad)">Không</td></tr>
+    <tr><td><code>setInterval</code>, <code>setTimeout</code></td><td style="color:var(--bad)">Không</td></tr>
+    <tr><td>Thư viện chạy bằng JS (ví dụ Lottie)</td><td style="color:var(--bad)">Không</td></tr>
+  </table></div>
+  <h3>Thuộc tính ảnh hưởng layout</h3>
+  <p>Animate thuộc tính cần thông tin chỉ main thread có (như Layout Tree) thì animation bị trói vào main thread. Ví dụ <code>width</code>, <code>height</code>, <code>top</code>, <code>left</code>, <code>margin</code>. Nên dùng <code>transform</code> và <code>opacity</code>.</p>
+<pre><code><span class="c">/* ✗ bị main thread trói: width cần Layout */</span>
+<span class="f">.drawer</span> { transition: width <span class="n">300ms</span> ease; }
+<span class="f">.drawer.open</span> { width: <span class="n">320px</span>; }
+
+<span class="c">/* ✓ compositor xử lý được: transform không cần Layout */</span>
+<span class="f">.drawer</span> { width: <span class="n">320px</span>; transform: translateX(<span class="n">-100%</span>); transition: transform <span class="n">300ms</span> ease; }
+<span class="f">.drawer.open</span> { transform: translateX(<span class="n">0</span>); }</code></pre>
+</section>
+
+<section>
+  <div class="tag">03 · CƠ CHẾ</div>
+  <h2>Compositor thread là gì</h2>
+  <p>Compositor thread nằm trong chính renderer process của trang. Nó điều phối các thao tác đồ hoạ: nhận thông tin từ main thread và phối hợp với khâu raster, hiển thị (bài 27). Nhiều lập trình viên không biết nó tồn tại.</p>
+  <p>Khác main thread, compositor <b>không chạy JavaScript</b>, và không có API nào để gọi nó trực tiếp (như Web Worker). Cách duy nhất là <b>khai báo animation đúng cách</b> để trình duyệt tự giao cho nó. Khi đó animation tạo frame đều đặn, không bị gián đoạn bởi JS nặng. Điều này đặc biệt có giá trị trong những giai đoạn main thread bận nhất: React render phía client, parse/compile bundle lớn.</p>
+  <div class="fig">
+    <div class="lane"><span class="ll">Main</span><div class="track"><div class="blk bad" style="width:70%">JS nặng (parse, compile, render)</div><div class="blk js" style="width:14%">JS</div></div></div>
+    <div class="lane"><span class="ll">Compositor</span><div class="track"><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div><div class="blk ok" style="width:7%">F</div></div></div>
+    <div class="fig-cap">Animation được tăng tốc vẫn ra frame đều dù main thread kẹt</div>
+  </div>
+  <a class="orig" href="https://webperf.tips/tip/animate-on-compositor-thread/#how-does-compositor-acceleration-work" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ main thread gửi thông tin sang compositor thread</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">04 · BA VÍ DỤ</div>
+  <h2>Cùng một spinner, ba cách viết</h2>
+  <h3>① requestAnimationFrame: phụ thuộc main thread</h3>
+<pre><code><span class="k">const</span> spinner = document.<span class="f">querySelector</span>(<span class="s">'.spinner'</span>);
+<span class="k">const</span> PERIOD = <span class="n">1500</span>;  <span class="c">// một vòng mất 1,5 giây</span>
+<span class="k">function</span> <span class="f">tick</span>(now) {
+  <span class="k">const</span> deg = ((now % PERIOD) / PERIOD) * <span class="n">360</span>;
+  spinner.style.transform = <span class="s">`rotate(${deg}deg)`</span>;
+  <span class="f">requestAnimationFrame</span>(tick);
+}
+<span class="f">requestAnimationFrame</span>(tick);</code></pre>
+  <p><code>requestAnimationFrame</code> cố chạy mỗi frame một lần nhưng cần JS, tức cần main thread. Main thread rảnh thì mượt; gặp long task thì không thể ra frame đúng nhịp, và spinner khựng lại.</p>
+  <h3>② CSS animation: compositor lo</h3>
+<pre><code><span class="k">@keyframes</span> <span class="f">spin</span> { <span class="k">to</span> { transform: rotate(<span class="n">360deg</span>); } }
+<span class="f">.spinner</span> { animation: spin <span class="n">1.5s</span> linear infinite; }</code></pre>
+  <p>Trình duyệt hiểu rằng phần tử có class này nên được animate trên compositor thread. JS nặng tới đâu thì spinner vẫn quay đều. Các cập nhật khác từ main thread (React render phần tử khác) vẫn tới compositor, nhưng không ảnh hưởng nhịp của animation này.</p>
+  <h3>③ SVG animation: trông khai báo nhưng không được tăng tốc</h3>
+<pre><code>&lt;svg viewBox="0 0 100 100" width="80" height="80"&gt;
+  &lt;circle cx="50" cy="50" r="40" fill="none" stroke="teal" stroke-width="8" stroke-dasharray="180 80"&gt;
+    &lt;animateTransform attributeName="transform" type="rotate"
+      from="0 50 50" to="360 50 50" dur="1.5s" repeatCount="indefinite" /&gt;
+  &lt;/circle&gt;
+&lt;/svg&gt;</code></pre>
+  <p>Dù cú pháp là khai báo, <code>&lt;animateTransform&gt;</code> không báo cho trình duyệt chuyển animation sang compositor và vẫn dựa vào cấu trúc dữ liệu của main thread, giống ví dụ ①. Đây là bẫy hay gặp: designer xuất animation SVG từ công cụ thiết kế, nơi không có JS nặng chạy kèm, nên trông rất mượt. Đưa vào sản phẩm thật thì bỗng giật.</p>
+  <a class="orig" href="https://webperf.tips/tip/animate-on-compositor-thread/#examples" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> trang ví dụ chạy song song ba cách và sơ đồ frame</span><span class="oa">↗</span></a>
+  <div class="recap"><ul>
+    <li>Animation giật = phụ thuộc main thread. Kiểm tra cảnh báo Dropped/Partially Presented Frame.</li>
+    <li>Dùng CSS animation hoặc Web Animations API với <code>transform</code>/<code>opacity</code>.</li>
+    <li>Tránh animate <code>width</code>/<code>height</code>/<code>top</code>…; cẩn thận với rAF, timer, SVG, thư viện JS.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Eliminating Choppy Animations by Leveraging the Browser Compositor Thread” của Joe Liccini trên <a href="https://webperf.tips/tip/animate-on-compositor-thread/">webperf.tips</a> (04/2023). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-28.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

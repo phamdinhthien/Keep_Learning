@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rendering pipeline: từ HTML/CSS tới pixel — WebPerf Tips</title>
+<meta name="description" content="HTML parsing ra DOM, CSS thành CSSOM, Style dựng Render Tree với ComputedStyle, Layout gán toạ độ, Paint vẽ ra frame.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-02">
+  <meta name="lesson:title" content="Rendering pipeline: từ HTML/CSS tới pixel">
+  <meta name="lesson:description" content="HTML parsing ra DOM, CSS thành CSSOM, Style dựng Render Tree với ComputedStyle, Layout gán toạ độ, Paint vẽ ra frame.">
+  <meta name="lesson:order" content="2">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="9 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 02 · Nền tảng</div>
+  <h1>Rendering pipeline: từ <em>HTML/CSS</em> tới pixel</h1>
+  <p class="sub">DOM, CSSOM, Render Tree, Style, Layout, Paint: trình duyệt làm gì trước khi bất kỳ pixel nào xuất hiện.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/browser-rendering-pipeline/" target="_blank" rel="noopener">Bài gốc: “An Introduction to the Browser Rendering Pipeline” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · BỨC TRANH CHUNG</div>
+  <h2>Người dùng chỉ thấy pixel</h2>
+  <p>Một ứng dụng “cảm giác nhanh” khi pixel (frame) lên màn hình sớm. Nhưng thứ ta viết là HTML và CSS dạng chữ, và quá trình trình duyệt biến chúng thành pixel thì gần như vô hình với lập trình viên. Vì không thấy nên ít ai nghĩ tới việc nó chạy <b>khi nào</b> và <b>tốn bao nhiêu</b>. Bài này đi qua phiên bản đơn giản của quy trình đó.</p>
+  <div class="fig"><div class="flow">
+    <span class="pill">HTML text</span><span class="ar">→</span><span class="pill js">DOM</span>
+    <span class="ar">+</span>
+    <span class="pill">CSS text</span><span class="ar">→</span><span class="pill js">CSSOM</span>
+    <span class="ar">→</span><span class="pill ren">Style → Render Tree</span><span class="ar">→</span><span class="pill ren">Layout</span><span class="ar">→</span><span class="pill pnt">Paint → Pixel</span>
+  </div><div class="fig-cap">Các chặng chính của rendering pipeline (bản cho người mới)</div></div>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#the-overall-process" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ tổng thể của pipeline</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">01 · HTML PARSING</div>
+  <h2>Văn bản HTML thành cây DOM</h2>
+  <p>Khi người dùng mở trang, thứ đầu tiên trình duyệt nhận là tài liệu HTML dạng văn bản. <b>HTML Parser</b> đọc văn bản này và dựng <b>DOM</b> (Document Object Model): một cây mà mỗi node là một object của trình duyệt, ứng với một phần trong file HTML.</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Cửa hàng&lt;/title&gt;
+    &lt;link rel="stylesheet" href="shop.css"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Sản phẩm&lt;/h1&gt;
+    &lt;p&gt;Áo thun&lt;/p&gt;
+    &lt;p&gt;Quần jean&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+  <div class="fig"><pre style="margin:0;border:none;background:none"><code>document
+└─ html
+   ├─ head
+   │  ├─ title ─ "Cửa hàng"
+   │  └─ link (shop.css)
+   └─ body
+      ├─ h1 ─ "Sản phẩm"
+      ├─ p  ─ "Áo thun"
+      └─ p  ─ "Quần jean"</code></pre><div class="fig-cap">Cây DOM dựng từ đoạn HTML trên</div></div>
+  <p>Việc parse HTML chạy như một <b>task trên main thread</b>; trong Performance panel nó hiện thành task <code>Parse HTML</code>.</p>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#html-parsing" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> cây DOM và ảnh task Parse HTML trong profiler</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · CSSOM</div>
+  <h2>Stylesheet thành cấu trúc tra cứu nhanh</h2>
+  <p>HTML lo <b>cấu trúc</b>, còn CSS lo <b>trình bày</b>. Stylesheet thường đến từ thẻ <code>&lt;link rel="stylesheet"&gt;</code>, cũng có thể nằm inline trong <code>&lt;style&gt;</code>.</p>
+  <p>Stylesheet là tập các <b>rule</b>. Mỗi rule gồm <b>selector</b> (chọn phần tử nào) và các <b>declaration</b> (gán thuộc tính gì):</p>
+<pre><code><span class="c">/* cả khối là một rule */</span>
+<span class="f">p</span> {                      <span class="c">/* selector */</span>
+  color: <span class="s">navy</span>;              <span class="c">/* declaration */</span>
+}</code></pre>
+  <p>Một trang có thể có nhiều stylesheet, mỗi cái nhiều rule, mỗi rule nhiều declaration. Trình duyệt parse tất cả rồi gộp vào <b>CSSOM</b> (CSS Object Model), một cấu trúc dữ liệu tiết kiệm bộ nhớ và tối ưu cho việc tra: “selector này khớp với những style nào?”.</p>
+  <p>Parse stylesheet cũng là task trên main thread, hiện trong trace là <code>Parse Stylesheet</code>.</p>
+  <div class="note"><b>Ghi chú</b>Cấu trúc bên trong CSSOM khác nhau giữa các trình duyệt. Cứ hình dung nó là một cây tối ưu cho tra cứu nhanh; ai tò mò có thể đọc mã nguồn StyleEngine của Chromium.</div>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#css-object-model" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ rule/selector/declaration và task Parse Stylesheet</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">03 · STYLE &amp; RENDER TREE</div>
+  <h2>Ghép DOM với CSSOM</h2>
+  <p>Khi đã có DOM và CSSOM, trình duyệt sang pha <b>Style</b>, còn gọi là <i>Recalculate Style</i> hay <i>Render Tree Update</i>.</p>
+  <h3>Render Tree</h3>
+  <p><b>Render Tree</b> (hay <i>Layout Tree</i>) là cấu trúc C++ nội bộ của trình duyệt, lập trình viên không sửa trực tiếp. Nó là cây riêng nhưng thường có hình dạng giống DOM. Mỗi node thường trỏ tới <b>một DOM node</b> và <b>một ComputedStyle</b>, và cây chỉ chứa những gì thực sự được hiển thị.</p>
+<pre><code><span class="c">// Phác thảo một node của Render Tree (đơn giản hoá)</span>
+<span class="k">struct</span> <span class="f">RenderNode</span> {
+  DomNode*       source;     <span class="c">// node DOM mà nó đại diện</span>
+  ComputedStyle* style;      <span class="c">// style đã tính xong cho node đó</span>
+  RenderNode*    parent;
+  RenderNodeList children;
+};</code></pre>
+  <p>Render Tree còn quản lý những thứ hiển thị không đến từ DOM như thanh cuộn hay vùng bôi chọn chữ. Ngược lại, những gì không lên màn hình thì không có mặt: <code>&lt;head&gt;</code> và con của nó, <code>&lt;script&gt;</code>, và phần tử <code>display: none</code>.</p>
+  <h3>ComputedStyle</h3>
+  <p>ComputedStyle là danh sách declaration cuối cùng áp lên một node. Ví dụ phần tử <code>&lt;p class="price"&gt;</code> với CSS:</p>
+<pre><code><span class="f">p</span>      { color: <span class="s">navy</span>; }
+<span class="f">.price</span> { font-weight: <span class="n">700</span>; color: <span class="s">crimson</span>; }</code></pre>
+  <p>Trình duyệt sẽ:</p>
+  <ol>
+    <li>Tra CSSOM để tìm mọi rule có selector khớp với phần tử.</li>
+    <li>Giải quyết xung đột theo độ ưu tiên (specificity). Ở đây <code>.price</code> thắng <code>p</code>, nên kết quả là <code>color: crimson</code>, <code>font-weight: 700</code>, cộng với các style mặc định của trình duyệt.</li>
+  </ol>
+  <h3>Dựng cây</h3>
+  <p>Để dựng Render Tree, trình duyệt duyệt đệ quy DOM, tìm các phần tử hiển thị, tạo hoặc cập nhật node tương ứng, rồi tính ComputedStyle và gắn vào. Kết quả là một Render Tree đã có style đầy đủ. Trong Chromium Profiler, bước này hiện là task <code>Recalculate Style</code>.</p>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#tree-construction" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ Render Tree trỏ về DOM và ảnh Recalculate Style</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">04 · LAYOUT</div>
+  <h2>Gán hình học cho từng node</h2>
+  <p>Render Tree đã biết mọi thuộc tính width, height, màu… nhưng chưa phần tử nào có <b>toạ độ</b> hay <b>kích thước thật</b>. Pha <b>Layout</b> (còn gọi là <i>Reflow</i>) duyệt đệ quy Render Tree và gán cho mỗi node một hộp với vị trí, kích thước chính xác (số thực).</p>
+  <p>Với ví dụ cửa hàng ở trên:</p>
+  <ul>
+    <li><code>body</code> là block nên rộng bằng màn hình.</li>
+    <li>Muốn biết chiều cao của <code>body</code>, trình duyệt phải đi xuống các con: <code>h1</code> và hai <code>p</code> (đều là block).</li>
+    <li>Chiều cao mỗi block lại phụ thuộc vào text node bên trong.</li>
+    <li>Chiều cao được cộng dồn ngược lên, và toạ độ chính xác được gán cho từng hộp.</li>
+  </ul>
+  <p>Layout có thể rất tốn kém, nên trình duyệt cache kết quả kỹ để tránh tính lại khi không cần. Thường nó hiện trong pha rendering của profiler; nhưng nếu bạn gây ra <b>forced synchronous reflow</b>, Layout sẽ xuất hiện ngay bên trong một task JavaScript (xem bài 23).</p>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#layout" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh chiều cao body/div, video Layout đệ quy và ảnh Layout trong profiler</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">05 · PAINT</div>
+  <h2>Vẽ thành pixel</h2>
+  <p>Có Render Tree đã style và định vị, trình duyệt dùng thư viện đồ hoạ để vẽ từng node thành pixel. Nó duyệt đệ quy cây và phát lệnh vẽ, đảm bảo đúng <b>thứ tự vẽ</b> (xử lý <code>z-index</code>, vùng cuộn…).</p>
+  <p>Chromium dùng thư viện <b>Skia</b>, Skia lại nói chuyện với GPU qua OpenGL/DirectX. Khi GPU tạo xong texture, trình duyệt gom lại thành một <b>Frame</b> và gửi ra màn hình.</p>
+  <p>Paint đặc biệt ở chỗ công việc trải qua nhiều luồng và tiến trình, nhưng trên main thread bạn sẽ thấy mục <code>Paint</code> trong profiler. Phần nâng cao về layer và compositing nằm ở bài 27.</p>
+  <a class="orig" href="https://webperf.tips/tip/browser-rendering-pipeline/#paint" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh Paint trong Chromium Profiler</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">06 · KHI NÀO CHẠY</div>
+  <h2>Rendering chạy lúc nào?</h2>
+  <p>Ta đã biết rendering <b>làm gì</b>; còn <b>khi nào</b> thì do event loop quyết định: nó chen task render steps giữa các task thường khi cần frame mới (xem lại bài 01).</p>
+  <div class="recap"><ul>
+    <li>HTML → <b>DOM</b>; CSS → <b>CSSOM</b>; cả hai là task trên main thread.</li>
+    <li><b>Style</b> ghép hai cây thành Render Tree, mỗi node có ComputedStyle.</li>
+    <li><b>Layout</b> gán vị trí, kích thước; <b>Paint</b> vẽ ra pixel và tạo frame.</li>
+    <li>CSS, HTML hay component React đẹp tới đâu cũng chưa hiện được cho tới khi các pha này chạy xong.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “An Introduction to the Browser Rendering Pipeline” của Joe Liccini trên <a href="https://webperf.tips/tip/browser-rendering-pipeline/">webperf.tips</a> (02/2022). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-02.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

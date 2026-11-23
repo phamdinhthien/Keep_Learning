@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bốn cách né CORS preflight — WebPerf Tips</title>
+<meta name="description" content="CORS preflight OPTIONS gây thêm một vòng đi–về; chiến lược: Access-Control-Max-Age (giới hạn 2 giờ/1 ngày, khoá cache theo URL), iframe cùng origin, proxy cùng origin, refactor thành simple request.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-21">
+  <meta name="lesson:title" content="Bốn cách né CORS preflight">
+  <meta name="lesson:description" content="CORS preflight OPTIONS gây thêm một vòng đi–về; chiến lược: Access-Control-Max-Age (giới hạn 2 giờ/1 ngày, khoá cache theo URL), iframe cùng origin, proxy cùng origin, refactor thành simple request.">
+  <meta name="lesson:order" content="21">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="9 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 21 · Network</div>
+  <h1>Bốn cách né <em>CORS preflight</em></h1>
+  <p class="sub">Gọi API khác origin có thể tốn hai vòng đi–về thay vì một. Cache preflight, iframe cùng origin, proxy, hoặc biến nó thành simple request.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/optimizing-cors/" target="_blank" rel="noopener">Bài gốc: “Techniques for bypassing CORS Preflight Requests to improve performance” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · CORS PREFLIGHT</div>
+  <h2>Một request “vô hình” chen vào trước</h2>
+  <p><b>CORS</b> (Cross-Origin Resource Sharing) cho phép ứng dụng web giao tiếp an toàn với server khác origin. Thường nó hoạt động thế này: trình duyệt tự gửi một request <b>preflight</b> bằng method <code>OPTIONS</code> tới origin đích; server trả lời origin của bạn có được phép gọi không. Được phép thì trình duyệt mới gửi request thật (GET, POST…). Code JS không hề viết request <code>OPTIONS</code>; trình duyệt tự làm.</p>
+  <div class="fig">
+    <div class="lane"><span class="ll">shop.vn → api</span><div class="track" style="border:none"><div class="blk gray" style="width:40%">OPTIONS (preflight)</div><div class="blk net" style="width:40%">GET /api/items</div></div></div>
+    <div class="fig-cap">Hai vòng đi–về cho một lần lấy dữ liệu: chính là mẫu nối đuôi ở bài 20</div>
+  </div>
+  <p>Trên mạng chậm hoặc chập chờn, nếu dữ liệu này nằm trên đường găng để vẽ frame tiếp theo, vòng thừa đó là điểm nghẽn. (Request thuộc loại <b>simple request</b> thì không cần preflight, xem chiến lược 4.)</p>
+</section>
+
+<section>
+  <div class="tag">01 · CHIẾN LƯỢC 1</div>
+  <h2>Cache kết quả preflight</h2>
+  <p>Server trả kèm header <code>Access-Control-Max-Age</code> (đơn vị giây) trong response của <code>OPTIONS</code>. Các lần sau với cùng method và URL, trình duyệt dùng lại kết quả và bỏ qua vòng preflight.</p>
+<pre><code>Access-Control-Max-Age: 7200   <span class="c"># 2 giờ</span></code></pre>
+  <h3>Lưu ý</h3>
+  <ul>
+    <li><b>Trình duyệt giới hạn thời gian tối đa:</b> Chromium chỉ nhận tối đa <b>2 giờ</b>, Firefox tối đa <b>1 ngày</b>. Đặt số lớn hơn cũng không giúp tăng tỉ lệ cache hit.</li>
+    <li><b>Khoá cache là method + URL đầy đủ.</b> Gọi cùng endpoint nhưng query string thay đổi thì không dùng lại được:
+      <code>/sync?cursor=abc</code> được cache, nhưng <code>/sync?cursor=def</code> lại phải preflight. Với API mà mỗi lần gọi một tham số khác, cách này gần như vô dụng.</li>
+  </ul>
+  <a class="orig" href="https://webperf.tips/tip/optimizing-cors/#strategy-1-caching" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ cache preflight</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · CHIẾN LƯỢC 2</div>
+  <h2>Gửi request qua iframe cùng origin với API</h2>
+  <p>CORS chỉ áp dụng khi bên gọi khác origin với server. Nếu backend phục vụ một trang HTML nhỏ, ta nhúng trang đó bằng <code>&lt;iframe&gt;</code>; iframe gửi request giúp (cùng origin nên không preflight) và trả kết quả qua <code>postMessage</code>.</p>
+<pre><code>&lt;!-- trên https://shop.vn --&gt;
+&lt;iframe id="api-bridge" src="https://api.shop.vn/bridge.html" hidden&gt;&lt;/iframe&gt;
+&lt;script&gt;
+  <span class="k">const</span> bridge = document.<span class="f">getElementById</span>(<span class="s">'api-bridge'</span>);
+  window.<span class="f">addEventListener</span>(<span class="s">'message'</span>, (e) =&gt; {
+    <span class="k">if</span> (e.origin !== <span class="s">'https://api.shop.vn'</span>) <span class="k">return</span>;   <span class="c">// luôn kiểm tra nguồn</span>
+    <span class="f">resolvePending</span>(e.data);
+  });
+  <span class="k">function</span> <span class="f">callApi</span>(req) {
+    bridge.contentWindow.<span class="f">postMessage</span>(req, <span class="s">'https://api.shop.vn'</span>);
+  }
+&lt;/script&gt;</code></pre>
+<pre><code>&lt;!-- https://api.shop.vn/bridge.html --&gt;
+&lt;script&gt;
+  window.<span class="f">addEventListener</span>(<span class="s">'message'</span>, <span class="k">async</span> (e) =&gt; {
+    <span class="k">if</span> (e.origin !== <span class="s">'https://shop.vn'</span>) <span class="k">return</span>;
+    <span class="k">const</span> data = <span class="k">await</span> <span class="f">fetch</span>(e.data.url).<span class="f">then</span>(r =&gt; r.<span class="f">json</span>()); <span class="c">// cùng origin: không preflight</span>
+    e.source.<span class="f">postMessage</span>(data, e.origin);
+  });
+&lt;/script&gt;</code></pre>
+  <h3>Cái giá</h3>
+  <ul>
+    <li><b>Backend phải phục vụ thêm trang HTML.</b> Không kiểm soát backend thì khó hoặc không làm được.</li>
+    <li><b>Phải đợi iframe tải xong</b> mới gọi được API, nên bản thân iframe có thể thành điểm nghẽn. Cache mạnh tay, đặt trên CDN/edge.</li>
+    <li><b>Tốn tài nguyên trình duyệt:</b> iframe có thể được cấp process riêng (bài 29). Mỗi lần gọi đi qua nhiều chặng IPC: trang → iframe → Network process → iframe → trang. Trên máy đang tải nặng, chi phí này có thể lớn hơn chính CORS. Phải đo.</li>
+    <li><b>Chỉ đáng khi gọi nhiều lần</b> trong một phiên: trả chi phí dựng iframe một lần, lời ở mọi request sau. Gọi một lần thì không bõ.</li>
+  </ul>
+  <a class="orig" href="https://webperf.tips/tip/optimizing-cors/#strategy-2-iframe-of-same-origin" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ iframe cùng origin và code gốc</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">03 · CHIẾN LƯỢC 3</div>
+  <h2>Proxy để API “trông như” cùng origin</h2>
+  <p>Cũng là căn chỉnh origin, nhưng dùng HTTP proxy: ví dụ <code>https://shop.vn/api/*</code> được chuyển tiếp tới <code>https://api.shop.vn/*</code>. Với trình duyệt, request là cùng origin nên không cần preflight.</p>
+  <p>Có nhiều cách dựng: dịch vụ của nhà cung cấp cloud (Azure Front Door, AWS CloudFront…), cho backend đang phục vụ trang làm proxy luôn, hoặc nếu bạn sở hữu API thì cấu hình DNS để API nằm cùng origin với ứng dụng.</p>
+  <p><b>Cái giá:</b> thêm một chặng mạng trên đường tới service. Luôn đo để chắc rằng người dùng thật nhận được lợi ích.</p>
+<pre><code><span class="c"># ví dụ nginx trên shop.vn</span>
+location /api/ {
+  proxy_pass https://api.shop.vn/;
+}</code></pre>
+</section>
+
+<section>
+  <div class="tag">04 · CHIẾN LƯỢC 4</div>
+  <h2>Biến thành simple request</h2>
+  <p>Theo đặc tả CORS, một số request không cần preflight, gọi là <b>simple request</b>. Đại ý: method là <code>GET</code>, <code>HEAD</code> hoặc <code>POST</code>; chỉ dùng các header “an toàn” (như <code>Accept</code>, <code>Content-Language</code>); và nếu có <code>Content-Type</code> thì phải là <code>text/plain</code>, <code>multipart/form-data</code> hoặc <code>application/x-www-form-urlencoded</code>.</p>
+  <div class="note warn"><b>Khó ở đâu</b>Simple request không cho header tuỳ biến, nên mẫu <code>Authorization: Bearer &lt;token&gt;</code> quen thuộc đã đủ để kích hoạt preflight. Muốn né thì phải sửa backend/gateway để nhận thông tin theo cách khác.</div>
+  <p>Ví dụ request cần preflight:</p>
+<pre><code>GET https://api.shop.vn/items
+Authorization: Bearer &lt;token&gt;
+X-Client-Version: 3.2</code></pre>
+  <h3>Cách A: đưa metadata vào body của POST</h3>
+<pre><code>POST https://api.shop.vn/items
+Content-Type: text/plain
+
+{ "method": "GET", "authorization": "Bearer &lt;token&gt;", "clientVersion": "3.2" }</code></pre>
+  <p>Không còn header tuỳ biến nên trình duyệt coi là simple request. Đổi lại backend phải hiểu cú pháp riêng này (một POST nhưng thực chất là GET), tăng độ phức tạp và làm mờ ngữ nghĩa REST.</p>
+  <h3>Cách B: đưa metadata vào query string</h3>
+<pre><code>GET https://api.shop.vn/items?clientVersion=3.2</code></pre>
+  <p>Đơn giản hơn cách A. Nhưng <b>không nên</b> đặt access token (JWT) vào query string vì lý do bảo mật: URL dễ bị ghi vào log, lịch sử, header Referer.</p>
+  <a class="orig" href="https://webperf.tips/tip/optimizing-cors/#strategy-4-refactor-to-simple-requests" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ trạng thái quyết định khi nào cần preflight</span><span class="oa">↗</span></a>
+  <div class="recap"><ul>
+    <li>Preflight = thêm một vòng đi–về cho mỗi request khác origin không “simple”.</li>
+    <li>Max-Age: dễ nhất, nhưng bị giới hạn 2 giờ (Chromium) và khoá theo URL.</li>
+    <li>Iframe hoặc proxy: căn chỉnh origin, có chi phí riêng.</li>
+    <li>Simple request: không header tuỳ biến; đừng đưa token lên URL.</li>
+    <li>Áp dụng cách nào cũng phải đo lại với người dùng thật.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Techniques for bypassing CORS Preflight Requests to improve performance” của Joe Liccini trên <a href="https://webperf.tips/tip/optimizing-cors/">webperf.tips</a> (04/2022). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-21.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>

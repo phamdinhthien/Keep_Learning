@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iframe chạy ở process nào? — WebPerf Tips</title>
+<meta name="description" content="Kiến trúc nền tảng nhúng extension bằng iframe + postMessage; quy tắc site isolation của Chromium (eTLD+1), iframe khác site có process riêng và được dùng chung giữa các tab, iframe cùng site chung process với host; Origin-Agent-Cluster; công cụ chrome://process-internals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#17171a; --panel2:#1d1d21; --line:#2a2a30; --ink:#ededf0; --ink-dim:#9a9aa5;
+    --acc:#60a5fa; --js:#f5c451; --ren:#c084fc; --pnt:#4ade80; --net:#60a5fa; --bad:#fb7185; --ok:#5eead4; --idle:#3a3a42;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.65;padding:0 0 60px;overflow-x:hidden;}
+  .wrap{max-width:800px;margin:0 auto;padding:0 16px;}
+  .hero{padding:48px 16px 30px;text-align:center;max-width:840px;margin:0 auto;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:700px;margin:0 auto 14px;line-height:1.2;}
+  h1 em{font-style:normal;color:var(--acc);}
+  .sub{color:var(--ink-dim);font-size:15px;max-width:580px;margin:0 auto;}
+  .srcbtn{display:inline-block;margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;max-width:100%;}
+  .srcbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+  section{padding:36px 0;border-top:1px solid var(--line);}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--ink-dim);margin-bottom:8px;}
+  h2{font-size:23px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+  h3{font-size:17px;font-weight:700;margin:22px 0 8px;}
+  p{font-size:15px;margin-bottom:12px;color:#d6d6dc;}
+  p b,li b{color:var(--ink);}
+  ul,ol{padding-left:22px;margin-bottom:14px;font-size:15px;color:#d6d6dc;} li{margin-bottom:6px;}
+  a{color:var(--acc);}
+  code{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  pre{background:#111114;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:14px 0 18px;font-size:13px;line-height:1.55;}
+  pre code{background:none;padding:0;font-size:13px;overflow-wrap:normal;}
+  pre .c{color:#6b7280;} pre .k{color:#c084fc;} pre .s{color:#86efac;} pre .f{color:#60a5fa;} pre .n{color:#fbbf24;}
+  .note{border-left:3px solid var(--acc);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14.5px;color:#d6d6dc;}
+  .note.warn{border-color:var(--bad);} .note.ok{border-color:var(--ok);}
+  .note b:first-child{display:block;margin-bottom:4px;color:var(--ink);}
+  .orig{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:14px 0 18px;text-decoration:none;color:var(--ink-dim);font-size:13.5px;}
+  .orig:hover{border-color:var(--ink-dim);color:var(--ink);}
+  .orig b{color:var(--ink);font-weight:600;margin-right:4px;} .orig .oi{font-size:18px;color:var(--acc);} .orig .oa{margin-left:auto;}
+  /* sơ đồ luồng/thread */
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0 20px;}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:10px;text-align:center;}
+  .lane{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .lane .ll{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);width:92px;flex:none;text-align:right;}
+  .track{position:relative;flex:1;height:30px;border-bottom:2px solid var(--idle);display:flex;align-items:flex-end;gap:3px;min-width:0;}
+  .blk{height:24px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px;flex:none;}
+  .blk.js{background:var(--js);} .blk.ren{background:var(--ren);} .blk.pnt{background:var(--pnt);} .blk.net{background:var(--net);}
+  .blk.bad{background:var(--bad);} .blk.gap{background:none;} .blk.idle{background:var(--idle);color:var(--ink-dim);}
+  .blk.ok{background:var(--ok);} .blk.gray{background:#6b7280;}
+  .boxes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:6px;padding:6px 10px;border:1px solid var(--line);background:var(--panel2);}
+  .pill.js{border-color:var(--js);color:var(--js);} .pill.ren{border-color:var(--ren);color:var(--ren);} .pill.pnt{border-color:var(--pnt);color:var(--pnt);} .pill.net{border-color:var(--net);color:var(--net);} .pill.bad{border-color:var(--bad);color:var(--bad);} .pill.ok{border-color:var(--ok);color:var(--ok);}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .flow .ar{color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;}
+  .stack{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .stack > div{display:flex;gap:3px;} .stack span{border-radius:3px;padding:3px 6px;color:#111;overflow:hidden;white-space:nowrap;}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 20px;}
+  @media(max-width:560px){.card-grid{grid-template-columns:1fr;}.lane .ll{width:64px;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:14px;margin:0 0 8px;}
+  .card p,.card li{font-size:13.5px;color:var(--ink-dim);} .card ul{margin:0;padding-left:18px;}
+  .card.good h3{color:var(--ok);} .card.bad h3{color:var(--bad);} .card.acc h3{color:var(--acc);} .card.js h3{color:var(--js);} .card.ren h3{color:var(--ren);}
+  .tbl-scroll{overflow-x:auto;margin:14px 0 20px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);font-weight:500;}
+  td.k{font-family:'IBM Plex Mono',monospace;color:var(--acc);white-space:nowrap;}
+  .recap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;}
+  .recap li{margin-bottom:8px;}
+  footer{max-width:800px;margin:30px auto 0;padding:20px 16px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="wp-29">
+  <meta name="lesson:title" content="Iframe chạy ở process nào?">
+  <meta name="lesson:description" content="Kiến trúc nền tảng nhúng extension bằng iframe + postMessage; quy tắc site isolation của Chromium (eTLD+1), iframe khác site có process riêng và được dùng chung giữa các tab, iframe cùng site chung process với host; Origin-Agent-Cluster; công cụ chrome://process-internals.">
+  <meta name="lesson:order" content="29">
+  <meta name="lesson:khoa" content="Frontend">
+  <meta name="lesson:lop" content="WebPerf Tips">
+  <meta name="lesson:lop-order" content="2">
+  <meta name="lesson:read-time" content="9 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/frontend">Frontend</a><span>›</span><a href="../../../index.html#/frontend/webperf-tips">WebPerf Tips</a></span></nav>
+<!-- /sdn:bar -->
+
+<header class="hero">
+  <div class="eyebrow">WebPerf Tips · Bài 29 · Browser internals</div>
+  <h1>Iframe chạy ở <em>process</em> nào?</h1>
+  <p class="sub">Iframe có chạy song song không, có tranh CPU và bộ nhớ với trang chủ không? Câu trả lời phụ thuộc site của nó, và đôi khi bất ngờ.</p>
+  <a class="srcbtn" href="https://webperf.tips/tip/iframe-multi-process/" target="_blank" rel="noopener">Bài gốc: “Iframes and Process Allocation” ↗</a>
+</header>
+<div class="wrap">
+<section>
+  <div class="tag">00 · CÂU HỎI</div>
+  <h2>Iframe có chạy trên luồng/process riêng không?</h2>
+  <p>Các đội dùng <code>&lt;iframe&gt;</code> trong kiến trúc thường hỏi điều này. Việc chia process do trình duyệt quyết định, nên iframe có thể gây ra những hệ quả hiệu năng khá bất ngờ. Bài này nói về cách Chromium gom frame vào process.</p>
+</section>
+
+<section>
+  <div class="tag">01 · BỐI CẢNH</div>
+  <h2>Nền tảng nhúng ứng dụng của bên thứ ba</h2>
+  <p>Ngày càng nhiều ứng dụng web trở thành <b>nền tảng</b> chứa ứng dụng khác: app trong công cụ chat doanh nghiệp, extension trong dashboard thanh toán, add-on trong bộ văn phòng… Nền tảng mở một Extension API, cho phép extension truy cập một số dữ liệu và quyền nhất định.</p>
+  <p>Host không chạy trực tiếp code của extension. Mô hình thường gặp là host nhúng extension bằng <code>&lt;iframe&gt;</code> và hai bên nói chuyện qua <code>postMessage</code>.</p>
+  <div class="fig"><div class="flow"><span class="pill acc" style="border-color:var(--acc);color:var(--acc)">Host: app.workspace.vn</span><span class="ar">⇄ postMessage ⇄</span><span class="pill js">iframe: extension của bên thứ ba</span></div></div>
+  <a class="orig" href="https://webperf.tips/tip/iframe-multi-process/#example-a-third-party-add-on--extension" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ host nhúng extension qua iframe</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">02 · QUY TẮC CỦA CHROMIUM</div>
+  <h2>Cô lập theo tab và theo site</h2>
+  <ul>
+    <li>Mỗi <b>tab</b> mới được cấp một renderer process (và main thread) riêng cho trang trên thanh địa chỉ.</li>
+    <li>Iframe trong tab, nếu <b>khác site</b> với trang chứa nó, chạy ở renderer process khác.</li>
+    <li>Iframe trong tab, nếu <b>cùng site</b>, chạy chung renderer process với trang chứa nó.</li>
+  </ul>
+  <h3>“Site” là gì?</h3>
+  <p>Tại thời điểm bài gốc viết, Chromium định nghĩa site theo <b>eTLD+1</b>: tên miền đăng ký được, như <code>shop.vn</code>, <code>example.com</code> (kèm scheme; giả định mọi thứ đều <code>https</code>).</p>
+  <div class="tbl-scroll"><table>
+    <tr><th>Host</th><th>Iframe</th><th>Cùng site?</th></tr>
+    <tr><td><code>app.workspace.vn</code></td><td><code>widgets.partner.io</code></td><td style="color:var(--bad)">Không: workspace.vn ≠ partner.io</td></tr>
+    <tr><td><code>mail.workspace.vn</code></td><td><code>docs.workspace.vn</code></td><td style="color:var(--ok)">Có: workspace.vn</td></tr>
+    <tr><td><code>dash.pay.vn</code></td><td><code>dash.pay.vn/ext</code></td><td style="color:var(--ok)">Có: pay.vn</td></tr>
+    <tr><td><code>dash.pay.vn</code></td><td><code>www.pay.vn</code></td><td style="color:var(--ok)">Có: pay.vn</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <div class="tag">03 · KỊCH BẢN 1</div>
+  <h2>Extension khác site</h2>
+  <p>Mở host trong một tab: trình duyệt tạo renderer process cho nó. Mở thêm tab thứ hai cũng tới host: thêm một process nữa. Hai tab chạy JS và cập nhật DOM song song (mỗi bên một main thread), nhưng không chia sẻ code hay DOM.</p>
+<pre><code>&lt;!-- trong app.workspace.vn --&gt;
+&lt;iframe src="https://widgets.partner.io/board"&gt;&lt;/iframe&gt;</code></pre>
+  <p>Iframe khác site nên Chromium tạo <b>renderer process mới</b> cho nó, kèm main thread riêng. Trong mã nguồn Chromium, trường hợp này gọi là <b>OOPIF</b> (Out-of-Process Iframe). Hệ quả:</p>
+  <ul>
+    <li>Extension có luồng riêng để chạy script, nên thường không làm chậm host.</li>
+    <li>Không chung bộ nhớ với host (cũng là tính năng bảo mật); extension hết bộ nhớ thì host không bị ảnh hưởng.</li>
+    <li>Hai bên chỉ giao tiếp được qua <code>postMessage</code>, không đụng được DOM của nhau.</li>
+  </ul>
+  <h3>Bất ngờ: nhiều tab dùng chung process của extension</h3>
+  <p>Người dùng mở hai tab host, mỗi tab mở cùng extension đó. Chromium giữ hai host ở hai process riêng, nhưng <b>dùng lại một process</b> cho cả hai iframe extension.</p>
+  <div class="fig">
+    <div class="lane"><span class="ll">Process A</span><div class="track"><div class="blk net" style="width:90%">Tab 1: app.workspace.vn</div></div></div>
+    <div class="lane"><span class="ll">Process B</span><div class="track"><div class="blk net" style="width:90%">Tab 2: app.workspace.vn</div></div></div>
+    <div class="lane"><span class="ll">Process C</span><div class="track"><div class="blk js" style="width:44%">iframe partner.io (tab 1)</div><div class="blk js" style="width:44%;background:#fb923c">iframe partner.io (tab 2)</div></div></div>
+    <div class="fig-cap">Hai iframe extension, dù ở hai tab, tranh nhau một main thread và một vùng nhớ</div>
+  </div>
+  <ul>
+    <li>Long task ở iframe này làm chậm iframe kia.</li>
+    <li>JS của hai iframe xen kẽ trên cùng main thread, dù mỗi cái có execution context và DOM riêng.</li>
+    <li>Một iframe làm cạn bộ nhớ thì <b>mọi</b> iframe của extension đó trên toàn trình duyệt cùng crash.</li>
+  </ul>
+  <p>Nếu bạn làm extension kiểu này, hãy nhớ mọi bản của nó trên mọi tab dùng chung tài nguyên: cân nhắc giảm nhịp chạy hoặc giải phóng bộ nhớ khi iframe không hoạt động.</p>
+  <a class="orig" href="https://webperf.tips/tip/iframe-multi-process/#iframes--tabs-of-different-site" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ process cho nhiều tab và iframe khác site</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">04 · KỊCH BẢN 2</div>
+  <h2>Extension cùng site</h2>
+  <p>Kiến trúc khác: extension được phục vụ dưới cùng site với host, ví dụ <code>dash.pay.vn/ext?id=abc</code> trong <code>dash.pay.vn</code>. Khi host và iframe cùng site, Chromium gom chúng vào <b>cùng process</b>, kể cả khi iframe có <code>sandbox</code>. Trong một tab, host và extension:</p>
+  <ul>
+    <li>Tranh nhau thời gian trên cùng main thread: long task bên này làm chậm bên kia.</li>
+    <li>Dùng chung bộ nhớ: extension hết bộ nhớ thì cả tab host crash.</li>
+  </ul>
+  <p>Execution context vẫn tách biệt, nhưng hiệu năng thì ràng buộc với nhau theo cả hai chiều.</p>
+  <p>Với nhiều tab: mỗi tab có process riêng, nên iframe cùng site ở các tab khác nhau <b>không</b> bị gom chung. Iframe chỉ tranh tài nguyên với host trong cùng tab.</p>
+  <a class="orig" href="https://webperf.tips/tip/iframe-multi-process/#sharing-sites-between-iframe-and-tab" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> sơ đồ host và extension cùng site, một tab và nhiều tab</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">05 · ORIGIN-AGENT-CLUSTER</div>
+  <h2>Xin cô lập theo origin thay vì theo site</h2>
+  <p>Header sau, gửi kèm tài liệu của iframe, gợi ý trình duyệt cô lập theo <b>origin</b> (scheme + host + port đầy đủ) thay vì theo site:</p>
+<pre><code>Origin-Agent-Cluster: ?1</code></pre>
+  <div class="tbl-scroll"><table>
+    <tr><th>Host</th><th>Iframe</th><th>Cùng site</th><th>Cùng origin</th></tr>
+    <tr><td><code>app.workspace.vn</code></td><td><code>widgets.partner.io</code></td><td>Không</td><td>Không</td></tr>
+    <tr><td><code>mail.workspace.vn</code></td><td><code>docs.workspace.vn</code></td><td>Có</td><td>Không</td></tr>
+    <tr><td><code>dash.pay.vn</code></td><td><code>dash.pay.vn/ext</code></td><td>Có</td><td>Có</td></tr>
+    <tr><td><code>dash.pay.vn</code></td><td><code>www.pay.vn</code></td><td>Có</td><td>Không</td></tr>
+  </table></div>
+  <p>Với header này, mọi iframe không cùng origin đều có thể được cấp process riêng, kể cả khi cùng site.</p>
+</section>
+
+<section>
+  <div class="tag">06 · TỰ KHÁM PHÁ</div>
+  <h2>Xem process thật đang được chia ra sao</h2>
+  <ul>
+    <li><b>Task Manager của trình duyệt</b> (<code>Shift+Esc</code>): nhìn tổng quát các process.</li>
+    <li><b><code>chrome://process-internals</code> → Frame Tree</b>: thấy khoá site isolation và process ID của từng frame. Iframe cùng site sẽ hiện chung process; iframe có <code>Origin-Agent-Cluster</code> hiện là <i>origin-keyed</i> và có process riêng.</li>
+  </ul>
+  <a class="orig" href="https://webperf.tips/tip/iframe-multi-process/#exploring-for-yourself" target="_blank" rel="noopener"><span class="oi">▣</span><span><b>Ảnh/ví dụ gốc</b> ảnh Frame Tree với ví dụ thật</span><span class="oa">↗</span></a>
+</section>
+
+<section>
+  <div class="tag">07 · NGOẠI LỆ &amp; TƯƠNG LAI</div>
+  <h2>Mỗi trình duyệt một kiểu</h2>
+  <ul>
+    <li>Safari (lúc bài gốc viết) đặt iframe khác origin chung process với host, nhưng không dùng chung giữa các tab.</li>
+    <li>Chromium cũng có ngoại lệ, như trên máy ít RAM (Android đời thấp), hay trường hợp tab mở ra tab khác và còn truy cập đồng bộ được nhau.</li>
+    <li>Về bảo mật, cô lập theo origin an toàn hơn theo site. Chromium có cờ thử nghiệm <code>strict-origin-isolation</code> trong <code>chrome://flags</code>; xu hướng là web sẽ cô lập theo origin nhiều hơn.</li>
+  </ul>
+  <div class="recap"><ul>
+    <li>Khác site → process riêng, nhưng dùng chung giữa các tab cho cùng extension.</li>
+    <li>Cùng site → chung process với host trong tab: chung main thread, chung bộ nhớ.</li>
+    <li><code>Origin-Agent-Cluster: ?1</code> để xin cô lập theo origin.</li>
+    <li>Kiến trúc micro-frontend hay extension bằng iframe cần tính tới những ràng buộc này.</li>
+  </ul></div>
+</section>
+
+</div>
+<footer>Viết lại bằng tiếng Việt từ bài “Iframes and Process Allocation” của Joe Liccini trên <a href="https://webperf.tips/tip/iframe-multi-process/">webperf.tips</a> (07/2023). Đây không phải bản dịch nguyên văn; ảnh chụp profiler và ví dụ gốc xem tại bài gốc (các ô “Ảnh/ví dụ gốc”). Sơ đồ và ví dụ trong trang này được vẽ/viết lại để minh hoạ.</footer>
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="frontend/webperf-tips/wp-29.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
