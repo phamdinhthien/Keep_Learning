@@ -15,6 +15,19 @@ window.LESSONS = [
     "readTime": "12 phút đọc"
   },
   {
+    "id": "oop-01",
+    "path": "backend/oop/oop-01.html",
+    "khoa": "Backend",
+    "khoaSlug": "backend",
+    "lop": "OOP",
+    "lopSlug": "oop",
+    "lopOrder": 1,
+    "order": 1,
+    "title": "Abstraction vs Encapsulation",
+    "description": "Abstraction là “What”, Encapsulation là “Group”: phân biệt hai cách ẩn giấu thông tin, nguyên tắc thay đổi state, ứng dụng trong SDK và bao đóng tham số LoginData.",
+    "readTime": "6 phút đọc"
+  },
+  {
     "id": "md-01",
     "path": "frontend/modern-devtools/md-01.html",
     "khoa": "Frontend",

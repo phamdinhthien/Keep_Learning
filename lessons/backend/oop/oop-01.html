@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abstraction vs Encapsulation — What vs Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nền: SLATE — kiến trúc phần mềm
+     Accent: --abs sky #60a5fa (Abstraction / What) · --enc teal #5eead4 (Encapsulation / Group)
+             --bad rose #fb7185 (cách sai) · --sdk amber #f5a524 (SDK / ứng dụng) · --key violet #c084fc (tổng kết) */
+  :root{
+    --bg:#101418; --panel:#181d23; --line:#2b333c; --ink:#e6ebf0; --ink-dim:#94a1ae;
+    --abs:#60a5fa; --enc:#5eead4; --bad:#fb7185; --sdk:#f5a524; --key:#c084fc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;padding:0 0 60px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+
+  header{padding:48px 20px 20px;text-align:center;max-width:900px;margin:0 auto}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px}
+  h1{font-size:clamp(26px,5.6vw,40px);font-weight:800;letter-spacing:-.01em;max-width:720px;margin:0 auto 14px;line-height:1.2}
+  h1 .a{color:var(--abs)} h1 .b{color:var(--enc)}
+  .lead-sub{color:var(--ink-dim);font-size:15px;max-width:600px;margin:0 auto}
+
+  /* ===== Card sơ đồ trắng (tech-architecture-diagram) ===== */
+  .fig{margin:24px 0 22px}
+  .fig-card{
+    --ink:#1e293b; --muted:#64748b; --line:#334155; --card:#ffffff;
+    --blue-f:#dbeafe; --blue-s:#3b82f6; --green-f:#dcfce7; --green-s:#16a34a;
+    --yellow-f:#fef9c3; --yellow-s:#ca8a04; --orange-f:#ffedd5; --orange-s:#ea580c;
+    --purple-f:#ede9fe; --purple-s:#7c3aed; --pink-f:#fce7f3; --pink-s:#db2777;
+    --gray-f:#f1f5f9; --gray-s:#94a3b8;
+    background:#fff;border-radius:20px;padding:22px 24px;box-shadow:0 14px 36px rgba(0,0,0,.35);color:var(--ink)
+  }
+  @media (max-width:520px){.fig-card{padding:14px 10px;border-radius:14px}}
+  .fig-card svg.diagram{width:100%;min-width:0;height:auto;display:block;font-family:'Inter',sans-serif}
+  .fig-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-dim);letter-spacing:.06em;text-align:center;margin-top:10px}
+  .fig-card .node rect{stroke-width:2.5}
+  .fig-card .n-blue{color:var(--blue-s)} .fig-card .n-blue rect{fill:var(--blue-f);stroke:var(--blue-s)}
+  .fig-card .n-green{color:var(--green-s)} .fig-card .n-green rect{fill:var(--green-f);stroke:var(--green-s)}
+  .fig-card .n-yellow{color:var(--yellow-s)} .fig-card .n-yellow rect{fill:var(--yellow-f);stroke:var(--yellow-s)}
+  .fig-card .n-orange{color:var(--orange-s)} .fig-card .n-orange rect{fill:var(--orange-f);stroke:var(--orange-s)}
+  .fig-card .n-purple{color:var(--purple-s)} .fig-card .n-purple rect{fill:var(--purple-f);stroke:var(--purple-s)}
+  .fig-card .n-pink{color:var(--pink-s)} .fig-card .n-pink rect{fill:var(--pink-f);stroke:var(--pink-s)}
+  .fig-card .n-gray{color:var(--gray-s)} .fig-card .n-gray rect{fill:var(--gray-f);stroke:var(--gray-s)}
+  .fig-card .label{font-size:16px;font-weight:700;fill:var(--ink)}
+  .fig-card .sub{font-size:11.5px;font-weight:500;fill:var(--muted)}
+  .fig-card .mono{font-family:'JetBrains Mono',monospace}
+  .fig-card .arrow{fill:none;stroke:var(--line);stroke-width:2.2;marker-end:url(#ah);stroke-linejoin:round}
+  .fig-card .arrow.dash{stroke-dasharray:7 5}
+  .fig-card .arrow.both{marker-start:url(#ah)}
+  .fig-card .arrow.red{stroke:#dc2626;marker-end:url(#ah-red)}
+  .fig-card .alabel{font-size:12px;font-weight:600;fill:var(--line);paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+  .fig-card .alabel.red{fill:#dc2626}
+  .fig-card .badge circle{fill:var(--ink);stroke:#fff;stroke-width:2.5}
+  .fig-card .badge text{fill:#fff;font-size:13px;font-weight:700}
+  .fig-card .group{fill:#f8fafc;stroke:var(--gray-s);stroke-width:2;stroke-dasharray:9 6}
+  .fig-card .gtag rect{fill:var(--ink)} .fig-card .gtag text{fill:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+  .fig-card .rowlbl{font-size:13px;font-weight:800;letter-spacing:.04em}
+
+  /* ===== Section ===== */
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:10px}
+  h2{font-size:22px;font-weight:700;margin-bottom:10px}
+  .c-abs{color:var(--abs)} .c-enc{color:var(--enc)} .c-bad{color:var(--bad)} .c-sdk{color:var(--sdk)} .c-key{color:var(--key)}
+  p.desc{color:var(--ink-dim);font-size:14.5px;margin-bottom:16px;max-width:680px}
+  p.desc b{color:var(--ink)}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:4px}
+  .list-lbl{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin:18px 0 10px}
+
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  @media (max-width:560px){.compare{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3{font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:10px;letter-spacing:.04em}
+  .card.abs{border-top:2px solid var(--abs)} .card.abs h3{color:var(--abs)}
+  .card.enc{border-top:2px solid var(--enc)} .card.enc h3{color:var(--enc)}
+  .card.bad h3{color:var(--bad)} .card.good h3{color:var(--enc)}
+  .card ul{padding-left:18px;font-size:13px;color:var(--ink-dim)}
+  .card ul li{margin-bottom:6px}
+  .card ul li b{color:var(--ink);font-weight:600}
+  .formula{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);background:#000;border:1px solid var(--line);padding:9px 11px;border-radius:6px;margin-bottom:12px;display:block;white-space:pre;overflow-x:auto;line-height:1.55}
+  .formula .c{color:#6b7785} .formula .k{color:var(--key)} .formula .e{color:var(--bad)} .formula .g{color:var(--enc)}
+
+  .chain{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin-bottom:8px}
+  .chain-step{flex:1 1 160px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .chain-step .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sdk);letter-spacing:.08em;margin-bottom:6px}
+  .chain-step h4{font-size:14px;margin-bottom:6px}
+  .chain-step p{font-size:12.5px;color:var(--ink-dim)}
+  .chain-arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-dim);font-size:18px;flex:0 0 auto}
+  @media (max-width:640px){.chain{flex-direction:column}.chain-arrow{transform:rotate(90deg)}}
+
+  .danger-list{display:flex;flex-direction:column;gap:8px}
+  .danger-list .row{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:13.5px}
+  .danger-list .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .ic.bad{background:rgba(251,113,133,.14);color:var(--bad)}
+  .ic.good{background:rgba(94,234,212,.12);color:var(--enc)}
+  .ic.key{background:rgba(192,132,252,.14);color:var(--key)}
+  .ic.sdk{background:rgba(245,165,36,.14);color:var(--sdk)}
+  .danger-list .row span.dim{color:var(--ink-dim)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;border:1px solid var(--line)}
+  th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top}
+  th{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-dim);background:var(--panel)}
+  td.k{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);white-space:nowrap}
+  td.abs{color:var(--abs)} td.enc{color:var(--enc)}
+  .tbl{overflow-x:auto}
+
+  footer{text-align:center;padding:40px 20px 0;color:var(--ink-dim);font-size:12.5px;font-family:'IBM Plex Mono',monospace}
+  footer b{color:var(--ink)}
+</style>
+
+<!-- sdn:head -->
+  <meta name="lesson:id" content="oop-01">
+  <meta name="lesson:title" content="Abstraction vs Encapsulation">
+  <meta name="lesson:description" content="Abstraction là “What”, Encapsulation là “Group”: phân biệt hai cách ẩn giấu thông tin, nguyên tắc thay đổi state, ứng dụng trong SDK và bao đóng tham số LoginData.">
+  <meta name="lesson:order" content="1">
+  <meta name="lesson:khoa" content="Backend">
+  <meta name="lesson:lop" content="OOP">
+  <meta name="lesson:lop-order" content="1">
+  <meta name="lesson:read-time" content="6 phút đọc">
+  <meta name="lesson:source" content="">
+  <link rel="stylesheet" href="../../../assets/shell.css">
+<!-- /sdn:head -->
+</head>
+<body>
+<!-- sdn:bar -->
+<nav class="sdn-bar" aria-label="Điều hướng"><a class="sdn-brand" href="../../../index.html">System Design Notes</a><span class="sdn-crumbs"><a href="../../../index.html">Category</a><span>›</span><a href="../../../index.html#/backend">Backend</a><span>›</span><a href="../../../index.html#/backend/oop">OOP</a></span></nav>
+<!-- /sdn:bar -->
+
+
+<!-- defs dùng chung cho mọi sơ đồ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="i-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="6.5" cy="6.5" r=".7" fill="currentColor"/><circle cx="9" cy="6.5" r=".7" fill="currentColor"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9z"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/><path d="M7 6.5h.01M7 17.5h.01"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-cache" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="17" y="7" width="5" height="10" rx="1"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="15" r="4"/><path d="M11 12 20 3M17 6l3 3M15 8l2 2"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7 3 12l5 5M16 7l5 5-5 5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></symbol>
+</defs></svg>
+
+<header>
+  <div class="eyebrow">OOP · 200Lab mentor session · Thiết kế phần mềm</div>
+  <h1><span class="a">Abstraction</span> là “What”, <span class="b">Encapsulation</span> là “Group”</h1>
+  <div class="lead-sub">Cả hai đều ẩn giấu thông tin nên dễ nhầm. Abstraction lược bỏ chi tiết để tinh giản cấu trúc; Encapsulation gom data + code vào một unit để bảo vệ state bên trong.</div>
+
+  <div class="fig">
+    <div class="fig-card">
+      <svg class="diagram" viewBox="0 0 1100 380" role="img" aria-label="Dev gọi hàm ở mức What qua Abstraction, chi tiết data và logic được Encapsulation gom và ẩn bên trong">
+        <rect class="group" x="600" y="50" width="480" height="300" rx="18"/>
+        <g class="gtag" transform="translate(618,38)"><rect width="250" height="24" rx="12"/><text x="125" y="16.5" text-anchor="middle">ENCAPSULATION · SINGLE UNIT</text></g>
+
+        <g class="node n-blue" transform="translate(30,150)">
+          <rect width="180" height="96" rx="14"/>
+          <use href="#i-user" x="73" y="12" width="34" height="34"/>
+          <text class="label" x="90" y="66" text-anchor="middle">Dev / Caller</text>
+          <text class="sub" x="90" y="83" text-anchor="middle">chỉ cần biết What</text>
+        </g>
+        <path class="arrow" d="M214,198 H296"/>
+        <text class="alabel" x="255" y="186" text-anchor="middle">gọi</text>
+
+        <g class="node n-purple" transform="translate(300,150)">
+          <rect width="220" height="96" rx="14"/>
+          <use href="#i-doc" x="93" y="12" width="34" height="34"/>
+          <text class="label" x="110" y="66" text-anchor="middle">Abstraction</text>
+          <text class="sub mono" x="110" y="83" text-anchor="middle">eat() · login() · Consume()</text>
+        </g>
+        <path class="arrow" d="M524,198 H596"/>
+        <text class="alabel" x="560" y="186" text-anchor="middle">ẩn How</text>
+
+        <g class="node n-green" transform="translate(630,90)">
+          <rect width="180" height="96" rx="14"/>
+          <use href="#i-db" x="73" y="12" width="34" height="34"/>
+          <text class="label" x="90" y="66" text-anchor="middle">Data / State</text>
+          <text class="sub" x="90" y="83" text-anchor="middle">chỉ object được sửa</text>
+        </g>
+        <path class="arrow both" d="M814,138 H866"/>
+        <g class="node n-orange" transform="translate(870,90)">
+          <rect width="180" height="96" rx="14"/>
+          <use href="#i-gear" x="73" y="12" width="34" height="34"/>
+          <text class="label" x="90" y="66" text-anchor="middle">Code / Logic</text>
+          <text class="sub" x="90" y="83" text-anchor="middle">validate · pooling…</text>
+        </g>
+
+        <g class="node n-gray" transform="translate(630,228)">
+          <rect width="420" height="96" rx="14"/>
+          <use href="#i-lock" x="193" y="12" width="34" height="34"/>
+          <text class="label" x="210" y="66" text-anchor="middle">Access modifier</text>
+          <text class="sub mono" x="210" y="83" text-anchor="middle">private · public · internal · getter / setter</text>
+        </g>
+      </svg>
+    </div>
+    <div class="fig-cap">Abstraction đưa ra mặt tiền ở mức What · Encapsulation gom và giấu phần How</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 -->
+  <section>
+    <div class="tag">01. Bản chất: What vs Group</div>
+    <h2 class="c-abs">Cùng để ẩn giấu thông tin, khác nhau ở mục tiêu</h2>
+    <p class="desc">Hai kỹ thuật đều phục vụ <b>information hiding</b> trong OOP, nên dev hay lẫn khi phân định. Muốn phân biệt thì xem mỗi cái nhắm vào mục tiêu nào.</p>
+    <div class="compare">
+      <div class="card abs">
+        <h3>ABSTRACTION · WHAT</h3>
+        <span class="formula">Mô tả hành vi, bỏ qua chi tiết</span>
+        <ul>
+          <li>Phục vụ thiết kế <b>cấu trúc, kiến trúc</b> phần mềm.</li>
+          <li>Lược bỏ phần detailing mà hệ thống <b>chưa cần</b>, <b>chưa muốn</b> hoặc <b>chưa biết cách</b> làm cụ thể.</li>
+          <li>Ví dụ: <code>Animal.eat()</code> mô tả hành vi ăn khi chưa có chi tiết triển khai.</li>
+        </ul>
+      </div>
+      <div class="card enc">
+        <h3>ENCAPSULATION · GROUP</h3>
+        <span class="formula">data + code → single unit</span>
+        <ul>
+          <li>Gom data và code vào <b>một unit duy nhất</b>.</li>
+          <li>Mục đích: bảo vệ dữ liệu khỏi tác động trực tiếp từ bên ngoài.</li>
+          <li>Nếu viết <code>eat()</code> trong class thường, method buộc phải có body cụ thể <b>hoặc để rỗng</b>.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="list-lbl">Ví dụ Animal.eat() — hai cách viết</div>
+<span class="formula"><span class="c">// Abstraction: định nghĩa hành vi, chưa cần chi tiết</span>
+<span class="k">abstract class</span> Animal { <span class="k">abstract</span> eat(); }
+
+<span class="c">// Class thường: buộc phải có body (hoặc để rỗng)</span>
+<span class="k">class</span> Animal { eat() { <span class="c">/* ??? */</span> } }</span>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="tag">02. Cơ chế Encapsulation</div>
+    <h2 class="c-enc">Từ biến rời rạc đến object <code>Book</code></h2>
+    <p class="desc">Lập trình thủ tục khai báo dữ liệu bằng các biến lẻ, ví dụ ID và name nằm ở <b>hai mảng riêng</b>. Gom chúng vào một object <code>Book</code> thì thao tác và quản lý dễ hơn.</p>
+    <div class="chain">
+      <div class="chain-step"><div class="n">TRƯỚC · THỦ TỤC</div><h4>Biến rời rạc</h4><p><code>ids[]</code>, <code>names[]</code> là hai mảng riêng, validate để ở library hoặc rải rác nơi dùng.</p></div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-step"><div class="n">SAU · OOP</div><h4>Object Book</h4><p><code>id</code>, <code>name</code> và <code>validate()</code> nằm trong cùng một class.</p></div>
+    </div>
+    <div class="list-lbl">Hai lợi ích của việc gom nhóm</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic good">1</span><div>Gắn data với logic nghiệp vụ: <code>validate()</code> đặt ngay trong <code>Book</code>. <span class="dim">Nơi nào cần kiểm tra chỉ việc gọi method của object, nên tái sử dụng được và dữ liệu được bảo vệ.</span></div></div>
+      <div class="row"><span class="ic good">2</span><div>Kiểm soát phạm vi truy cập bằng <code>private</code> / <code>public</code> / <code>internal</code> hoặc Getter/Setter (read-only, write). <span class="dim">Bạn quyết định phần nào bộc lộ ra ngoài, phần nào ẩn đi.</span></div></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="tag">03. Nguyên tắc thay đổi state</div>
+    <h2 class="c-enc">Chỉ chính object được thay đổi state của nó</h2>
+    <p class="desc">Code bên ngoài <b>không can thiệp trực tiếp</b> vào property, chỉ tác động qua những method mà object cho phép gọi. Ví dụ: tuổi của một người tăng sau một năm.</p>
+    <div class="fig">
+      <div class="fig-card">
+        <svg class="diagram" viewBox="0 0 1100 370" role="img" aria-label="So sánh sửa state trực tiếp với thay đổi state qua method của object">
+          <text class="rowlbl" x="30" y="30" fill="#dc2626">✗ SỬA STATE TRỰC TIẾP</text>
+          <g class="node n-blue" transform="translate(30,50)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-code" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Code bên ngoài</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">tự tăng tuổi</text>
+          </g>
+          <path class="arrow red" d="M214,98 H656"/>
+          <text class="alabel red mono" x="435" y="86" text-anchor="middle">person.age += 1</text>
+          <g class="node n-purple" transform="translate(660,50)">
+            <rect width="200" height="96" rx="14"/>
+            <use href="#i-user" x="83" y="12" width="34" height="34"/>
+            <text class="label" x="100" y="66" text-anchor="middle">Object Person</text>
+            <text class="sub" x="100" y="83" text-anchor="middle">property bị gán từ ngoài</text>
+          </g>
+
+          <text class="rowlbl" x="30" y="196" fill="#16a34a">✓ THÔNG QUA METHOD</text>
+          <rect class="group" x="310" y="200" width="580" height="150" rx="18"/>
+          <g class="gtag" transform="translate(328,188)"><rect width="140" height="24" rx="12"/><text x="70" y="16.5" text-anchor="middle">OBJECT PERSON</text></g>
+          <g class="node n-blue" transform="translate(30,230)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-code" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Code bên ngoài</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">chỉ gọi method</text>
+          </g>
+          <path class="arrow" d="M214,278 H336"/>
+          <text class="alabel" x="275" y="266" text-anchor="middle">gọi</text>
+          <g class="node n-orange" transform="translate(340,230)">
+            <rect width="220" height="96" rx="14"/>
+            <use href="#i-gear" x="93" y="12" width="34" height="34"/>
+            <text class="label" x="110" y="66" text-anchor="middle">Method tăng tuổi</text>
+            <text class="sub" x="110" y="83" text-anchor="middle">hành vi sau một năm</text>
+          </g>
+          <path class="arrow" d="M564,278 H656"/>
+          <text class="alabel" x="610" y="266" text-anchor="middle">cập nhật</text>
+          <g class="node n-green" transform="translate(660,230)">
+            <rect width="200" height="96" rx="14"/>
+            <use href="#i-db" x="83" y="12" width="34" height="34"/>
+            <text class="label" x="100" y="66" text-anchor="middle">State: age</text>
+            <text class="sub" x="100" y="83" text-anchor="middle">object tự xử lý bên trong</text>
+          </g>
+        </svg>
+      </div>
+      <div class="fig-cap">Bên ngoài chỉ gọi method · việc cập nhật tuổi nằm trong object</div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="tag">04. Ứng dụng trong SDK</div>
+    <h2 class="c-sdk">Vì sao nền tảng phát hành SDK: Facebook Login</h2>
+    <p class="desc">Hiểu hai khái niệm này thì sẽ thấy lý do các nền tảng và công ty xây SDK. Mentor dùng một tình huống giả định: Facebook có API đầy đủ, dev hoàn toàn có thể tự gọi backend để xử lý đăng nhập.</p>
+    <div class="list-lbl">Vấn đề khi dev tự gọi API</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic bad">✗</span><div>Mỗi dev code theo một kiểu khác nhau.</div></div>
+      <div class="row"><span class="ic bad">✗</span><div>Một số trường hợp và flow cần thiết bị thiếu, chưa được implement.</div></div>
+    </div>
+    <div class="fig">
+      <div class="fig-card">
+        <svg class="diagram" viewBox="0 0 1100 320" role="img" aria-label="App gọi hàm login của SDK, SDK xử lý ngầm với Facebook API và trả kết quả qua callback">
+          <rect class="group" x="300" y="50" width="770" height="190" rx="18"/>
+          <g class="gtag" transform="translate(318,38)"><rect width="230" height="24" rx="12"/><text x="115" y="16.5" text-anchor="middle">ẨN SAU SDK · ENCAPSULATION</text></g>
+          <g class="node n-blue" transform="translate(30,100)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-browser" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">App của dev</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">truyền tham số cần thiết</text>
+          </g>
+          <path class="arrow" d="M214,148 H326"/>
+          <g class="badge" transform="translate(270,148)"><circle r="13"/><text y="4.5" text-anchor="middle">1</text></g>
+          <text class="alabel mono" x="270" y="124" text-anchor="middle">login()</text>
+          <g class="node n-purple" transform="translate(330,100)">
+            <rect width="240" height="96" rx="14"/>
+            <use href="#i-box" x="103" y="12" width="34" height="34"/>
+            <text class="label" x="120" y="66" text-anchor="middle">Facebook Login SDK</text>
+            <text class="sub mono" x="120" y="83" text-anchor="middle">login / authenticate (?)</text>
+          </g>
+          <path class="arrow both" d="M574,148 H836"/>
+          <g class="badge" transform="translate(705,148)"><circle r="13"/><text y="4.5" text-anchor="middle">2</text></g>
+          <text class="alabel" x="705" y="124" text-anchor="middle">tiến trình chạy ngầm</text>
+          <g class="node n-pink" transform="translate(840,100)">
+            <rect width="200" height="96" rx="14"/>
+            <use href="#i-cloud" x="83" y="12" width="34" height="34"/>
+            <text class="label" x="100" y="66" text-anchor="middle">Facebook API</text>
+            <text class="sub" x="100" y="83" text-anchor="middle">backend xử lý đăng nhập</text>
+          </g>
+          <path class="arrow dash" d="M450,200 V270 H120 V200"/>
+          <g class="badge" transform="translate(285,270)"><circle r="13"/><text y="4.5" text-anchor="middle">3</text></g>
+          <text class="alabel" x="285" y="300" text-anchor="middle">object kết quả qua callback</text>
+        </svg>
+      </div>
+      <div class="fig-cap">Mentor nhớ tên hàm có thể là login hoặc authenticate</div>
+    </div>
+    <div class="list-lbl">Sự kết hợp trong ví dụ này</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic key">A</span><div>Abstraction: đưa ra một hàm gọi đơn giản ở mức <b>what</b>.</div></div>
+      <div class="row"><span class="ic good">E</span><div>Encapsulation: giấu kín toàn bộ quy trình xử lý bên trong.</div></div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="tag">05. Vì sao công ty tự viết SDK nội bộ</div>
+    <h2 class="c-sdk">Nhiều team, cùng lặp lại việc đấu nối hạ tầng</h2>
+    <p class="desc">Bối cảnh giả định: một công ty product có nhiều team và service. Nếu mỗi team tự viết lại phần kết nối, công ty phải <b>maintain nhiều đoạn code trùng nhau</b> do những người có kỹ năng khác nhau viết ra.</p>
+    <div class="list-lbl">Bối cảnh giả định</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic sdk">◆</span><div>9/10 team dùng Java.</div></div>
+      <div class="row"><span class="ic sdk">◆</span><div>Trình độ và mức độ kỹ tính giữa các software engineer không đồng đều.</div></div>
+      <div class="row"><span class="ic sdk">◆</span><div>Việc đấu nối database, Kafka, Redis lặp đi lặp lại liên tục.</div></div>
+    </div>
+
+    <div class="list-lbl">Tiến trình chuẩn hóa</div>
+    <div class="chain">
+      <div class="chain-step"><div class="n">BƯỚC 01</div><h4>Mỗi team tự viết</h4><p>Code trùng lặp, chất lượng phụ thuộc người viết.</p></div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-step"><div class="n">BƯỚC 02</div><h4>Library nội bộ</h4><p>Hết viết lại, nhưng dev vẫn phải gọi đúng function. Với Redis còn phải cấu hình ENV, kết nối và tự viết code sử dụng.</p></div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-step"><div class="n">BƯỚC 03</div><h4>Framework / SDK</h4><p>Dev chỉ tập trung xử lý nghiệp vụ khi nhận được event object.</p></div>
+    </div>
+
+    <div class="fig">
+      <div class="fig-card">
+        <svg class="diagram" viewBox="0 0 1100 400" role="img" aria-label="Các team gọi RedisFactory Consume trong SDK nội bộ, SDK ẩn pooling và kết nối tới Redis, Kafka, Database">
+          <rect class="group" x="300" y="50" width="380" height="310" rx="18"/>
+          <g class="gtag" transform="translate(318,38)"><rect width="190" height="24" rx="12"/><text x="95" y="16.5" text-anchor="middle">SDK NỘI BỘ (giả định)</text></g>
+
+          <g class="node n-purple" transform="translate(30,80)">
+            <rect x="10" y="-10" width="180" height="96" rx="14"/>
+            <rect x="5" y="-5" width="180" height="96" rx="14"/>
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-server" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Team services</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">chỉ viết nghiệp vụ</text>
+          </g>
+          <path class="arrow" d="M224,112 H326"/>
+          <text class="alabel mono" x="275" y="100" text-anchor="middle">Consume(cb)</text>
+          <path class="arrow dash" d="M326,152 H214"/>
+          <text class="alabel" x="270" y="180" text-anchor="middle">event object</text>
+
+          <g class="node n-purple" transform="translate(330,80)">
+            <rect width="320" height="96" rx="14"/>
+            <use href="#i-gear" x="143" y="12" width="34" height="34"/>
+            <text class="label mono" x="160" y="66" text-anchor="middle">RedisFactory</text>
+            <text class="sub mono" x="160" y="83" text-anchor="middle">.Consume(callback) — nhận event</text>
+          </g>
+          <path class="arrow" d="M490,180 V236"/>
+          <g class="node n-gray" transform="translate(330,240)">
+            <rect width="320" height="96" rx="14"/>
+            <use href="#i-lock" x="143" y="12" width="34" height="34"/>
+            <text class="label" x="160" y="66" text-anchor="middle">Bị ẩn đi</text>
+            <text class="sub" x="160" y="83" text-anchor="middle">pooling · kết nối · đóng/mở · ENV</text>
+          </g>
+
+          <path class="arrow" d="M684,208 H770 V88 H856"/>
+          <path class="arrow" d="M684,208 H856"/>
+          <path class="arrow" d="M684,208 H770 V328 H856"/>
+
+          <g class="node n-orange" transform="translate(860,40)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-cache" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Redis</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">cache</text>
+          </g>
+          <g class="node n-yellow" transform="translate(860,160)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-queue" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Kafka</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">event stream</text>
+          </g>
+          <g class="node n-green" transform="translate(860,280)">
+            <rect width="180" height="96" rx="14"/>
+            <use href="#i-db" x="73" y="12" width="34" height="34"/>
+            <text class="label" x="90" y="66" text-anchor="middle">Database</text>
+            <text class="sub" x="90" y="83" text-anchor="middle">storage</text>
+          </g>
+        </svg>
+      </div>
+      <div class="fig-cap">Ví dụ giả định của mentor: SDK của 200Lab có RedisFactory + Consume · xây SDK/framework nội bộ là việc của SA và Software Engineer</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="tag">06. Bao đóng tham số: Login Data</div>
+    <h2 class="c-enc">Encapsulation áp dụng ngay khi thiết kế tham số function</h2>
+    <p class="desc">So sánh hai cách truyền tham số cho hàm <code>login</code>.</p>
+    <div class="compare">
+      <div class="card bad">
+        <h3>CÁCH 1 · THAM SỐ RỜI RẠC</h3>
+<span class="formula">login(username, password)
+<span class="e">login(email, password)  ?</span>
+<span class="e">login(phone, otp)       ?</span></span>
+        <ul>
+          <li>Hàm nhận từng tham số riêng như <code>username</code>, <code>password</code>.</li>
+          <li>Thêm kiểu login email/password hay phone/OTP thì phải <b>sửa danh sách tham số</b> hoặc <b>copy function</b>.</li>
+        </ul>
+      </div>
+      <div class="card good">
+        <h3>CÁCH 2 · GOM THÀNH LOGIN DATA</h3>
+<span class="formula">login(data: LoginData) {
+  data.<span class="g">validate()</span>  <span class="c">// throw nếu sai</span>
+  ...
+}</span>
+        <ul>
+          <li>Gom username, password hoặc thông tin đăng nhập khác vào một data object.</li>
+          <li>Logic kiểm tra nằm trong object: <code>validate()</code> throw lỗi khi dữ liệu không hợp lệ.</li>
+          <li><code>login</code> gọn hơn vì không phải gọi library bên ngoài để kiểm tra từng trường.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="list-lbl">Lợi ích tổng thể</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic good">✓</span><div>Class dễ sửa đổi và dễ maintain hơn.</div></div>
+      <div class="row"><span class="ic good">✓</span><div>Giảm độ phức tạp cho người dùng <span class="dim">(người dùng SDK là các dev trong công ty).</span></div></div>
+      <div class="row"><span class="ic good">✓</span><div>Giảm code lặp lại, dễ mở rộng và tái sử dụng tốt hơn.</div></div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section>
+    <div class="tag">07. Những điểm chính</div>
+    <h2 class="c-key">Bảng tra cứu nhanh</h2>
+    <div class="tbl">
+    <table>
+      <thead><tr><th>Tiêu chí</th><th>Abstraction</th><th>Encapsulation</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Tập trung</td><td class="abs">“What”: hành vi là gì</td><td class="enc">Group: data + code thành single unit</td></tr>
+        <tr><td class="k">Mục tiêu</td><td>Tinh giản cấu trúc, kiến trúc phần mềm</td><td>Bảo vệ state bên trong khỏi tác động trực tiếp</td></tr>
+        <tr><td class="k">Công cụ</td><td><code>interface</code>, <code>abstract class</code></td><td>access modifier, getter/setter, method của object</td></tr>
+        <tr><td class="k">Trong bài</td><td><code>Animal.eat()</code>, hàm <code>login()</code> của SDK</td><td><code>Book.validate()</code>, method tăng tuổi, LoginData, RedisFactory</td></tr>
+        <tr><td class="k">Mức độ</td><td>Đòi hỏi thêm tư duy thiết kế</td><td>Có nhiều ứng dụng trực tiếp</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="list-lbl">Ghi nhớ từ bài</div>
+    <div class="danger-list">
+      <div class="row"><span class="ic key">1</span><div>Object tự quản lý việc thay đổi state; bên ngoài chỉ đi qua method được phép.</div></div>
+      <div class="row"><span class="ic key">2</span><div>SDK nội bộ ẩn kết nối, đóng/mở, pooling, nên các team bớt phải viết code lặp lại.</div></div>
+      <div class="row"><span class="ic key">3</span><div>Gom dữ liệu vào object kèm <code>validate()</code> gọn và dễ maintain hơn so với truyền tham số rời rạc.</div></div>
+      <div class="row"><span class="ic bad">!</span><div>Theo mentor, dev có thể vẫn hiểu sai hai khái niệm <span class="dim">dù đã dùng interface hoặc abstract class khi code.</span></div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer><b>Abstraction</b> trả lời “làm gì”, <b>Encapsulation</b> gom và giấu “làm thế nào”, và chỉ object được đổi state của chính nó.</footer>
+
+
+<!-- sdn:foot -->
+<nav class="sdn-nav" aria-label="Bài trước, bài sau" data-root="../../../" data-lesson-id="backend/oop/oop-01.html"></nav>
+<script>document.write('<script src="../../../lessons/lessons.js?t=' + Date.now() + '"><\/script>')</script>
+<script src="../../../assets/app.js"></script>
+<!-- /sdn:foot -->
+</body>
+</html>
